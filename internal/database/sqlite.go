@@ -125,8 +125,13 @@ func (m *Sqlite) Save(records Records) *sqlx.Rows {
 		if err != nil {
 			log.Printf("insert error: %+v\n", err)
 		}
-		id, _ := sqlResult.LastInsertId()
-		insertedIds = append(insertedIds, strconv.Itoa(int(id)))
+		lastId, _ := sqlResult.LastInsertId()
+
+		if record["id"] != nil {
+			insertedIds = append(insertedIds, strconv.Itoa(int(record["id"].(float64))))
+			continue
+		}
+		insertedIds = append(insertedIds, strconv.Itoa(int(lastId)))
 	}
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
