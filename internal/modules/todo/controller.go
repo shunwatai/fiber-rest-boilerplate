@@ -22,9 +22,9 @@ func (c *Controller) Get(queries map[string]interface{}) []*Todo {
 
 func (c *Controller) Create(todos []*Todo) []*Todo {
 	fmt.Printf("todo ctrl create\n")
+	t := time.Now()
 	for _, todo := range todos {
 		// t := time.Now().Format("2006-01-02 15:04:05")
-		t := time.Now()
 		if todo.CreatedAt == nil {
 			todo.CreatedAt = &t
 		}
@@ -36,9 +36,17 @@ func (c *Controller) Create(todos []*Todo) []*Todo {
 	return c.service.Create(todos)
 }
 
-func (c *Controller) Update() {
+func (c *Controller) Update(todos []*Todo) []*Todo {
 	fmt.Printf("todo ctrl update\n")
-	c.service.Update()
+	t := time.Now()
+	for _, todo := range todos {
+		if todo.Id == nil {
+			todo.CreatedAt = &t
+		}
+		todo.UpdatedAt = &t
+	}
+
+	return c.service.Update(todos)
 }
 
 func (c *Controller) Delete() {

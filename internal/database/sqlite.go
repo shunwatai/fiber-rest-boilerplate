@@ -93,16 +93,28 @@ func (m *Sqlite) Save(records Records) *sqlx.Rows {
 	}
 
 	// fmt.Printf("cols: %+v\n", cols)
-	colWithColon := []string{}
+	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
+		// use in SQL's VALUES()
 		colWithColon = append(colWithColon, fmt.Sprintf(":%s", col))
+
+		// use in SQL's ON CONFLICT DO UPDATE SET
+		if strings.Contains(col, "_at") {
+			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(excluded.%s, CURRENT_TIMESTAMP)", col, col))
+			continue
+		}
+		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=excluded.%s", col, col))
 	}
 
 	insertStmt := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES (%s) RETURNING id",
+		`INSERT INTO %s (%s) VALUES (%s) 
+		ON CONFLICT(id) DO UPDATE SET
+    %s
+		RETURNING id`,
 		m.TableName,
 		fmt.Sprintf(strings.Join(cols[:], ",")),
 		fmt.Sprintf(strings.Join(colWithColon[:], ",")),
+		fmt.Sprintf(strings.Join(colUpdateSet[:], ",\n")),
 	)
 	fmt.Printf("%+v \n", insertStmt)
 
@@ -121,8 +133,9 @@ func (m *Sqlite) Save(records Records) *sqlx.Rows {
 	return m.Select(map[string]interface{}{"id": insertedIds})
 }
 
-func (m *Sqlite) Update() {
+func (m *Sqlite) Update(records Records) *sqlx.Rows {
 	fmt.Printf("update from Sqlite, table: %+v\n", m.TableName)
+	return &sqlx.Rows{}
 }
 
 func (m *Sqlite) Delete() {

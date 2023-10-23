@@ -7,7 +7,7 @@ import (
 type IDatabase interface {
 	Select(map[string]interface{}) *sqlx.Rows
 	Save(Records) *sqlx.Rows
-	Update()
+	Update(Records) *sqlx.Rows
 	Delete()
 	GetConnectionInfo() ConnectionInfo
 }

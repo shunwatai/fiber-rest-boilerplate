@@ -85,7 +85,7 @@ func GetRoutes(router fiber.Router) {
 		if todoErr == nil {
 			todos = append(todos, todo)
 		}
-		fmt.Printf("??todos: %+v\n", todos)
+		fmt.Printf("save todos: %+v\n", todos)
 
 		results := ctrl.Create(todos)
 
@@ -96,9 +96,24 @@ func GetRoutes(router fiber.Router) {
 	})
 
 	r.Patch("/", func(c *fiber.Ctx) error {
-		// id := int64(2)
-		ctrl.Update()
-		return nil
+		todo := &Todo{}
+		todos := []*Todo{}
+		todoErr, todosErr := c.BodyParser(todo), c.BodyParser(&todos)
+		if todosErr != nil {
+			log.Printf("BodyParser err: %+v\n", todosErr.Error())
+		}
+
+		if todoErr == nil {
+			todos = append(todos, todo)
+		}
+		fmt.Printf("update todos: %+v\n", todos)
+
+		results := ctrl.Update(todos)
+
+		if todoErr == nil {
+			return c.JSON(map[string]interface{}{"data": results[0]})
+		}
+		return c.JSON(map[string]interface{}{"data": results})
 	})
 
 	r.Delete("/", func(c *fiber.Ctx) error {
