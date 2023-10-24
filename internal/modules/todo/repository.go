@@ -3,6 +3,7 @@ package todo
 import (
 	"fmt"
 	"golang-api-starter/internal/database"
+	"golang-api-starter/internal/helper"
 	"log"
 )
 
@@ -12,9 +13,6 @@ type Repository struct {
 
 func NewRepository(db database.IDatabase) *Repository {
 	return &Repository{db}
-}
-
-func handleSqlite() {
 }
 
 func (r *Repository) Get(queries map[string]interface{}) []*Todo {
@@ -76,6 +74,25 @@ func (r *Repository) Update(todos []*Todo) []*Todo {
 	return savedRecords
 }
 
-func (r *Repository) Delete() {
-	r.db.Delete()
+func (r *Repository) Delete(ids *[]int64) ([]*Todo, error) {
+	idsString, _ := helper.ConvertNumberSliceToString(*ids)
+	rows := r.db.Select(map[string]interface{}{"id": idsString})
+	defer rows.Close()
+
+	records := make([]*Todo, 0)
+	for rows.Next() {
+		var todo Todo
+		err := rows.StructScan(&todo)
+		if err != nil {
+			log.Fatalf("Scan: %v", err)
+		}
+		records = append(records, &todo)
+	}
+
+	err := r.db.Delete(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return records, nil
 }

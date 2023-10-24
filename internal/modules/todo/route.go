@@ -2,11 +2,12 @@ package todo
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/iancoleman/strcase"
 	"golang-api-starter/internal/database"
 	"log"
 	"net/url"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/iancoleman/strcase"
 )
 
 var tableName = "todos"
@@ -117,7 +118,24 @@ func GetRoutes(router fiber.Router) {
 	})
 
 	r.Delete("/", func(c *fiber.Ctx) error {
-		ctrl.Delete()
-		return nil
+		// body := map[string]interface{}{}
+		// json.Unmarshal(c.BodyRaw(), &body)
+		// fmt.Printf("req body: %+v\n", body)
+		delIds := struct {
+			Ids []int64 `json:"ids" validate:"required,min=1,unique"`
+		}{}
+		if err := c.BodyParser(&delIds); err != nil {
+			log.Printf("failed to parse req body, err: %+v\n", err.Error())
+			return c.JSON(map[string]interface{}{"message": err.Error()})
+		}
+		fmt.Printf("deletedIds: %+v\n", delIds)
+
+		results, err := ctrl.Delete(&delIds.Ids)
+		if err != nil {
+			log.Printf("failed to delete, err: %+v\n", err.Error())
+			return c.JSON(map[string]interface{}{"message": err.Error()})
+		}
+
+		return c.JSON(map[string]interface{}{"data": results})
 	})
 }

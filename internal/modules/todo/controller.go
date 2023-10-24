@@ -49,6 +49,6 @@ func (c *Controller) Update(todos []*Todo) []*Todo {
 	return c.service.Update(todos)
 }
 
-func (c *Controller) Delete() {
-	c.service.Delete()
+func (c *Controller) Delete(ids *[]int64) ([]*Todo, error) {
+	return c.service.Delete(ids)
 }

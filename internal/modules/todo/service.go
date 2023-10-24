@@ -25,6 +25,6 @@ func (s *Service) Update(todos []*Todo) []*Todo {
 	return s.repo.Update(todos)
 }
 
-func (s *Service) Delete() {
-	s.repo.Delete()
+func (s *Service) Delete(ids *[]int64) ([]*Todo, error) {
+	return s.repo.Delete(ids)
 }

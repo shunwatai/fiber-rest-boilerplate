@@ -138,11 +138,31 @@ func (m *Sqlite) Save(records Records) *sqlx.Rows {
 	return m.Select(map[string]interface{}{"id": insertedIds})
 }
 
-func (m *Sqlite) Update(records Records) *sqlx.Rows {
-	fmt.Printf("update from Sqlite, table: %+v\n", m.TableName)
-	return &sqlx.Rows{}
-}
+// func (m *Sqlite) Update(records Records) *sqlx.Rows {
+// 	fmt.Printf("update from Sqlite, table: %+v\n", m.TableName)
+// 	return &sqlx.Rows{}
+// }
 
-func (m *Sqlite) Delete() {
-	fmt.Printf("delete from Sqlite, table: %+v\n", m.TableName)
+func (m *Sqlite) Delete(ids *[]int64) error {
+	fmt.Printf("delete from Sqlite, table: %+v where id in (%+v)\n", m.TableName, *ids)
+	db := m.Connect()
+
+	deleteStmt, args, err := sqlx.In(
+		fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
+		*ids,
+	)
+	if err != nil {
+		log.Printf("sqlx.In err: %+v\n", err.Error())
+		return err
+	}
+	deleteStmt = db.Rebind(deleteStmt)
+	fmt.Printf("stmt: %+v, args: %+v\n", deleteStmt, args)
+
+	_, err = db.Exec(deleteStmt, args...)
+	if err != nil {
+		log.Printf("Delete Query err: %+v\n", err.Error())
+		return err
+	}
+
+	return nil
 }
