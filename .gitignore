@@ -3,3 +3,4 @@ tmp/
 app.env
 uploads/
 db-backup/
+*.db
