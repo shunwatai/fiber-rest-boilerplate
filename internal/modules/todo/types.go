@@ -2,9 +2,12 @@ package todo
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/iancoleman/strcase"
+	"github.com/jmoiron/sqlx"
 )
 
 // type TodoRequest struct {
@@ -39,4 +42,26 @@ func (todos Todos) StructToMap() []map[string]interface{} {
 	}
 
 	return mapsResults
+}
+
+func (todos Todos) rowsToStruct(rows *sqlx.Rows) []*Todo {
+	defer rows.Close()
+
+	records := make([]*Todo, 0)
+	for rows.Next() {
+		var todo Todo
+		err := rows.StructScan(&todo)
+		if err != nil {
+			log.Fatalf("Scan: %v", err)
+		}
+		records = append(records, &todo)
+	}
+
+	return records
+}
+
+func (todos *Todos) printValue() {
+	for _, v := range *todos {
+		fmt.Printf("id: %+v, v: %+v\n", *v.Id, *v)
+	}
 }
