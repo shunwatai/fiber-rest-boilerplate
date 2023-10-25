@@ -1,12 +1,8 @@
 package todo
 
 import (
-	"fmt"
-	"golang-api-starter/internal/database"
-	"golang-api-starter/internal/helper"
-	"log"
-
 	"github.com/gofiber/fiber/v2"
+	"golang-api-starter/internal/database"
 )
 
 // var db = &database.Postgre{
@@ -36,85 +32,24 @@ var ctrl = NewController(srvc)
 func GetRoutes(router fiber.Router) {
 	r := router.Group("/todo")
 
-	r.Get("/", func(c *fiber.Ctx) error {
-		fctx := &helper.FiberCtx{Fctx: c}
-		reqCtx := &helper.ReqContext{Payload: fctx}
-		paramsMap := reqCtx.Payload.GetQueryString()
-		results := ctrl.Get(paramsMap)
+	r.Get("/", GetAll)
+	r.Post("/", Create)
+	r.Patch("/", Update)
+	r.Delete("/", Delete)
+}
 
-		return c.JSON(map[string]interface{}{"data": results})
-	})
+func GetAll(c *fiber.Ctx) error {
+	return ctrl.Get(c)
+}
 
-	r.Post("/", func(c *fiber.Ctx) error {
-		todo := &Todo{}
-		todos := []*Todo{}
+func Create(c *fiber.Ctx) error {
+	return ctrl.Create(c)
+}
 
-		fctx := &helper.FiberCtx{Fctx: c}
-		reqCtx := &helper.ReqContext{Payload: fctx}
-		todoErr, _ := reqCtx.Payload.ParseJsonToStruct(todo, &todos)
-		if todoErr == nil {
-			todos = append(todos, todo)
-		}
-		// log.Printf("todoErr: %+v, todosErr: %+v\n", todoErr, todosErr)
-		// for _, t := range todos {
-		// 	log.Printf("todos: %+v\n", t)
-		// }
+func Update(c *fiber.Ctx) error {
+	return ctrl.Update(c)
+}
 
-		results := ctrl.Create(todos)
-
-		if todoErr == nil {
-			return c.JSON(map[string]interface{}{"data": results[0]})
-		}
-		return c.JSON(map[string]interface{}{"data": results})
-	})
-
-	r.Patch("/", func(c *fiber.Ctx) error {
-		todo := &Todo{}
-		todos := []*Todo{}
-
-		fctx := &helper.FiberCtx{Fctx: c}
-		reqCtx := &helper.ReqContext{Payload: fctx}
-		todoErr, _ := reqCtx.Payload.ParseJsonToStruct(todo, &todos)
-		if todoErr == nil {
-			todos = append(todos, todo)
-		}
-		// log.Printf("todoErr: %+v, todosErr: %+v\n", todoErr, todosErr)
-		// for _, t := range todos {
-		// 	log.Printf("todos: %+v\n", t)
-		// }
-
-		results := ctrl.Update(todos)
-
-		if todoErr == nil {
-			return c.JSON(map[string]interface{}{"data": results[0]})
-		}
-		return c.JSON(map[string]interface{}{"data": results})
-	})
-
-	r.Delete("/", func(c *fiber.Ctx) error {
-		// body := map[string]interface{}{}
-		// json.Unmarshal(c.BodyRaw(), &body)
-		// fmt.Printf("req body: %+v\n", body)
-		delIds := struct {
-			Ids []int64 `json:"ids" validate:"required,min=1,unique"`
-		}{}
-
-		fctx := &helper.FiberCtx{Fctx: c}
-		reqCtx := &helper.ReqContext{Payload: fctx}
-		err, _ := reqCtx.Payload.ParseJsonToStruct(&delIds, nil)
-		if err != nil {
-			log.Printf("failed to parse req json, %+v\n", err.Error())
-			return c.JSON(map[string]interface{}{"message": err.Error()})
-		}
-
-		fmt.Printf("deletedIds: %+v\n", delIds)
-
-		results, err := ctrl.Delete(&delIds.Ids)
-		if err != nil {
-			log.Printf("failed to delete, err: %+v\n", err.Error())
-			return c.JSON(map[string]interface{}{"message": err.Error()})
-		}
-
-		return c.JSON(map[string]interface{}{"data": results})
-	})
+func Delete(c *fiber.Ctx) error {
+	return ctrl.Delete(c)
 }
