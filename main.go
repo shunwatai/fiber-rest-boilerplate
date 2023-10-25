@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/modules/todo"
 	"log"
 
@@ -9,11 +11,17 @@ import (
 )
 
 func main() {
+	config := config.Config{}
+	config.LoadEnvVariables()
+	config.WatchConfig()
+	fmt.Printf("server config: %+v\n", config.ServerConf)
+	fmt.Printf("db config: %+v\n", config.DbConf)
+
 	app := fiber.New()
 	app.Use(logger.New())
 
 	api := app.Group("/api")
 	todo.GetRoutes(api)
 
-	log.Fatal(app.Listen(":7000"))
+	log.Fatal(app.Listen(fmt.Sprintf(":%s",config.ServerConf.Port)))
 }

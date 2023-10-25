@@ -1,6 +1,6 @@
 tmp/
 .env
-app.env
+config.yaml
 uploads/
 db-backup/
 *.db
