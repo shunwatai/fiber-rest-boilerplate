@@ -27,6 +27,18 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	return ctx.JSON(map[string]interface{}{"data": results})
 }
 
+func (c *Controller) GetById(ctx *fiber.Ctx) error {
+	fmt.Printf("todo ctrl\n")
+	id := ctx.Params("id")
+	paramsMap := map[string]interface{}{"id": id}
+	results := c.service.Get(paramsMap)
+
+	if len(results) == 0 {
+		return ctx.JSON(map[string]interface{}{"msg": fmt.Sprintf("record with id: %s not found", id)})
+	}
+	return ctx.JSON(map[string]interface{}{"data": results[0]})
+}
+
 func (c *Controller) Create(ctx *fiber.Ctx) error {
 	fmt.Printf("todo ctrl create\n")
 	todo := &Todo{}

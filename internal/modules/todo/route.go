@@ -31,15 +31,21 @@ var ctrl = NewController(srvc)
 
 func GetRoutes(router fiber.Router) {
 	r := router.Group("/todo")
-
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)
 	r.Delete("/", Delete)
+
+	rById := router.Group("/todo/:id")
+	rById.Get("/", GetById)
 }
 
 func GetAll(c *fiber.Ctx) error {
 	return ctrl.Get(c)
+}
+
+func GetById(c *fiber.Ctx) error {
+	return ctrl.GetById(c)
 }
 
 func Create(c *fiber.Ctx) error {
