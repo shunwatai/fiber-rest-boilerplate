@@ -20,7 +20,7 @@ func (r *Repository) Get(queries map[string]interface{}) []*Todo {
 
 	var records Todos
 	records = records.rowsToStruct(rows)
-	records.printValue()
+	// records.printValue()
 
 	return records
 }
