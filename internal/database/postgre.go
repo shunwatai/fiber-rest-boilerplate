@@ -1,23 +1,28 @@
 package database
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/jmoiron/sqlx"
+)
 
-type Postgre struct {
-	Host   string
-	Port   string
-	User   string
-	Pass   string
+type Postgres struct {
+	*ConnectionInfo
 	TableName string
 }
-func (m *Postgre) Select() {
-	fmt.Printf("select from Postgre, table: %+v\n", m.TableName)
+
+func (m *Postgres) Select(queries map[string]interface{}) *sqlx.Rows {
+	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
+	return nil
 }
-func (m *Postgre) Save() {
-	fmt.Printf("save from Postgre, table: %+v\n", m.TableName)
+func (m *Postgres) Save(records Records) *sqlx.Rows {
+	fmt.Printf("save from Postgres, table: %+v\n", m.TableName)
+	return nil
 }
-func (m *Postgre) Update() {
-	fmt.Printf("update from Postgre, table: %+v\n", m.TableName)
-}
-func (m *Postgre) Delete() {
-	fmt.Printf("delete from Postgre, table: %+v\n", m.TableName)
+
+// func (m *Postgres) Update() {
+// 	fmt.Printf("update from Postgres, table: %+v\n", m.TableName)
+// }
+func (m *Postgres) Delete(ids *[]int64) error {
+	fmt.Printf("delete from Postgres, table: %+v\n", m.TableName)
+	return nil
 }

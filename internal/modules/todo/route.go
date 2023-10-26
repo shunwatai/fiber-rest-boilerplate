@@ -12,22 +12,24 @@ import (
 // 	Pass:      "maria",
 // 	TableName: "todo",
 // }
-var db = &database.Sqlite{
-	ConnectionInfo: &database.ConnectionInfo{
-		Driver:   "sqlite",
-		Host:     "localhost",
-		Port:     "",
-		User:     "user",
-		Pass:     "user",
-		Database: "fiber-starter",
-	},
-	TableName: tableName,
-}
+
+// var db = &database.Sqlite{
+// 	ConnectionInfo: &database.ConnectionInfo{
+// 		Driver:   "sqlite",
+// 		Host:     "localhost",
+// 		Port:     "",
+// 		User:     "user",
+// 		Pass:     "user",
+// 		Database: "fiber-starter",
+// 	},
+// 	TableName: tableName,
+// }
 
 var tableName = "todos"
-var repo = NewRepository(db)
-var srvc = NewService(repo)
-var ctrl = NewController(srvc)
+var db = database.GetDatabase(tableName)
+var Repo = NewRepository(db)
+var Srvc = NewService(Repo)
+var ctrl = NewController(Srvc)
 
 func GetRoutes(router fiber.Router) {
 	r := router.Group("/todo")

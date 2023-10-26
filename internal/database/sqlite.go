@@ -31,9 +31,9 @@ func (m *Sqlite) Connect() *sqlx.DB {
 	return db
 }
 
-func (m *Sqlite) GetConnectionInfo() ConnectionInfo {
-	return *m.ConnectionInfo
-}
+// func (m *Sqlite) GetConnectionInfo() ConnectionInfo {
+// 	return *m.ConnectionInfo
+// }
 
 func (m *Sqlite) Select(queries map[string]interface{}) *sqlx.Rows {
 	fmt.Printf("select from Sqlite, table: %+v\n", m.TableName)

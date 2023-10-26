@@ -19,7 +19,9 @@ func (r *Repository) Get(queries map[string]interface{}) []*Todo {
 	rows := r.db.Select(queries)
 
 	var records Todos
-	records = records.rowsToStruct(rows)
+	if rows != nil {
+		records = records.rowsToStruct(rows)
+	}
 	// records.printValue()
 
 	return records
@@ -30,7 +32,9 @@ func (r *Repository) Create(todos []*Todo) []*Todo {
 	rows := r.db.Save(Todos(todos))
 
 	var records Todos
-	records = records.rowsToStruct(rows)
+	if rows != nil {
+		records = records.rowsToStruct(rows)
+	}
 	records.printValue()
 
 	return records
@@ -41,7 +45,9 @@ func (r *Repository) Update(todos []*Todo) []*Todo {
 	rows := r.db.Save(Todos(todos))
 
 	var records Todos
-	records = records.rowsToStruct(rows)
+	if rows != nil {
+		records = records.rowsToStruct(rows)
+	}
 	records.printValue()
 
 	return records
@@ -52,7 +58,9 @@ func (r *Repository) Delete(ids *[]int64) ([]*Todo, error) {
 	rows := r.db.Select(map[string]interface{}{"id": idsString})
 
 	var records Todos
-	records = records.rowsToStruct(rows)
+	if rows != nil {
+		records = records.rowsToStruct(rows)
+	}
 	records.printValue()
 
 	err := r.db.Delete(ids)

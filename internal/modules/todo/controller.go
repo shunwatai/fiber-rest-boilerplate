@@ -68,7 +68,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// return []*Todo{}
 	results := c.service.Create(todos)
 
-	if todoErr == nil {
+	if todoErr == nil && len(results) > 0 {
 		return ctx.JSON(map[string]interface{}{"data": results[0]})
 	}
 	return ctx.JSON(map[string]interface{}{"data": results})
@@ -101,7 +101,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	results := c.service.Update(todos)
 
-	if todoErr == nil {
+	if todoErr == nil && len(results) > 0 {
 		return ctx.JSON(map[string]interface{}{"data": results[0]})
 	}
 	return ctx.JSON(map[string]interface{}{"data": results})

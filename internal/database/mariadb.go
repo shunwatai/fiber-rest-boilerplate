@@ -1,23 +1,27 @@
 package database
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/jmoiron/sqlx"
+)
 
 type MariaDb struct {
-	Host   string
-	Port   string
-	User   string
-	Pass   string
+	*ConnectionInfo
 	TableName string
 }
-func (m *MariaDb) Select() {
+
+func (m *MariaDb) Select(queries map[string]interface{}) *sqlx.Rows {
 	fmt.Printf("select from MariaDB, table: %+v\n", m.TableName)
+	return nil
 }
-func (m *MariaDb) Save() {
+func (m *MariaDb) Save(records Records) *sqlx.Rows {
 	fmt.Printf("save from MariaDB, table: %+v\n", m.TableName)
+	return nil
 }
-func (m *MariaDb) Update() {
-	fmt.Printf("update from MariaDB, table: %+v\n", m.TableName)
-}
-func (m *MariaDb) Delete() {
+// func (m *MariaDb) Update() {
+// 	fmt.Printf("update from MariaDB, table: %+v\n", m.TableName)
+// }
+func (m *MariaDb) Delete(ids *[]int64) error {
 	fmt.Printf("delete from MariaDB, table: %+v\n", m.TableName)
+	return nil
 }
