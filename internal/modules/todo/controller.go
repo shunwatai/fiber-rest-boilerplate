@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golang-api-starter/internal/helper"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -95,6 +96,14 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	for _, todo := range todos {
 		if todo.Id == nil {
 			todo.CreatedAt = &t
+		} else {
+			existing := c.service.Get(map[string]interface{}{"id": strconv.Itoa(int(*todo.Id))})
+			// fmt.Printf("existing: %+v\n",existing)
+			if len(existing) > 0 {
+				todo.CreatedAt = existing[0].CreatedAt
+			} else {
+				return ctx.JSON(map[string]interface{}{"message": "cannot update non-existing records..."})
+			}
 		}
 		todo.UpdatedAt = &t
 	}

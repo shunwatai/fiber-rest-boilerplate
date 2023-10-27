@@ -62,6 +62,9 @@ func (todos Todos) rowsToStruct(rows *sqlx.Rows) []*Todo {
 
 func (todos *Todos) printValue() {
 	for _, v := range *todos {
-		fmt.Printf("id: %+v, v: %+v\n", *v.Id, *v)
+		if v.Id != nil {
+			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+		}
+		fmt.Printf("new --> v: %+v\n", *v)
 	}
 }

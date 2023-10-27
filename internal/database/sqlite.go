@@ -18,8 +18,8 @@ type Sqlite struct {
 func (m *Sqlite) Connect() *sqlx.DB {
 	fmt.Printf("connecting to Sqlite... \n")
 	fmt.Printf("Table: %+v\n", m.TableName)
-	dbFile := fmt.Sprintf("%s.db", m.Database)
-	connectionString := fmt.Sprintf("./%s?_auth&_auth_user=%s&_auth_pass=%s&_auth_crypt=sha1&parseTime=true", dbFile, m.User, m.Pass)
+	dbFile := fmt.Sprintf("%s.db", *m.Database)
+	connectionString := fmt.Sprintf("./%s?_auth&_auth_user=%s&_auth_pass=%s&_auth_crypt=sha1&parseTime=true", dbFile, *m.User, *m.Pass)
 	fmt.Printf("ConnString: %+v\n", connectionString)
 	// os.Remove(dbFile)
 
