@@ -137,5 +137,24 @@ func (m *MariaDb) Save(records Records) *sqlx.Rows {
 // }
 func (m *MariaDb) Delete(ids *[]int64) error {
 	fmt.Printf("delete from MariaDB, table: %+v\n", m.TableName)
+	db := m.Connect()
+
+	deleteStmt, args, err := sqlx.In(
+		fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
+		*ids,
+	)
+	if err != nil {
+		log.Printf("sqlx.In err: %+v\n", err.Error())
+		return err
+	}
+	deleteStmt = db.Rebind(deleteStmt)
+	fmt.Printf("stmt: %+v, args: %+v\n", deleteStmt, args)
+
+	_, err = db.Exec(deleteStmt, args...)
+	if err != nil {
+		log.Printf("Delete Query err: %+v\n", err.Error())
+		return err
+	}
+
 	return nil
 }
