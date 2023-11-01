@@ -16,10 +16,9 @@ type MariaDb struct {
 
 func (m *MariaDb) Connect() *sqlx.DB {
 	fmt.Printf("connecting to MariaDb... \n")
-	fmt.Printf("Table: %+v\n", m.TableName)
+	// fmt.Printf("Table: %+v\n", m.TableName)
 	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
 	fmt.Printf("ConnString: %+v\n", connectionString)
-	// os.Remove(dbFile)
 
 	db, err := sqlx.Open("mysql", connectionString)
 	if err != nil {
@@ -60,8 +59,8 @@ func (m *MariaDb) Select(queries map[string]interface{}) *sqlx.Rows {
 	if err != nil {
 		log.Printf("Queryx err: %+v\n", err.Error())
 	}
-	err = rows.Err()
-	if err != nil {
+
+	if rows.Err() != nil {
 		log.Printf("rows.Err(): %+v\n", err.Error())
 	}
 
@@ -138,6 +137,7 @@ func (m *MariaDb) Save(records Records) *sqlx.Rows {
 func (m *MariaDb) Delete(ids *[]int64) error {
 	fmt.Printf("delete from MariaDB, table: %+v\n", m.TableName)
 	db := m.Connect()
+	defer db.Close()
 
 	deleteStmt, args, err := sqlx.In(
 		fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
