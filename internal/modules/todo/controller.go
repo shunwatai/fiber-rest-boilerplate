@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"errors"
 	"fmt"
 	"golang-api-starter/internal/helper"
 	"log"
@@ -37,13 +38,13 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 	fmt.Printf("todo ctrl\n")
 	id := ctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
-	results := c.service.Get(paramsMap)
+	results, err := c.service.GetById(paramsMap)
 
-	if len(results) == 0 {
+	if err != nil {
 		respCode = fiber.StatusNotFound
 		return ctx.
 			Status(respCode).
-			JSON(map[string]interface{}{"msg": fmt.Sprintf("record with id: %s not found", id)})
+			JSON(map[string]interface{}{"msg": err.Error()})
 	}
 	respCode = fiber.StatusOK
 	return ctx.JSON(map[string]interface{}{"data": results[0]})
@@ -68,7 +69,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	t := time.Now()
 	for _, todo := range todos {
 		// t := time.Now().Format("2006-01-02 15:04:05")
-		if todo.CreatedAt == nil {
+		if todo.Id == nil {
 			todo.CreatedAt = &t
 		}
 		if todo.UpdatedAt == nil {
@@ -108,19 +109,19 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	t := time.Now()
 	for _, todo := range todos {
-		if todo.Id == nil {
-			todo.CreatedAt = &t
+		existing, err := c.service.GetById(map[string]interface{}{"id": strconv.Itoa(int(*todo.Id))})
+		if len(existing) > 0 {
+			todo.CreatedAt = existing[0].CreatedAt
 		} else {
-			existing := c.service.Get(map[string]interface{}{"id": strconv.Itoa(int(*todo.Id))})
-			// fmt.Printf("existing: %+v\n",existing)
-			if len(existing) > 0 {
-				todo.CreatedAt = existing[0].CreatedAt
-			} else {
-				respCode = fiber.StatusNotFound
-				return ctx.
-					Status(respCode).
-					JSON(map[string]interface{}{"message": "cannot update non-existing records..."})
-			}
+			respCode = fiber.StatusNotFound
+			return ctx.
+				Status(respCode).
+				JSON(map[string]interface{}{
+					"message": errors.Join(
+						errors.New("cannot update non-existing records..."),
+						err,
+					).Error(),
+				})
 		}
 		todo.UpdatedAt = &t
 	}
@@ -159,6 +160,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	results, err := c.service.Delete(&delIds.Ids)
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
+		respCode = fiber.StatusNotFound
 		return ctx.
 			Status(respCode).
 			JSON(map[string]interface{}{"message": err.Error()})

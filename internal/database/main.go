@@ -2,9 +2,9 @@ package database
 
 import (
 	// "golang-api-starter/internal/config"
+	"github.com/jmoiron/sqlx"
 	"golang-api-starter/internal/config"
 	"log"
-	"github.com/jmoiron/sqlx"
 )
 
 type IDatabase interface {

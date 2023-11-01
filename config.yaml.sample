@@ -19,6 +19,12 @@ database:
     user: "user"
     pass: "password"
     database: "fiber-starter"
+  postgre:
+    host: "localhsot"
+    port: "5432"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
 
 redis:
   host: "localhost"
