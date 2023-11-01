@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 type Fiber struct {
@@ -20,6 +21,7 @@ func (f *Fiber) GetApp() {
 
 func (f *Fiber) LoadMiddlewares() {
 	f.App.Use(logger.New())
+	f.App.Use(recover.New())
 }
 
 func (f *Fiber) LoadAllRoutes() {

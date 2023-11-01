@@ -18,6 +18,8 @@ func NewController(s *Service) Controller {
 	return Controller{s}
 }
 
+var respCode = fiber.StatusInternalServerError
+
 func (c *Controller) Get(ctx *fiber.Ctx) error {
 	fmt.Printf("todo ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
@@ -25,7 +27,10 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	paramsMap := reqCtx.Payload.GetQueryString()
 	results := c.service.Get(paramsMap)
 
-	return ctx.JSON(map[string]interface{}{"data": results})
+	respCode = fiber.StatusOK
+	return ctx.
+		Status(respCode).
+		JSON(map[string]interface{}{"data": results})
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
@@ -35,8 +40,12 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 	results := c.service.Get(paramsMap)
 
 	if len(results) == 0 {
-		return ctx.JSON(map[string]interface{}{"msg": fmt.Sprintf("record with id: %s not found", id)})
+		respCode = fiber.StatusNotFound
+		return ctx.
+			Status(respCode).
+			JSON(map[string]interface{}{"msg": fmt.Sprintf("record with id: %s not found", id)})
 	}
+	respCode = fiber.StatusOK
 	return ctx.JSON(map[string]interface{}{"data": results[0]})
 }
 
@@ -69,10 +78,15 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// return []*Todo{}
 	results := c.service.Create(todos)
 
+	respCode = fiber.StatusCreated
 	if todoErr == nil && len(results) > 0 {
-		return ctx.JSON(map[string]interface{}{"data": results[0]})
+		return ctx.
+			Status(respCode).
+			JSON(map[string]interface{}{"data": results[0]})
 	}
-	return ctx.JSON(map[string]interface{}{"data": results})
+	return ctx.
+		Status(respCode).
+		JSON(map[string]interface{}{"data": results})
 }
 
 func (c *Controller) Update(ctx *fiber.Ctx) error {
@@ -102,7 +116,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 			if len(existing) > 0 {
 				todo.CreatedAt = existing[0].CreatedAt
 			} else {
-				return ctx.JSON(map[string]interface{}{"message": "cannot update non-existing records..."})
+				respCode = fiber.StatusNotFound
+				return ctx.
+					Status(respCode).
+					JSON(map[string]interface{}{"message": "cannot update non-existing records..."})
 			}
 		}
 		todo.UpdatedAt = &t
@@ -110,10 +127,15 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	results := c.service.Update(todos)
 
+	respCode = fiber.StatusOK
 	if todoErr == nil && len(results) > 0 {
-		return ctx.JSON(map[string]interface{}{"data": results[0]})
+		return ctx.
+			Status(respCode).
+			JSON(map[string]interface{}{"data": results[0]})
 	}
-	return ctx.JSON(map[string]interface{}{"data": results})
+	return ctx.
+		Status(respCode).
+		JSON(map[string]interface{}{"data": results})
 }
 
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
@@ -137,8 +159,13 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	results, err := c.service.Delete(&delIds.Ids)
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
-		return ctx.JSON(map[string]interface{}{"message": err.Error()})
+		return ctx.
+			Status(respCode).
+			JSON(map[string]interface{}{"message": err.Error()})
 	}
 
-	return ctx.JSON(map[string]interface{}{"data": results})
+	respCode = fiber.StatusOK
+	return ctx.
+		Status(respCode).
+		JSON(map[string]interface{}{"data": results})
 }
