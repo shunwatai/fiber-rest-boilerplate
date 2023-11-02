@@ -6,7 +6,6 @@ import (
 	"golang-api-starter/internal/helper"
 	"log"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -66,16 +65,17 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// 	log.Printf("todos: %+v\n", t)
 	// }
 
-	t := time.Now()
 	for _, todo := range todos {
-		// t := time.Now().Format("2006-01-02 15:04:05")
 		if todo.Id == nil {
-			todo.CreatedAt = &t
+			continue
+		} else if existing, err := c.service.GetById(map[string]interface{}{
+			"id": strconv.Itoa(int(*todo.Id)),
+		}); err == nil && todo.CreatedAt == nil {
+			todo.CreatedAt = existing[0].CreatedAt
 		}
-		if todo.UpdatedAt == nil {
-			todo.UpdatedAt = &t
-		}
+		fmt.Printf("todo? %+v\n", todo)
 	}
+
 	// return []*Todo{}
 	results := c.service.Create(todos)
 
@@ -107,12 +107,9 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	// 	log.Printf("todos: %+v\n", t)
 	// }
 
-	t := time.Now()
 	for _, todo := range todos {
 		existing, err := c.service.GetById(map[string]interface{}{"id": strconv.Itoa(int(*todo.Id))})
-		if len(existing) > 0 {
-			todo.CreatedAt = existing[0].CreatedAt
-		} else {
+		if len(existing) == 0 {
 			respCode = fiber.StatusNotFound
 			return ctx.
 				Status(respCode).
@@ -122,8 +119,9 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 						err,
 					).Error(),
 				})
+		} else if todo.CreatedAt == nil {
+			todo.CreatedAt = existing[0].CreatedAt
 		}
-		todo.UpdatedAt = &t
 	}
 
 	results := c.service.Update(todos)
