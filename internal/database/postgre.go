@@ -28,7 +28,9 @@ func (m *Postgres) Connect() *sqlx.DB {
 	return db
 }
 
-func (m *Postgres) GetColumns(selectStmt string) []string {
+// Get all columns []string by m.TableName
+func (m *Postgres) GetColumns() []string {
+	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
 	rows, err := m.db.Queryx(selectStmt)
 	defer rows.Close()
 	if err != nil {
@@ -88,8 +90,7 @@ func (m *Postgres) Save(records Records) *sqlx.Rows {
 	m.db = m.Connect()
 	defer m.db.Close()
 
-	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
-	cols := m.GetColumns(selectStmt)
+	cols := m.GetColumns()
 
 	// fmt.Printf("cols: %+v\n", cols)
 	var colWithColon, colUpdateSet []string
