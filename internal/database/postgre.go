@@ -50,6 +50,18 @@ func (m *Postgres) Select(queries map[string]interface{}) *sqlx.Rows {
 	m.db = m.Connect()
 	defer m.db.Close()
 
+	cols := m.GetColumns()
+	tmpColsMap := map[string]struct{}{}
+	for _, col := range cols {
+		tmpColsMap[col] = struct{}{}
+	}
+	for k := range queries {
+		_, ok := tmpColsMap[k]
+		if !ok {
+			delete(queries, k)
+		}
+	}
+
 	selectStmt := fmt.Sprintf(
 		"SELECT * FROM %s",
 		m.TableName,
