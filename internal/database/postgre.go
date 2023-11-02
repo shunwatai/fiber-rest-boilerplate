@@ -11,6 +11,7 @@ import (
 type Postgres struct {
 	*ConnectionInfo
 	TableName string
+	db        *sqlx.DB
 }
 
 func (m *Postgres) Connect() *sqlx.DB {
@@ -27,10 +28,25 @@ func (m *Postgres) Connect() *sqlx.DB {
 	return db
 }
 
+func (m *Postgres) GetColumns(selectStmt string) []string {
+	rows, err := m.db.Queryx(selectStmt)
+	defer rows.Close()
+	if err != nil {
+		log.Printf("%+v\n", err)
+	}
+
+	cols, err := rows.Columns()
+	if err != nil {
+		log.Printf("%+v\n", err)
+	}
+
+	return cols
+}
+
 func (m *Postgres) Select(queries map[string]interface{}) *sqlx.Rows {
 	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
-	db := m.Connect()
-	defer db.Close()
+	m.db = m.Connect()
+	defer m.db.Close()
 
 	selectStmt := fmt.Sprintf(
 		"SELECT * FROM %s",
@@ -54,7 +70,7 @@ func (m *Postgres) Select(queries map[string]interface{}) *sqlx.Rows {
 	}
 
 	fmt.Printf("selectStmt: %+v\n", selectStmt)
-	rows, err := db.Queryx(selectStmt)
+	rows, err := m.db.Queryx(selectStmt)
 	if err != nil {
 		log.Printf("Queryx err: %+v\n", err.Error())
 	}
@@ -69,20 +85,11 @@ func (m *Postgres) Select(queries map[string]interface{}) *sqlx.Rows {
 func (m *Postgres) Save(records Records) *sqlx.Rows {
 	fmt.Printf("save from Postgres, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
-	db := m.Connect()
-	defer db.Close()
+	m.db = m.Connect()
+	defer m.db.Close()
+
 	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
-
-	rows, err := db.Queryx(selectStmt)
-	defer rows.Close()
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
-
-	cols, err := rows.Columns()
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
+	cols := m.GetColumns(selectStmt)
 
 	// fmt.Printf("cols: %+v\n", cols)
 	var colWithColon, colUpdateSet []string
@@ -117,7 +124,7 @@ func (m *Postgres) Save(records Records) *sqlx.Rows {
 	fmt.Printf("%+v \n", insertStmt)
 
 	insertedIds := []string{}
-	sqlResult, err := db.NamedQuery(insertStmt, records)
+	sqlResult, err := m.db.NamedQuery(insertStmt, records)
 	if err != nil {
 		log.Printf("insert error: %+v\n", err)
 	}
@@ -141,8 +148,8 @@ func (m *Postgres) Save(records Records) *sqlx.Rows {
 // }
 func (m *Postgres) Delete(ids *[]int64) error {
 	fmt.Printf("delete from Postgres, table: %+v\n", m.TableName)
-	db := m.Connect()
-	defer db.Close()
+	m.db = m.Connect()
+	defer m.db.Close()
 
 	deleteStmt, args, err := sqlx.In(
 		fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
@@ -152,10 +159,10 @@ func (m *Postgres) Delete(ids *[]int64) error {
 		log.Printf("sqlx.In err: %+v\n", err.Error())
 		return err
 	}
-	deleteStmt = db.Rebind(deleteStmt)
+	deleteStmt = m.db.Rebind(deleteStmt)
 	fmt.Printf("stmt: %+v, args: %+v\n", deleteStmt, args)
 
-	_, err = db.Exec(deleteStmt, args...)
+	_, err = m.db.Exec(deleteStmt, args...)
 	if err != nil {
 		log.Printf("Delete Query err: %+v\n", err.Error())
 		return err
