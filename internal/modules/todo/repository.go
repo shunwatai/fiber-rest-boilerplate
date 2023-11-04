@@ -14,9 +14,9 @@ func NewRepository(db database.IDatabase) *Repository {
 	return &Repository{db}
 }
 
-func (r *Repository) Get(queries map[string]interface{}) []*Todo {
+func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
 	fmt.Printf("todo repo\n")
-	rows := r.db.Select(queries)
+	rows, pagination := r.db.Select(queries)
 
 	var records Todos
 	if rows != nil {
@@ -24,7 +24,7 @@ func (r *Repository) Get(queries map[string]interface{}) []*Todo {
 	}
 	// records.printValue()
 
-	return records
+	return records,pagination
 }
 
 func (r *Repository) Create(todos []*Todo) []*Todo {
@@ -55,7 +55,7 @@ func (r *Repository) Update(todos []*Todo) []*Todo {
 
 func (r *Repository) Delete(ids *[]int64) ([]*Todo, error) {
 	idsString, _ := helper.ConvertNumberSliceToString(*ids)
-	rows := r.db.Select(map[string]interface{}{"id": idsString})
+	rows, _ := r.db.Select(map[string]interface{}{"id": idsString})
 
 	var records Todos
 	if rows != nil {

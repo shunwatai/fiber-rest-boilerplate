@@ -2,13 +2,15 @@ package database
 
 import (
 	// "golang-api-starter/internal/config"
-	"github.com/jmoiron/sqlx"
 	"golang-api-starter/internal/config"
+	"golang-api-starter/internal/helper"
 	"log"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type IDatabase interface {
-	Select(map[string]interface{}) *sqlx.Rows
+	Select(map[string]interface{}) (*sqlx.Rows, *helper.Pagination)
 	Save(Records) *sqlx.Rows
 	// Update(Records) *sqlx.Rows
 	Delete(*[]int64) error

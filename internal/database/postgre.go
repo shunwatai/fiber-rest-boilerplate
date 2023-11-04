@@ -2,10 +2,14 @@ package database
 
 import (
 	"fmt"
+	"golang-api-starter/internal/helper"
+	"log"
+	"math"
+	"strconv"
+	"strings"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"log"
-	"strings"
 )
 
 type Postgres struct {
@@ -45,25 +49,21 @@ func (m *Postgres) GetColumns() []string {
 	return cols
 }
 
-func (m *Postgres) Select(queries map[string]interface{}) *sqlx.Rows {
+func (m *Postgres) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
 	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
 
 	cols := m.GetColumns()
-	tmpColsMap := map[string]struct{}{}
-	for _, col := range cols {
-		tmpColsMap[col] = struct{}{}
-	}
-	for k := range queries {
-		_, ok := tmpColsMap[k]
-		if !ok {
-			delete(queries, k)
-		}
-	}
 
+	exactMatchCols := queries["exactMatch"].(map[string]bool)
+	fmt.Printf("exactMatchCols: %+v\n", exactMatchCols)
+	pagination := helper.GetPagination(cols, queries)
+	// fmt.Printf("queries: %+v\n", queries)
+
+	countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
 	selectStmt := fmt.Sprintf(
-		"SELECT * FROM %s",
+		`SELECT * FROM %s`,
 		m.TableName,
 	)
 
@@ -74,14 +74,49 @@ func (m *Postgres) Select(queries map[string]interface{}) *sqlx.Rows {
 			fmt.Printf("%+v: %+v(%T)\n", k, v, v)
 			switch v.(type) {
 			case []string:
-				whereClauses = append(whereClauses, fmt.Sprintf("%s IN ('%s')", k, strings.Join(v.([]string), "','")))
+				// ref: https://stackoverflow.com/a/46636129
+				whereClauses = append(whereClauses, fmt.Sprintf("lower(%s) ~~ ANY('{%%%s%%}')",
+					k,
+					strings.ToLower(strings.Join(v.([]string), "%,%")),
+				))
 			default:
-				whereClauses = append(whereClauses, fmt.Sprintf("%s='%s'", k, v))
+				if exactMatchCols[k] || strings.Contains(k, "_id") {
+					whereClauses = append(whereClauses, fmt.Sprintf("%s='%s'", k, v))
+					break
+				}
+				whereClauses = append(whereClauses, fmt.Sprintf("%s ILIKE '%%%s%%'", k, v))
 			}
 		}
 
-		selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
+		selectStmt = fmt.Sprintf("%s WHERE %s ", selectStmt, strings.Join(whereClauses, " AND "))
+		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
+
+	totalRow := m.db.QueryRowx(countAllStmt)
+	totalRow.Scan(&pagination.Count)
+	if pagination.Items > 0 {
+		pagination.TotalPages = int64(math.Ceil(float64(pagination.Count) / float64(pagination.Items)))
+	}
+	// fmt.Printf("pagination: %+v\n", pagination)
+
+	var limit string
+	var offset string = strconv.Itoa(int((pagination.Page - 1) * pagination.Items))
+	if pagination.Items == 0 {
+		limit = strconv.Itoa(int(pagination.Count))
+	} else {
+		limit = strconv.Itoa(int(pagination.Items))
+	}
+
+	selectStmt = fmt.Sprintf(`%s 
+			ORDER BY %s %s
+			LIMIT %s OFFSET %s
+		`,
+		selectStmt,
+		pagination.OrderBy["key"],
+		pagination.OrderBy["by"],
+		limit,
+		offset,
+	)
 
 	fmt.Printf("selectStmt: %+v\n", selectStmt)
 	rows, err := m.db.Queryx(selectStmt)
@@ -93,7 +128,7 @@ func (m *Postgres) Select(queries map[string]interface{}) *sqlx.Rows {
 		log.Printf("rows.Err(): %+v\n", err.Error())
 	}
 
-	return rows
+	return rows, pagination
 }
 
 func (m *Postgres) Save(records Records) *sqlx.Rows {
@@ -153,7 +188,8 @@ func (m *Postgres) Save(records Records) *sqlx.Rows {
 	}
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
-	return m.Select(map[string]interface{}{"id": insertedIds})
+	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
+	return rows
 }
 
 // func (m *Postgres) Update() {

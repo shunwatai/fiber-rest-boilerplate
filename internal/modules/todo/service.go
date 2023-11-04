@@ -13,7 +13,7 @@ func NewService(r *Repository) *Service {
 	return &Service{r}
 }
 
-func (s *Service) Get(queries map[string]interface{}) []*Todo {
+func (s *Service) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
 	fmt.Printf("todo service\n")
 	return s.repo.Get(queries)
 }
@@ -21,7 +21,7 @@ func (s *Service) Get(queries map[string]interface{}) []*Todo {
 func (s *Service) GetById(queries map[string]interface{}) ([]*Todo, error) {
 	fmt.Printf("todo service\n")
 
-	records := s.repo.Get(queries)
+	records,_ := s.repo.Get(queries)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("%s with id: %s not found", tableName, queries["id"])
 	}
@@ -40,7 +40,7 @@ func (s *Service) Update(todos []*Todo) []*Todo {
 
 func (s *Service) Delete(ids *[]int64) ([]*Todo, error) {
 	idsString, _ := helper.ConvertNumberSliceToString(*ids)
-	records := s.repo.Get(map[string]interface{}{
+	records,_ := s.repo.Get(map[string]interface{}{
 		"id": idsString,
 	})
 	if len(records) == 0 {

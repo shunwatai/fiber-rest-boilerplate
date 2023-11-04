@@ -25,12 +25,15 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
-	results := c.service.Get(paramsMap)
+	paramsMap["exactMatch"] = map[string]bool{
+		"id": true,
+	}
+	results, pagination := c.service.Get(paramsMap)
 
 	respCode = fiber.StatusOK
 	return ctx.
 		Status(respCode).
-		JSON(map[string]interface{}{"data": results})
+		JSON(map[string]interface{}{"data": results, "pagination": pagination})
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
