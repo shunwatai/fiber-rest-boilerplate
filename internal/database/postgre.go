@@ -36,8 +36,12 @@ func (m *Postgres) Connect() *sqlx.DB {
 func (m *Postgres) constructSelectStmtFromQuerystring(
 	queries map[string]interface{},
 ) (string, *helper.Pagination) {
-	exactMatchCols := queries["exactMatch"].(map[string]bool)
-	fmt.Printf("exactMatchCols: %+v\n", exactMatchCols)
+	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
+	if queries["exactMatch"] != nil {
+		for k := range queries["exactMatch"].(map[string]bool) {
+			exactMatchCols[k] = true
+		}
+	}
 
 	cols := m.GetColumns()
 	pagination := helper.GetPagination(queries)
@@ -67,7 +71,7 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 					whereClauses = append(whereClauses, fmt.Sprintf("%s='%s'", k, v))
 					break
 				}
-				whereClauses = append(whereClauses, fmt.Sprintf("%s ILIKE '%%%s%%'", k, v))
+				whereClauses = append(whereClauses, fmt.Sprintf("%s::text ILIKE '%%%s%%'", k, v))
 			}
 		}
 
