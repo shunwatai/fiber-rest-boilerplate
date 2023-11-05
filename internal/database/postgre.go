@@ -32,34 +32,17 @@ func (m *Postgres) Connect() *sqlx.DB {
 	return db
 }
 
-// Get all columns []string by m.TableName
-func (m *Postgres) GetColumns() []string {
-	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
-	rows, err := m.db.Queryx(selectStmt)
-	defer rows.Close()
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
-
-	cols, err := rows.Columns()
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
-
-	return cols
-}
-
-func (m *Postgres) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
-	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
-	m.db = m.Connect()
-	defer m.db.Close()
-
-	cols := m.GetColumns()
-
+// return select statment and *pagination by the req querystring
+func (m *Postgres) constructSelectStmtFromQuerystring(
+	queries map[string]interface{},
+) (string, *helper.Pagination) {
 	exactMatchCols := queries["exactMatch"].(map[string]bool)
 	fmt.Printf("exactMatchCols: %+v\n", exactMatchCols)
-	pagination := helper.GetPagination(cols, queries)
-	// fmt.Printf("queries: %+v\n", queries)
+
+	cols := m.GetColumns()
+	pagination := helper.GetPagination(queries)
+	helper.SanitiseQuerystring(cols, queries)
+	fmt.Printf("queries: %+v\n", queries)
 
 	countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
 	selectStmt := fmt.Sprintf(
@@ -117,6 +100,33 @@ func (m *Postgres) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.P
 		limit,
 		offset,
 	)
+
+	return selectStmt, pagination
+}
+
+// Get all columns []string by m.TableName
+func (m *Postgres) GetColumns() []string {
+	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
+	rows, err := m.db.Queryx(selectStmt)
+	defer rows.Close()
+	if err != nil {
+		log.Printf("%+v\n", err)
+	}
+
+	cols, err := rows.Columns()
+	if err != nil {
+		log.Printf("%+v\n", err)
+	}
+
+	return cols
+}
+
+func (m *Postgres) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
+	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
+	m.db = m.Connect()
+	defer m.db.Close()
+
+	selectStmt, pagination := m.constructSelectStmtFromQuerystring(queries)
 
 	fmt.Printf("selectStmt: %+v\n", selectStmt)
 	rows, err := m.db.Queryx(selectStmt)

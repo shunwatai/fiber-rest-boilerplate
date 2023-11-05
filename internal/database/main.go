@@ -1,11 +1,9 @@
 package database
 
 import (
-	// "golang-api-starter/internal/config"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
-
 	"github.com/jmoiron/sqlx"
 )
 
