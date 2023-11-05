@@ -61,6 +61,13 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 			fmt.Printf("%+v: %+v(%T)\n", k, v, v)
 			switch v.(type) {
 			case []string:
+				if exactMatchCols[k] || strings.Contains(k, "_id") {
+					whereClauses = append(whereClauses, fmt.Sprintf("%s IN ('%s')",
+						k,
+						strings.ToLower(strings.Join(v.([]string), "','")),
+					))
+					break
+				}
 				// ref: https://stackoverflow.com/a/46636129
 				whereClauses = append(whereClauses, fmt.Sprintf("lower(%s) ~~ ANY('{%%%s%%}')",
 					k,
