@@ -111,6 +111,11 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	// }
 
 	for _, todo := range todos {
+		if todo.Id == nil {
+			return ctx.
+				Status(respCode).
+				JSON(map[string]interface{}{"message": "please ensure all records with id for PATCH"})
+		}
 		existing, err := c.service.GetById(map[string]interface{}{"id": strconv.Itoa(int(*todo.Id))})
 		if len(existing) == 0 {
 			respCode = fiber.StatusNotFound
