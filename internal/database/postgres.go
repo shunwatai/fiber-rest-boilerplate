@@ -126,6 +126,11 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 // Get all columns []string by m.TableName
 func (m *Postgres) GetColumns() []string {
 	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
+	
+	if m.db == nil { // for run the test case
+		m.db = m.Connect()
+	}
+
 	rows, err := m.db.Queryx(selectStmt)
 	defer rows.Close()
 	if err != nil {

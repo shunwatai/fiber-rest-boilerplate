@@ -24,11 +24,13 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagin
 	}
 	// records.printValue()
 
-	return records,pagination
+	return records, pagination
 }
 
 func (r *Repository) Create(todos []*Todo) []*Todo {
-	fmt.Printf("todo repo add\n")
+	for _, todo := range todos {
+		fmt.Printf("todo repo add: %+v\n", todo)
+	}
 	rows := r.db.Save(Todos(todos))
 
 	var records Todos

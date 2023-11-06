@@ -1,10 +1,10 @@
 package database
 
 import (
+	"github.com/jmoiron/sqlx"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
-	"github.com/jmoiron/sqlx"
 )
 
 type IDatabase interface {
@@ -13,6 +13,7 @@ type IDatabase interface {
 	// Update(Records) *sqlx.Rows
 	Delete(*[]int64) error
 	// GetConnectionInfo() ConnectionInfo
+	constructSelectStmtFromQuerystring(queries map[string]interface{}) (string, *helper.Pagination, map[string]interface{})
 }
 
 type ConnectionInfo struct {
