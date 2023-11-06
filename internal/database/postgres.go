@@ -35,7 +35,7 @@ func (m *Postgres) Connect() *sqlx.DB {
 // return select statment and *pagination by the req querystring
 func (m *Postgres) constructSelectStmtFromQuerystring(
 	queries map[string]interface{},
-) (string, *helper.Pagination) {
+) (string, *helper.Pagination, map[string]interface{}) {
 	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
@@ -46,13 +46,10 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 	cols := m.GetColumns()
 	pagination := helper.GetPagination(queries)
 	helper.SanitiseQuerystring(cols, queries)
-	fmt.Printf("queries: %+v\n", queries)
 
 	countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
-	selectStmt := fmt.Sprintf(
-		`SELECT * FROM %s`,
-		m.TableName,
-	)
+	selectStmt := fmt.Sprintf(`SELECT * FROM %s`, m.TableName)
+	bindvarMap := map[string]interface{}{}
 
 	fmt.Printf("queries: %+v, len: %+v\n", queries, len(queries))
 	if len(queries) != 0 { // add where clause
@@ -61,33 +58,46 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 			fmt.Printf("%+v: %+v(%T)\n", k, v, v)
 			switch v.(type) {
 			case []string:
+				placeholders := []string{}
 				if exactMatchCols[k] || strings.Contains(k, "_id") {
-					whereClauses = append(whereClauses, fmt.Sprintf("%s IN ('%s')",
-						k,
-						strings.ToLower(strings.Join(v.([]string), "','")),
+					for i, value := range v.([]string) {
+						key := fmt.Sprintf(":%s%d", k, i+1)
+						bindvarMap[key[1:]] = value
+						placeholders = append(placeholders, key)
+					}
+					whereClauses = append(whereClauses, fmt.Sprintf("%s IN (%s)",
+						k, strings.ToLower(strings.Join(placeholders, ",")),
 					))
 					break
 				}
 				// ref: https://stackoverflow.com/a/46636129
-				whereClauses = append(whereClauses, fmt.Sprintf("lower(%s) ~~ ANY('{%%%s%%}')",
-					k,
-					strings.ToLower(strings.Join(v.([]string), "%,%")),
+				bindvarMap[k] = fmt.Sprintf("{%%%s%%}", strings.Join(v.([]string), "%,%"))
+				whereClauses = append(whereClauses, fmt.Sprintf("lower(%s) ~~ ANY(:%s)",
+					k, k,
 				))
 			default:
 				if exactMatchCols[k] || strings.Contains(k, "_id") {
-					whereClauses = append(whereClauses, fmt.Sprintf("%s='%s'", k, v))
+					bindvarMap[k] = v
+					whereClauses = append(whereClauses, fmt.Sprintf("%s=:%s", k, k))
 					break
 				}
-				whereClauses = append(whereClauses, fmt.Sprintf("%s::text ILIKE '%%%s%%'", k, v))
+
+				bindvarMap[k] = fmt.Sprintf("%%%s%%", v)
+				whereClauses = append(whereClauses, fmt.Sprintf("%s ILIKE :%s", k, k))
 			}
 		}
 
-		selectStmt = fmt.Sprintf("%s WHERE %s ", selectStmt, strings.Join(whereClauses, " AND "))
+		selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
+	// fmt.Printf("countAllStmt: %+v, bindvarmap: %+v\n", countAllStmt, bindvarMap)
 
-	totalRow := m.db.QueryRowx(countAllStmt)
-	totalRow.Scan(&pagination.Count)
+	if totalRow, err := m.db.NamedQuery(countAllStmt, bindvarMap); err != nil {
+		log.Printf("Queryx Count(*) err: %+v\n", err.Error())
+	} else if totalRow.Next() {
+		defer totalRow.Close()
+		totalRow.Scan(&pagination.Count)
+	}
 	if pagination.Items > 0 {
 		pagination.TotalPages = int64(math.Ceil(float64(pagination.Count) / float64(pagination.Items)))
 	}
@@ -106,13 +116,11 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 			LIMIT %s OFFSET %s
 		`,
 		selectStmt,
-		pagination.OrderBy["key"],
-		pagination.OrderBy["by"],
-		limit,
-		offset,
+		pagination.OrderBy["key"], pagination.OrderBy["by"],
+		limit, offset,
 	)
 
-	return selectStmt, pagination
+	return selectStmt, pagination, bindvarMap
 }
 
 // Get all columns []string by m.TableName
@@ -137,10 +145,11 @@ func (m *Postgres) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.P
 	m.db = m.Connect()
 	defer m.db.Close()
 
-	selectStmt, pagination := m.constructSelectStmtFromQuerystring(queries)
-
+	selectStmt, pagination, bindvarMap := m.constructSelectStmtFromQuerystring(queries)
+	fmt.Printf("bindvarMap: %+v\n", bindvarMap)
 	fmt.Printf("selectStmt: %+v\n", selectStmt)
-	rows, err := m.db.Queryx(selectStmt)
+
+	rows, err := m.db.NamedQuery(selectStmt, bindvarMap)
 	if err != nil {
 		log.Printf("Queryx err: %+v\n", err.Error())
 	}
