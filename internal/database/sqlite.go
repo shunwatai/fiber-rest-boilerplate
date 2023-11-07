@@ -1,6 +1,7 @@
 package database
 
 import (
+	"flag"
 	"fmt"
 	"golang-api-starter/internal/helper"
 	"log"
@@ -26,14 +27,14 @@ func (m *Sqlite) GetColumns() []string {
 	}
 
 	rows, err := m.db.Queryx(selectStmt)
-	defer rows.Close()
 	if err != nil {
-		log.Printf("%+v\n", err)
+		log.Printf("Queryx err: %+v\n", err)
 	}
+	defer rows.Close()
 
 	cols, err := rows.Columns()
 	if err != nil {
-		log.Printf("%+v\n", err)
+		log.Printf("Failed to get columns err: %+v\n", err)
 	}
 
 	return cols
@@ -42,7 +43,17 @@ func (m *Sqlite) GetColumns() []string {
 func (m *Sqlite) Connect() *sqlx.DB {
 	fmt.Printf("connecting to Sqlite... \n")
 	fmt.Printf("Table: %+v\n", m.TableName)
-	dbFile := fmt.Sprintf("%s.db", *m.Database)
+
+	var dbFile string
+	// sqlite db get wrong path when running test, so need to ../../
+	// ref: https://stackoverflow.com/a/36666114
+	if flag.Lookup("test.v") == nil {
+		fmt.Println("normal run")
+		dbFile = fmt.Sprintf("%s.db", *m.Database)
+	} else {
+		fmt.Println("run under go test")
+		dbFile = fmt.Sprintf("../../%s.db", *m.Database)
+	}
 	connectionString := fmt.Sprintf("./%s?_auth&_auth_user=%s&_auth_pass=%s&_auth_crypt=sha1&parseTime=true", dbFile, *m.User, *m.Pass)
 	fmt.Printf("ConnString: %+v\n", connectionString)
 	// os.Remove(dbFile)
@@ -68,6 +79,7 @@ func (m *Sqlite) constructSelectStmtFromQuerystring(
 
 	bindvarMap := map[string]interface{}{}
 	cols := m.GetColumns()
+
 	pagination := helper.GetPagination(queries)
 	dateRangeStmt := getDateRangeStmt(queries, bindvarMap)
 	fmt.Printf("dateRangeStmt: %+v, len: %+v\n", dateRangeStmt, len(dateRangeStmt))
@@ -218,6 +230,7 @@ func (m *Sqlite) Save(records Records) *sqlx.Rows {
 	)
 	fmt.Printf("%+v \n", insertStmt)
 
+	// no idea why sqlite batch insert cannot retrieve all ids, so insert one by one in loop
 	insertedIds := []string{}
 	mapsResults := records.StructToMap()
 	for _, record := range mapsResults {
