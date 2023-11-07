@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/iancoleman/strcase"
@@ -34,9 +35,12 @@ func (c *FiberCtx) GetQueryString() map[string]interface{} {
 	var paramsMap = make(map[string]interface{}, 0)
 
 	for key, value := range params {
-		// fmt.Printf("  %v = %v\n", key, value)
-		fmt.Printf("  %v = %v\n", key, value)
+		// fmt.Printf("-->  %v = %v\n", key, value)
 		snakeCase := strcase.ToSnake(key)
+		if strings.Contains(snakeCase, "date") || strings.Contains(snakeCase, "_at") {
+			paramsMap["withDateFilter"] = true
+		}
+
 		if len(value) == 1 {
 			paramsMap[snakeCase] = value[0]
 			continue
@@ -44,16 +48,7 @@ func (c *FiberCtx) GetQueryString() map[string]interface{} {
 		paramsMap[snakeCase] = value
 	}
 
-	// if paramsMap["page"] != nil && paramsMap["items"] != nil {
-	// 	pagination.Page, _ = strconv.ParseInt(paramsMap["page"].(string), 10, 64)
-	// 	pagination.Items, _ = strconv.ParseInt(paramsMap["items"].(string), 10, 64)
-	// }
-	//
-	// if paramsMap["order_by"] != nil {
-	// 	pagination.OrderBy = parseOrderBy(paramsMap["order_by"].(string))
-	// }
-
-	fmt.Printf("test: %+v\n", paramsMap)
+	// fmt.Printf("paramsMap: %+v\n", paramsMap)
 	return paramsMap
 }
 

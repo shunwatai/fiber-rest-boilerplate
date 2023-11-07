@@ -43,16 +43,18 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 		}
 	}
 
+	bindvarMap := map[string]interface{}{}
 	cols := m.GetColumns()
 	pagination := helper.GetPagination(queries)
+	dateRangeStmt := getDateRangeStmt(queries, bindvarMap)
+	fmt.Printf("dateRangeStmt: %+v, len: %+v\n", dateRangeStmt, len(dateRangeStmt))
 	helper.SanitiseQuerystring(cols, queries)
 
 	countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
 	selectStmt := fmt.Sprintf(`SELECT * FROM %s`, m.TableName)
-	bindvarMap := map[string]interface{}{}
 
 	fmt.Printf("queries: %+v, len: %+v\n", queries, len(queries))
-	if len(queries) != 0 { // add where clause
+	if len(queries) != 0 || len(dateRangeStmt) != 0 { // add where clause
 		whereClauses := []string{}
 		for k, v := range queries {
 			fmt.Printf("%+v: %+v(%T)\n", k, v, v)
@@ -87,6 +89,9 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 			}
 		}
 
+		if len(dateRangeStmt) > 0 {
+			whereClauses = append(whereClauses, dateRangeStmt)
+		}
 		selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
@@ -126,7 +131,7 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 // Get all columns []string by m.TableName
 func (m *Postgres) GetColumns() []string {
 	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
-	
+
 	if m.db == nil { // for run the test case
 		m.db = m.Connect()
 	}
@@ -253,4 +258,20 @@ func (m *Postgres) Delete(ids *[]int64) error {
 	}
 
 	return nil
+}
+
+func (m *Postgres) RawQuery(sql string) *sqlx.Rows {
+	fmt.Printf("raw query from Postgres\n")
+	m.db = m.Connect()
+	defer m.db.Close()
+
+	rows, err := m.db.Queryx(sql)
+	if err != nil {
+		log.Printf("Queryx err: %+v\n", err.Error())
+	}
+	if rows.Err() != nil {
+		log.Printf("rows.Err(): %+v\n", err.Error())
+	}
+
+	return rows
 }
