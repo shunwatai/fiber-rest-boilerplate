@@ -140,10 +140,10 @@ func (m *MariaDb) GetColumns() []string {
 	}
 
 	rows, err := m.db.Queryx(selectStmt)
-	defer rows.Close()
 	if err != nil {
 		log.Printf("%+v\n", err)
 	}
+	defer rows.Close()
 
 	cols, err := rows.Columns()
 	if err != nil {
