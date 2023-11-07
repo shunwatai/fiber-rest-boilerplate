@@ -9,10 +9,7 @@ import (
 	"testing"
 )
 
-var tableName = "todos"
-var testDb = GetDatabase(tableName)
-
-type sqlTests struct {
+type pgTests struct {
 	name  string
 	input map[string]interface{}
 	want1 string
@@ -21,7 +18,9 @@ type sqlTests struct {
 }
 
 func TestConstructSelectStmtFromQuerystring(t *testing.T) {
-	tests := []sqlTests{
+	var tableName = "todos"
+	var testDb = GetDatabase(tableName)
+	tests := []pgTests{
 		{
 			name:  "get by ID",
 			input: map[string]interface{}{"id": 2},
