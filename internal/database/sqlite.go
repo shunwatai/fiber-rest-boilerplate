@@ -283,9 +283,14 @@ func (m *Sqlite) Delete(ids *[]int64) error {
 }
 
 func (m *Sqlite) RawQuery(sql string) *sqlx.Rows {
-	fmt.Printf("raw query from Postgres\n")
+	fmt.Printf("raw query from Sqlite\n")
 	m.db = m.Connect()
 	defer m.db.Close()
+
+	// hack: Queryx cannot run CREATE or INSERT statement for sqlite, so use Exec() 
+	if !strings.Contains(strings.ToLower(sql), "select") {
+		m.db.Exec(sql)
+	}
 
 	rows, err := m.db.Queryx(sql)
 	if err != nil {
