@@ -5,26 +5,6 @@ import (
 	"golang-api-starter/internal/database"
 )
 
-// var db = &database.Postgre{
-// 	Host:      "localhost",
-// 	Port:      "3306",
-// 	User:      "user",
-// 	Pass:      "maria",
-// 	TableName: "todo",
-// }
-
-// var db = &database.Sqlite{
-// 	ConnectionInfo: &database.ConnectionInfo{
-// 		Driver:   "sqlite",
-// 		Host:     "localhost",
-// 		Port:     "",
-// 		User:     "user",
-// 		Pass:     "user",
-// 		Database: "fiber-starter",
-// 	},
-// 	TableName: tableName,
-// }
-
 var tableName = "todos"
 var db = database.GetDatabase(tableName)
 var Repo = NewRepository(db)
@@ -42,6 +22,19 @@ func GetRoutes(router fiber.Router) {
 	rById.Get("/", GetById)
 }
 
+// TodoGetAll godoc
+//
+//	@Summary		List Todos
+//	@Description	get Todos
+//	@Tags			Todos
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		query	number	false	"id"							example(2)
+//	@Param			task	query	string	false	"search by task"				example(go practice)
+//	@Param			page	query	string	false	"page number for pagination"	example(1)
+//	@Param			items	query	string	false	"items per page for pagination"	example(10)
+//	@Security		ApiKeyAuth
+//	@Router			/todos [get]
 func GetAll(c *fiber.Ctx) error {
 	return ctrl.Get(c)
 }
