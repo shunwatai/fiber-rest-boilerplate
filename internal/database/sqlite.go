@@ -171,7 +171,7 @@ func (m *Sqlite) constructSelectStmtFromQuerystring(
 // 	return *m.ConnectionInfo
 // }
 
-func (m *Sqlite) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
+func (m *Sqlite) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
 	fmt.Printf("select from Sqlite, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
@@ -192,7 +192,7 @@ func (m *Sqlite) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pag
 	return rows, pagination
 }
 
-func (m *Sqlite) Save(records Records) *sqlx.Rows {
+func (m *Sqlite) Save(records Records) Rows {
 	fmt.Printf("save from Sqlite, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
 	m.db = m.Connect()
@@ -249,7 +249,7 @@ func (m *Sqlite) Save(records Records) *sqlx.Rows {
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-	return rows
+	return rows.(*sqlx.Rows)
 }
 
 // func (m *Sqlite) Update(records Records) *sqlx.Rows {
@@ -287,7 +287,7 @@ func (m *Sqlite) RawQuery(sql string) *sqlx.Rows {
 	m.db = m.Connect()
 	defer m.db.Close()
 
-	// hack: Queryx cannot run CREATE or INSERT statement for sqlite, so use Exec() 
+	// hack: Queryx cannot run CREATE or INSERT statement for sqlite, so use Exec()
 	if !strings.Contains(strings.ToLower(sql), "select") {
 		m.db.Exec(sql)
 	}
