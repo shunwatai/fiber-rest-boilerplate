@@ -94,6 +94,21 @@ func GetDatabase(tableName string) IDatabase {
 			TableName: tableName,
 		}
 	}
+
+	if config.DbConf.Driver == "mongodb" {
+		connection := config.DbConf.MongodbConf
+		return &Mongodb{
+			ConnectionInfo: &ConnectionInfo{
+				Driver:   config.DbConf.Driver,
+				Host:     connection.Host,
+				Port:     connection.Port,
+				User:     connection.User,
+				Pass:     connection.Pass,
+				Database: connection.Database,
+			},
+			TableName: tableName,
+		}
+	}
 	return nil
 }
 
@@ -141,4 +156,3 @@ func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
 	// fmt.Printf("dateConditions: %+v\n",dateConditions)
 	return strings.Join(dateRangeConditions, " AND ")
 }
-
