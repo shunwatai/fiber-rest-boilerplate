@@ -11,9 +11,9 @@ import (
 )
 
 type Todo struct {
-	Id *int64 `json:"id" db:"id"`
-	Task      string     `json:"task" db:"task"`
-	Done      bool       `json:"done" db:"done"`
+	Id        *int64                 `json:"id"   db:"id" example:"2"`
+	Task      string                 `json:"task" db:"task" example:"go practice"`
+	Done      bool                   `json:"done" db:"done" example:"false"`
 	CreatedAt *helper.CustomDatetime `db:"created_at" json:"createdAt"`
 	UpdatedAt *helper.CustomDatetime `db:"updated_at" json:"updatedAt"`
 	// CreatedAt *string `db:"created_at" json:"createdAt,omitempty"`

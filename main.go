@@ -4,15 +4,14 @@ import (
 	"golang-api-starter/cmd/server"
 )
 
-//	@title			Golang Fiber API starter
-//	@version		1.0
-//	@description	This is a sample API starter by fiber.
-
+//	@title						Golang Fiber API starter
+//	@version					1.0
+//	@description				This is a sample API starter by fiber.
+//	@host						localhost:7000
+//	@BasePath					/api
 //	@securityDefinitions.apikey	ApiKeyAuth
 //	@in							header
 //	@name						Authorization
-//	@host		localhost:7000
-//	@BasePath	/api
 func main() {
 	api := server.Api
 	api.GetApp()
