@@ -40,6 +40,7 @@ type DbConf struct {
 
 type ServerConf struct {
 	Env  string
+	Host string
 	Port string
 }
 
