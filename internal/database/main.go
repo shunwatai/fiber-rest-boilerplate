@@ -10,16 +10,22 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type Rows interface {
+	StructScan(interface{}) error
+	Next() bool
+	Close() error
+}
+
 type IDatabase interface {
 	/* Select by raw sql */
 	RawQuery(string) *sqlx.Rows
 
 	/* Select by req querystring with pagination */
-	Select(map[string]interface{}) (*sqlx.Rows, *helper.Pagination)
+	Select(map[string]interface{}) (Rows, *helper.Pagination)
 
 	// Insert new records, support upsert when id is present.
 	// And also support batch insert/upsert
-	Save(Records) *sqlx.Rows
+	Save(Records) Rows
 
 	/* Delete records by ids(support batch delete) */
 	Delete(*[]int64) error
@@ -141,4 +147,3 @@ func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
 	// fmt.Printf("dateConditions: %+v\n",dateConditions)
 	return strings.Join(dateRangeConditions, " AND ")
 }
-

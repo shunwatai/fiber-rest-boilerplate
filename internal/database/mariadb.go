@@ -153,7 +153,7 @@ func (m *MariaDb) GetColumns() []string {
 	return cols
 }
 
-func (m *MariaDb) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
+func (m *MariaDb) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
 	fmt.Printf("select from MariaDB, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
@@ -174,7 +174,7 @@ func (m *MariaDb) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pa
 	return rows, pagination
 }
 
-func (m *MariaDb) Save(records Records) *sqlx.Rows {
+func (m *MariaDb) Save(records Records) Rows {
 	fmt.Printf("save from MariaDB, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
@@ -229,7 +229,7 @@ func (m *MariaDb) Save(records Records) *sqlx.Rows {
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-	return rows
+	return rows.(*sqlx.Rows)
 }
 
 // func (m *MariaDb) Update() {
