@@ -1,141 +1,56 @@
 package todo
 
 import (
-	"fmt"
-	"golang-api-starter/internal/database"
-	"log"
-	"net/url"
-
 	"github.com/gofiber/fiber/v2"
-	"github.com/iancoleman/strcase"
+	"golang-api-starter/internal/database"
 )
 
 var tableName = "todos"
+var db = database.GetDatabase(tableName)
+var Repo = NewRepository(db)
+var Srvc = NewService(Repo)
+var ctrl = NewController(Srvc)
 
 func GetRoutes(router fiber.Router) {
-	// db := &database.Postgre{
-	// 	Host:      "localhost",
-	// 	Port:      "3306",
-	// 	User:      "user",
-	// 	Pass:      "maria",
-	// 	TableName: "todo",
-	// }
-	db := &database.Sqlite{
-		ConnectionInfo: &database.ConnectionInfo{
-			Driver:   "sqlite",
-			Host:     "localhost",
-			Port:     "",
-			User:     "user",
-			Pass:     "user",
-			Database: "fiber-starter",
-		},
-		TableName: tableName,
-	}
-
-	repo := NewRepository(db)
-	srvc := NewService(repo)
-	ctrl := NewController(srvc)
-
 	r := router.Group("/todo")
+	r.Get("/", GetAll)
+	r.Post("/", Create)
+	r.Patch("/", Update)
+	r.Delete("/", Delete)
 
-	r.Get("/", func(c *fiber.Ctx) error {
-		queries := c.Queries()
+	rById := router.Group("/todo/:id")
+	rById.Get("/", GetById)
+}
 
-		params, err := url.ParseQuery(string(c.Request().URI().QueryString()))
-		if err != nil {
-			log.Printf("ParseQuery err: %+v\n", err.Error())
-		}
-		fmt.Printf("queries: %+v\n", queries)
+// TodoGetAll godoc
+//
+//	@Summary		List Todos
+//	@Description	get Todos
+//	@Tags			Todos
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		query	number	false	"id"							example(2)
+//	@Param			task	query	string	false	"search by task"				example(go practice)
+//	@Param			page	query	string	false	"page number for pagination"	example(1)
+//	@Param			items	query	string	false	"items per page for pagination"	example(10)
+//	@Security		ApiKeyAuth
+//	@Router			/todos [get]
+func GetAll(c *fiber.Ctx) error {
+	return ctrl.Get(c)
+}
 
-		var paramsMap = make(map[string]interface{}, 0)
+func GetById(c *fiber.Ctx) error {
+	return ctrl.GetById(c)
+}
 
-		for key, value := range params {
-			// fmt.Printf("  %v = %v\n", key, value)
-			fmt.Printf("  %v = %v\n", key, value)
-			snakeCase := strcase.ToSnake(key)
-			if len(value) == 1 {
-				paramsMap[snakeCase] = value[0]
-				continue
-			}
-			paramsMap[snakeCase] = value
-		}
+func Create(c *fiber.Ctx) error {
+	return ctrl.Create(c)
+}
 
-		// if paramsMap["page"] != nil && paramsMap["items"] != nil {
-		// 	pagination.Page, _ = strconv.ParseInt(paramsMap["page"].(string), 10, 64)
-		// 	pagination.Items, _ = strconv.ParseInt(paramsMap["items"].(string), 10, 64)
-		// }
-		//
-		// if paramsMap["order_by"] != nil {
-		// 	pagination.OrderBy = parseOrderBy(paramsMap["order_by"].(string))
-		// }
+func Update(c *fiber.Ctx) error {
+	return ctrl.Update(c)
+}
 
-		fmt.Printf("test: %+v\n", paramsMap)
-		results := ctrl.Get(paramsMap)
-		// return c.JSON(map[string]interface{}{"message": "todos"})
-		return c.JSON(map[string]interface{}{"data": results})
-	})
-
-	r.Post("/", func(c *fiber.Ctx) error {
-		todo := &Todo{}
-		todos := []*Todo{}
-		todoErr, todosErr := c.BodyParser(todo), c.BodyParser(&todos)
-		if todosErr != nil {
-			log.Printf("BodyParser err: %+v\n", todosErr.Error())
-		}
-
-		if todoErr == nil {
-			todos = append(todos, todo)
-		}
-		fmt.Printf("save todos: %+v\n", todos)
-
-		results := ctrl.Create(todos)
-
-		if todoErr == nil {
-			return c.JSON(map[string]interface{}{"data": results[0]})
-		}
-		return c.JSON(map[string]interface{}{"data": results})
-	})
-
-	r.Patch("/", func(c *fiber.Ctx) error {
-		todo := &Todo{}
-		todos := []*Todo{}
-		todoErr, todosErr := c.BodyParser(todo), c.BodyParser(&todos)
-		if todosErr != nil {
-			log.Printf("BodyParser err: %+v\n", todosErr.Error())
-		}
-
-		if todoErr == nil {
-			todos = append(todos, todo)
-		}
-		fmt.Printf("update todos: %+v\n", todos)
-
-		results := ctrl.Update(todos)
-
-		if todoErr == nil {
-			return c.JSON(map[string]interface{}{"data": results[0]})
-		}
-		return c.JSON(map[string]interface{}{"data": results})
-	})
-
-	r.Delete("/", func(c *fiber.Ctx) error {
-		// body := map[string]interface{}{}
-		// json.Unmarshal(c.BodyRaw(), &body)
-		// fmt.Printf("req body: %+v\n", body)
-		delIds := struct {
-			Ids []int64 `json:"ids" validate:"required,min=1,unique"`
-		}{}
-		if err := c.BodyParser(&delIds); err != nil {
-			log.Printf("failed to parse req body, err: %+v\n", err.Error())
-			return c.JSON(map[string]interface{}{"message": err.Error()})
-		}
-		fmt.Printf("deletedIds: %+v\n", delIds)
-
-		results, err := ctrl.Delete(&delIds.Ids)
-		if err != nil {
-			log.Printf("failed to delete, err: %+v\n", err.Error())
-			return c.JSON(map[string]interface{}{"message": err.Error()})
-		}
-
-		return c.JSON(map[string]interface{}{"data": results})
-	})
+func Delete(c *fiber.Ctx) error {
+	return ctrl.Delete(c)
 }

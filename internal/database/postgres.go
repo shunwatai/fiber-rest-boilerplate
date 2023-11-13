@@ -8,23 +8,23 @@ import (
 	"strconv"
 	"strings"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
-type MariaDb struct {
+type Postgres struct {
 	*ConnectionInfo
 	TableName string
 	db        *sqlx.DB
 }
 
-func (m *MariaDb) Connect() *sqlx.DB {
-	fmt.Printf("connecting to MariaDb... \n")
+func (m *Postgres) Connect() *sqlx.DB {
+	fmt.Printf("connecting to Postgres... \n")
 	// fmt.Printf("Table: %+v\n", m.TableName)
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
+	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
 	fmt.Printf("ConnString: %+v\n", connectionString)
 
-	db, err := sqlx.Open("mysql", connectionString)
+	db, err := sqlx.Open("postgres", connectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func (m *MariaDb) Connect() *sqlx.DB {
 }
 
 // return select statment and *pagination by the req querystring
-func (m *MariaDb) constructSelectStmtFromQuerystring(
+func (m *Postgres) constructSelectStmtFromQuerystring(
 	queries map[string]interface{},
 ) (string, *helper.Pagination, map[string]interface{}) {
 	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
@@ -72,16 +72,11 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 					))
 					break
 				}
-
-				multiLikeClause := []string{}
-				for i, value := range v.([]string) {
-					key := fmt.Sprintf("%s%d", k, i+1)
-					bindvarMap[key] = fmt.Sprintf("%%%s%%", value)
-					multiLikeClause = append(multiLikeClause, fmt.Sprintf("lower(%s) LIKE :%s", k, key))
-				}
-				whereClauses = append(whereClauses,
-					fmt.Sprintf("(%s)", strings.ToLower(strings.Join(multiLikeClause, " OR "))),
-				)
+				// ref: https://stackoverflow.com/a/46636129
+				bindvarMap[k] = fmt.Sprintf("{%%%s%%}", strings.Join(v.([]string), "%,%"))
+				whereClauses = append(whereClauses, fmt.Sprintf("lower(%s) ~~ ANY(:%s)",
+					k, k,
+				))
 			default:
 				if exactMatchCols[k] || strings.Contains(k, "_id") {
 					bindvarMap[k] = v
@@ -90,16 +85,17 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 				}
 
 				bindvarMap[k] = fmt.Sprintf("%%%s%%", v)
-				whereClauses = append(whereClauses, strings.ToLower(fmt.Sprintf("%s LIKE :%s", k, k)))
+				whereClauses = append(whereClauses, fmt.Sprintf("%s ILIKE :%s", k, k))
 			}
 		}
 
 		if len(dateRangeStmt) > 0 {
 			whereClauses = append(whereClauses, dateRangeStmt)
 		}
-		selectStmt = fmt.Sprintf("%s WHERE %s ", selectStmt, strings.Join(whereClauses, " AND "))
+		selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
+	// fmt.Printf("countAllStmt: %+v, bindvarmap: %+v\n", countAllStmt, bindvarMap)
 
 	if totalRow, err := m.db.NamedQuery(countAllStmt, bindvarMap); err != nil {
 		log.Printf("Queryx Count(*) err: %+v\n", err.Error())
@@ -132,7 +128,8 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 	return selectStmt, pagination, bindvarMap
 }
 
-func (m *MariaDb) GetColumns() []string {
+// Get all columns []string by m.TableName
+func (m *Postgres) GetColumns() []string {
 	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
 
 	if m.db == nil { // for run the test case
@@ -153,8 +150,8 @@ func (m *MariaDb) GetColumns() []string {
 	return cols
 }
 
-func (m *MariaDb) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
-	fmt.Printf("select from MariaDB, table: %+v\n", m.TableName)
+func (m *Postgres) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
+	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
 
@@ -174,8 +171,9 @@ func (m *MariaDb) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pa
 	return rows, pagination
 }
 
-func (m *MariaDb) Save(records Records) *sqlx.Rows {
-	fmt.Printf("save from MariaDB, table: %+v\n", m.TableName)
+func (m *Postgres) Save(records Records) *sqlx.Rows {
+	fmt.Printf("save from Postgres, table: %+v\n", m.TableName)
+	// fmt.Printf("records: %+v\n", records)
 	m.db = m.Connect()
 	defer m.db.Close()
 
@@ -185,23 +183,25 @@ func (m *MariaDb) Save(records Records) *sqlx.Rows {
 	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
 		// use in SQL's VALUES()
-		if strings.Contains(col, "_at") {
-			colWithColon = append(colWithColon, fmt.Sprintf("IFNULL(:%s, CURRENT_TIMESTAMP)", col))
+		if col == "id" {
+			colWithColon = append(colWithColon, fmt.Sprintf("COALESCE(:%s, nextval('%s_id_seq'))", col, m.TableName))
+		} else if strings.Contains(col, "_at") {
+			colWithColon = append(colWithColon, fmt.Sprintf("COALESCE(:%s, CURRENT_TIMESTAMP)", col))
 		} else {
 			colWithColon = append(colWithColon, fmt.Sprintf(":%s", col))
 		}
 
 		// use in SQL's ON DUPLICATE KEY UPDATE
 		if strings.Contains(col, "_at") {
-			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(VALUES(%s), CURRENT_TIMESTAMP)", col, col))
+			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=COALESCE(EXCLUDED.%s, %s.%s)", col, col, m.TableName, col))
 			continue
 		}
-		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=VALUES(%s)", col, col))
+		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=COALESCE(EXCLUDED.%s, %s.%s)", col, col, m.TableName, col))
 	}
 
 	insertStmt := fmt.Sprintf(
 		`INSERT INTO %s (%s) VALUES (%s) 
-		ON DUPLICATE KEY UPDATE
+		ON CONFLICT (id) DO UPDATE SET
     %s
 		RETURNING id;`,
 		m.TableName,
@@ -232,11 +232,11 @@ func (m *MariaDb) Save(records Records) *sqlx.Rows {
 	return rows
 }
 
-// func (m *MariaDb) Update() {
-// 	fmt.Printf("update from MariaDB, table: %+v\n", m.TableName)
+// func (m *Postgres) Update() {
+// 	fmt.Printf("update from Postgres, table: %+v\n", m.TableName)
 // }
-func (m *MariaDb) Delete(ids *[]int64) error {
-	fmt.Printf("delete from MariaDB, table: %+v\n", m.TableName)
+func (m *Postgres) Delete(ids *[]int64) error {
+	fmt.Printf("delete from Postgres, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
 
@@ -260,7 +260,7 @@ func (m *MariaDb) Delete(ids *[]int64) error {
 	return nil
 }
 
-func (m *MariaDb) RawQuery(sql string) *sqlx.Rows {
+func (m *Postgres) RawQuery(sql string) *sqlx.Rows {
 	fmt.Printf("raw query from Postgres\n")
 	m.db = m.Connect()
 	defer m.db.Close()
