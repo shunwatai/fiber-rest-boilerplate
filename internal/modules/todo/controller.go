@@ -30,7 +30,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 		"_id":  true,
 		"done": true, // bool match needs exact match, parram can be 0(false) & 1(true)
 	}
-	paramsMap["columns"] = Todo{}.getTags("bson")
+	paramsMap["columns"] = Todo{}.getTags("bson") // TODO: use this to replace GetColumns()
 	results, pagination := c.service.Get(paramsMap)
 
 	respCode = fiber.StatusOK

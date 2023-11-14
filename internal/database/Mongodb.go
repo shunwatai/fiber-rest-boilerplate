@@ -117,13 +117,12 @@ func (m *Mongodb) getConditionsFromQuerystring(
 					}
 					break
 				}
-				// ref: https://stackoverflow.com/a/46636129
 
+				// mongo $or ref: https://stackoverflow.com/a/58359960
 				orWildcard := bson.A{}
 				for _, value := range v.([]string) {
 					orWildcard = append(orWildcard, bson.D{{k, primitive.Regex{Pattern: fmt.Sprintf(".*%s.*", value), Options: "i"}}})
 				}
-
 				whereClauses = append(whereClauses, bson.E{"$or", orWildcard})
 			default:
 				if exactMatchCols[k] {
