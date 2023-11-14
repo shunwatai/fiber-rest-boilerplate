@@ -6,16 +6,19 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"log"
+	"reflect"
+	"strings"
 
 	"github.com/iancoleman/strcase"
 )
 
 type Todo struct {
-	Id *int64 `json:"id" db:"id"`
-	Task      string     `json:"task" db:"task"`
-	Done      bool       `json:"done" db:"done"`
-	CreatedAt *helper.CustomDatetime `db:"created_at" json:"createdAt"`
-	UpdatedAt *helper.CustomDatetime `db:"updated_at" json:"updatedAt"`
+	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty"` // https://stackoverflow.com/a/20739427
+	Id        *int64                 `json:"id,omitempty" db:"id" bson:"id,omitempty"`
+	Task      string                 `json:"task" db:"task" bson:"task,omitempty"`
+	Done      bool                   `json:"done" db:"done" bson:"done,omitempty"`
+	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
+	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 	// CreatedAt *string `db:"created_at" json:"createdAt,omitempty"`
 	// UpdatedAt *string `db:"updated_at" json:"updatedAt,omitempty"`
 }
@@ -62,4 +65,30 @@ func (todos *Todos) printValue() {
 		}
 		fmt.Printf("new --> v: %+v\n", *v)
 	}
+}
+
+// get the tags by key(json / db / bson) name from the struct
+// ref: https://stackoverflow.com/a/40865028
+func (todo Todo) getTags(key string) []string {
+	cols := []string{}
+	val := reflect.ValueOf(todo)
+	for i := 0; i < val.Type().NumField(); i++ {
+		t := val.Type().Field(i)
+		fieldName := t.Name
+
+		switch jsonTag := t.Tag.Get(key); jsonTag {
+		case "-":
+		case "":
+			// fmt.Println(fieldName)
+		default:
+			parts := strings.Split(jsonTag, ",")
+			name := parts[0]
+			if name == "" {
+				name = fieldName
+			}
+			fmt.Println(name)
+			cols = append(cols, name)
+		}
+	}
+	return cols
 }
