@@ -26,7 +26,8 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
 	paramsMap["exactMatch"] = map[string]bool{
-		"id": true,
+		"id":   true,
+		"done": true, // bool match needs exact match, parram can be 0(false) & 1(true)
 	}
 	results, pagination := c.service.Get(paramsMap)
 
