@@ -150,7 +150,7 @@ func (m *Postgres) GetColumns() []string {
 	return cols
 }
 
-func (m *Postgres) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
+func (m *Postgres) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
 	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
@@ -171,7 +171,7 @@ func (m *Postgres) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.P
 	return rows, pagination
 }
 
-func (m *Postgres) Save(records Records) *sqlx.Rows {
+func (m *Postgres) Save(records Records) Rows {
 	fmt.Printf("save from Postgres, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
 	m.db = m.Connect()
@@ -229,7 +229,7 @@ func (m *Postgres) Save(records Records) *sqlx.Rows {
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-	return rows
+	return rows.(*sqlx.Rows)
 }
 
 // func (m *Postgres) Update() {

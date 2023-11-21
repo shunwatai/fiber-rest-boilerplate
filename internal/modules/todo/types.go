@@ -3,11 +3,11 @@ package todo
 import (
 	"encoding/json"
 	"fmt"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"log"
 
 	"github.com/iancoleman/strcase"
-	"github.com/jmoiron/sqlx"
 )
 
 type Todo struct {
@@ -38,7 +38,8 @@ func (todos Todos) StructToMap() []map[string]interface{} {
 	return mapsResults
 }
 
-func (todos Todos) rowsToStruct(rows *sqlx.Rows) []*Todo {
+// func (todos Todos) rowsToStruct(rows *sqlx.Rows) []*Todo {
+func (todos Todos) rowsToStruct(rows database.Rows) []*Todo {
 	defer rows.Close()
 
 	records := make([]*Todo, 0)
