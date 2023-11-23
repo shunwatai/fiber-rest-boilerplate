@@ -6,8 +6,11 @@ import (
 	"golang-api-starter/internal/helper"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Rows interface {
@@ -161,4 +164,47 @@ func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
 
 	// fmt.Printf("dateConditions: %+v\n",dateConditions)
 	return strings.Join(dateRangeConditions, " AND ")
+}
+
+// Generate bson for mongo find's date filtering
+func getDateRangeBson(queries map[string]interface{}) bson.D {
+	// fmt.Printf("dd query: %+v\n", queries)
+	if queries["withDateFilter"] == nil {
+		return bson.D{}
+	}
+
+	const dateFormat = "2006-01-02"
+	dateRangeConditions := bson.D{}
+	for k, v := range queries {
+		if len(k) < 3 || (!strings.Contains(k[len(k)-4:], "date") && !strings.Contains(k[len(k)-3:], "_at")) {
+			// fmt.Printf("not date: %+v\n", k)
+			continue
+		}
+		splitedDates := strings.Split(v.(string), ".")
+		fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
+		if len(splitedDates) == 2 {
+			from, to := splitedDates[0], splitedDates[1]
+			if from != "" {
+				t, _ := time.Parse(dateFormat, from)
+				dateRangeConditions = append(dateRangeConditions, bson.D{{
+					k, bson.D{{
+						"$gte", primitive.NewDateTimeFromTime(t),
+					}},
+				}}...)
+			}
+			if to != "" {
+				t, _ := time.Parse(dateFormat, to)
+				dateRangeConditions = append(dateRangeConditions, bson.D{{
+					k, bson.D{{
+						"$lte", primitive.NewDateTimeFromTime(t.AddDate(0, 0, 1)),
+					}},
+				}}...)
+			}
+		}
+		delete(queries, k)
+	}
+
+	// fmt.Printf("dateConditions: %+v\n",dateConditions)
+	// return strings.Join(dateRangeConditions, " AND ")
+	return dateRangeConditions
 }

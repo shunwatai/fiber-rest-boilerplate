@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"golang-api-starter/internal/helper"
 	"log"
+	"math"
 	"strings"
 	"time"
 
@@ -48,11 +49,6 @@ func (m *Mongodb) Connect() *mongo.Client {
 	connectionString := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin&sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
 	fmt.Printf("ConnString: %+v\n", connectionString)
 
-	// db, err := sqlx.Open("mongodb", connectionString)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer db.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionString))
@@ -62,7 +58,7 @@ func (m *Mongodb) Connect() *mongo.Client {
 	return client
 }
 
-// Useless for mongodb, but needed for match with IDatabase...
+// Useless for mongodb, but needed for implement the IDatabase...
 func (m *Mongodb) constructSelectStmtFromQuerystring(
 	queries map[string]interface{},
 ) (string, *helper.Pagination, map[string]interface{}) {
@@ -72,8 +68,9 @@ func (m *Mongodb) constructSelectStmtFromQuerystring(
 // return select statment and *pagination by the req querystring
 func (m *Mongodb) getConditionsFromQuerystring(
 	queries map[string]interface{},
+	countFunc func(interface{}) (int64, error),
 	// ) (string, *helper.Pagination, map[string]interface{}) {
-) bson.D {
+) (bson.D, *options.FindOptions, *helper.Pagination) {
 	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
@@ -84,8 +81,8 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	// bindvarMap := map[string]interface{}{}
 	// cols := m.GetColumns()
 	cols := queries["columns"]
-	// pagination := helper.GetPagination(queries)
-	// dateRangeStmt := getDateRangeStmt(queries, bindvarMap)
+	pagination := helper.GetPagination(queries)
+	dateRangeStmt := getDateRangeBson(queries)
 	// fmt.Printf("dateRangeStmt: %+v, len: %+v\n", dateRangeStmt, len(dateRangeStmt))
 	helper.SanitiseQuerystring(cols.([]string), queries)
 
@@ -95,8 +92,8 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	selectStmt := bson.D{}
 
 	fmt.Printf("queries: %+v, len: %+v\n", queries, len(queries))
-	// if len(queries) != 0 || len(dateRangeStmt) != 0 { // add where clause
-	if len(queries) != 0 { // add where clause
+	if len(queries) != 0 || len(dateRangeStmt) != 0 { // add where clause
+	// if len(queries) != 0 { // add where clause
 		// whereClauses := []string{}
 		whereClauses := bson.D{}
 		for k, v := range queries {
@@ -139,9 +136,9 @@ func (m *Mongodb) getConditionsFromQuerystring(
 			}
 		}
 
-		// if len(dateRangeStmt) > 0 {
-		// 	whereClauses = append(whereClauses, dateRangeStmt)
-		// }
+		if len(dateRangeStmt) > 0 {
+			whereClauses = append(whereClauses, dateRangeStmt...)
+		}
 		// selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		selectStmt = append(selectStmt, whereClauses...)
 		// countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
@@ -154,19 +151,38 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	// 	defer totalRow.Close()
 	// 	totalRow.Scan(&pagination.Count)
 	// }
-	// if pagination.Items > 0 {
-	// 	pagination.TotalPages = int64(math.Ceil(float64(pagination.Count) / float64(pagination.Items)))
-	// }
-	// fmt.Printf("pagination: %+v\n", pagination)
+	if count, err := countFunc(selectStmt); err != nil {
+		fmt.Printf("count error: %+v\n", err)
+	} else {
+		fmt.Printf("count: %+v\n", count)
+		pagination.Count = count
+		if pagination.Items > 0 {
+			pagination.TotalPages = int64(math.Ceil(float64(pagination.Count) / float64(pagination.Items)))
+		}
+		fmt.Printf("pagination: %+v\n", pagination)
+	}
 
-	// var limit string
-	// var offset string = strconv.Itoa(int((pagination.Page - 1) * pagination.Items))
-	// if pagination.Items == 0 {
-	// 	limit = strconv.Itoa(int(pagination.Count))
-	// } else {
-	// 	limit = strconv.Itoa(int(pagination.Items))
-	// }
-	//
+	var limit int64
+	var offset int64 = (pagination.Page - 1) * pagination.Items
+	if pagination.Items == 0 {
+		limit = pagination.Count
+	} else {
+		limit = pagination.Items
+	}
+	options := options.Find()
+	options.SetSkip(offset)
+	options.SetLimit(limit)
+	options.SetSort(
+		bson.M{
+			pagination.OrderBy["key"]: func() int {
+				if pagination.OrderBy["by"] == "desc" {
+					return -1
+				}
+				return 1
+			}(),
+		},
+	)
+
 	// selectStmt = fmt.Sprintf(`%s
 	// 		ORDER BY %s %s
 	// 		LIMIT %s OFFSET %s
@@ -177,7 +193,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	// )
 
 	// return selectStmt, pagination, bindvarMap
-	return selectStmt
+	return selectStmt, options, pagination
 }
 
 // Get all columns []string by m.TableName
@@ -235,10 +251,17 @@ func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	// 	}
 	// }
 
-	conditions := m.getConditionsFromQuerystring(queries)
+	var countFunc = func(filter interface{}) (int64, error) {
+		count, err := collection.CountDocuments(ctx, filter)
+		return count, err
+	}
+
+	conditions, findOptions, pagination := m.getConditionsFromQuerystring(queries, countFunc)
 	// conditions:=bson.D{{"task", "/take passport/"}}
 	fmt.Printf("m conditions: %+v\n", conditions)
-	cur, err = collection.Find(ctx, conditions)
+	cur, err = collection.Find(ctx, conditions, findOptions)
+	// cur, err = collection.Find(ctx, bson.D{{"created_at", bson.D{{"$lt", primitive.NewDateTimeFromTime(time.Now())}}}}, findOptions)
+
 	// oid1, _ := primitive.ObjectIDFromHex("6551ee5f53a746ae0824c3ee")
 	// oid2, _ := primitive.ObjectIDFromHex("65519d29973632f67580045d")
 	// cur, err = collection.Find(ctx, bson.D{bson.E{"_id", bson.D{{"$in", []primitive.ObjectID{oid1, oid2}}}}})
@@ -259,7 +282,7 @@ func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	// 	log.Printf("rows.Err(): %+v\n", err.Error())
 	// }
 
-	return &MongoRows{cur, ctx}, &helper.Pagination{}
+	return &MongoRows{cur, ctx}, pagination
 }
 
 func (m *Mongodb) Save(records Records) Rows {
