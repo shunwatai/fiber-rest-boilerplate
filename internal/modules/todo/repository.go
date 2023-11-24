@@ -16,6 +16,12 @@ func NewRepository(db database.IDatabase) *Repository {
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
 	fmt.Printf("todo repo\n")
+	queries["exactMatch"] = map[string]bool{
+		"id":   true,
+		"_id":  true,
+		"done": true, // bool match needs exact match, parram can be 0(false) & 1(true)
+	}
+	queries["columns"] = Todo{}.getTags("bson") // TODO: use this to replace GetColumns()
 	rows, pagination := r.db.Select(queries)
 
 	var records Todos

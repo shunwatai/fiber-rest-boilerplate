@@ -58,6 +58,14 @@ func (todos Todos) rowsToStruct(rows database.Rows) []*Todo {
 	return records
 }
 
+func (todos Todos) GetTags(key string) []string {
+	if len(todos) == 0{
+		return []string{}
+	}
+
+	return todos[0].getTags(key)
+}
+
 func (todos *Todos) printValue() {
 	for _, v := range *todos {
 		if v.Id != nil {

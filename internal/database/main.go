@@ -47,6 +47,7 @@ type ConnectionInfo struct {
 
 type Records interface {
 	StructToMap() []map[string]interface{}
+	GetTags(string) []string
 }
 
 // func GetDbConnection(){

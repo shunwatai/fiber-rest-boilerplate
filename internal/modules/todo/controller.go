@@ -25,12 +25,12 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
-	paramsMap["exactMatch"] = map[string]bool{
-		"id":   true,
-		"_id":  true,
-		"done": true, // bool match needs exact match, parram can be 0(false) & 1(true)
-	}
-	paramsMap["columns"] = Todo{}.getTags("bson") // TODO: use this to replace GetColumns()
+	// paramsMap["exactMatch"] = map[string]bool{
+	// 	"id":   true,
+	// 	"_id":  true,
+	// 	"done": true, // bool match needs exact match, parram can be 0(false) & 1(true)
+	// }
+	// paramsMap["columns"] = Todo{}.getTags("bson") // TODO: use this to replace GetColumns()
 	results, pagination := c.service.Get(paramsMap)
 
 	respCode = fiber.StatusOK

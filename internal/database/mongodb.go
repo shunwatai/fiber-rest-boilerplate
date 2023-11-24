@@ -71,7 +71,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	countFunc func(interface{}) (int64, error),
 	// ) (string, *helper.Pagination, map[string]interface{}) {
 ) (bson.D, *options.FindOptions, *helper.Pagination) {
-	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
+	exactMatchCols := map[string]bool{"id": true, "_id": true} // default id(PK) & _id(mongo) have to be exact match
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
 			exactMatchCols[k] = true
@@ -93,7 +93,6 @@ func (m *Mongodb) getConditionsFromQuerystring(
 
 	fmt.Printf("queries: %+v, len: %+v\n", queries, len(queries))
 	if len(queries) != 0 || len(dateRangeStmt) != 0 { // add where clause
-	// if len(queries) != 0 { // add where clause
 		// whereClauses := []string{}
 		whereClauses := bson.D{}
 		for k, v := range queries {
@@ -123,7 +122,10 @@ func (m *Mongodb) getConditionsFromQuerystring(
 				whereClauses = append(whereClauses, bson.E{"$or", orWildcard})
 			default:
 				if exactMatchCols[k] {
-					if strings.Contains(k, "_id") {
+					if k == "id" {
+						oid, _ := primitive.ObjectIDFromHex(v.(string))
+						whereClauses = append(whereClauses, bson.E{"_id", oid})
+					} else if strings.Contains(k, "_id") {
 						oid, _ := primitive.ObjectIDFromHex(v.(string))
 						whereClauses = append(whereClauses, bson.E{k, oid})
 					} else {
@@ -139,9 +141,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 		if len(dateRangeStmt) > 0 {
 			whereClauses = append(whereClauses, dateRangeStmt...)
 		}
-		// selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		selectStmt = append(selectStmt, whereClauses...)
-		// countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
 	// fmt.Printf("countAllStmt: %+v, bindvarmap: %+v\n", countAllStmt, bindvarMap)
 
@@ -198,26 +198,6 @@ func (m *Mongodb) getConditionsFromQuerystring(
 
 // Get all columns []string by m.TableName
 func (m *Mongodb) GetColumns() []string {
-	/*
-		selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
-
-		if m.db == nil { // for run the test case
-			m.db = m.Connect()
-		}
-
-		rows, err := m.db.Queryx(selectStmt)
-		if err != nil {
-			log.Printf("%+v\n", err)
-		}
-		defer rows.Close()
-
-		cols, err := rows.Columns()
-		if err != nil {
-			log.Printf("%+v\n", err)
-		}
-	*/
-
-	// return cols
 	return []string{}
 }
 
@@ -296,7 +276,7 @@ func (m *Mongodb) Save(records Records) Rows {
 
 	opts := options.Update().SetUpsert(true)
 
-	upsertedIds := []primitive.ObjectID{}
+	upsertedIds := []string{}
 	recordsMap := records.StructToMap()
 	for _, record := range recordsMap {
 		filter := bson.D{}
@@ -312,7 +292,7 @@ func (m *Mongodb) Save(records Records) Rows {
 				delete(record, "created_at")
 			}
 			delete(record, "_id")
-			upsertedIds = append(upsertedIds, id)
+			upsertedIds = append(upsertedIds, id.Hex())
 		} else {
 			filter = bson.D{{Key: "_id", Value: primitive.NewObjectID()}}
 			record["updated_at"] = time.Now()
@@ -330,7 +310,7 @@ func (m *Mongodb) Save(records Records) Rows {
 		if res.UpsertedID == nil {
 			continue
 		}
-		upsertedIds = append(upsertedIds, res.UpsertedID.(primitive.ObjectID))
+		upsertedIds = append(upsertedIds, res.UpsertedID.(primitive.ObjectID).Hex())
 	}
 	fmt.Printf("upsertedIds: %+v\n", upsertedIds)
 
@@ -389,7 +369,10 @@ func (m *Mongodb) Save(records Records) Rows {
 
 	// return &sqlx.Rows{}
 
-	rows, _ := m.Select(map[string]interface{}{"_id": upsertedIds})
+	rows, _ := m.Select(map[string]interface{}{
+		"_id":     upsertedIds,
+		"columns": records.GetTags("bson"),
+	})
 	return rows
 }
 
