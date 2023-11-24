@@ -257,14 +257,14 @@ func (m *Sqlite) Save(records Records) Rows {
 // 	return &sqlx.Rows{}
 // }
 
-func (m *Sqlite) Delete(ids *[]int64) error {
-	fmt.Printf("delete from Sqlite, table: %+v where id in (%+v)\n", m.TableName, *ids)
+func (m *Sqlite) Delete(ids []string) error {
+	fmt.Printf("delete from Sqlite, table: %+v where id in (%+v)\n", m.TableName, ids)
 	db := m.Connect()
 	defer db.Close()
 
 	deleteStmt, args, err := sqlx.In(
 		fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
-		*ids,
+		ids,
 	)
 	if err != nil {
 		log.Printf("sqlx.In err: %+v\n", err.Error())

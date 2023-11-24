@@ -151,7 +151,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	// json.Unmarshal(c.BodyRaw(), &body)
 	// fmt.Printf("req body: %+v\n", body)
 	delIds := struct {
-		Ids []int64 `json:"ids" validate:"required,min=1,unique"`
+		Ids []int64 `json:"ids" validate:"required,unique"`
 	}{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
@@ -164,7 +164,8 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 
 	fmt.Printf("deletedIds: %+v\n", delIds)
 
-	results, err := c.service.Delete(&delIds.Ids)
+	idsString, _ := helper.ConvertNumberSliceToString(delIds.Ids)
+	results, err := c.service.Delete(idsString)
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
