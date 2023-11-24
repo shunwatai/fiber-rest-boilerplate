@@ -21,7 +21,12 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagin
 		"_id":  true,
 		"done": true, // bool match needs exact match, parram can be 0(false) & 1(true)
 	}
-	queries["columns"] = Todo{}.getTags("bson") // TODO: use this to replace GetColumns()
+
+	cfg.LoadEnvVariables()
+	if cfg.DbConf.Driver == "mongodb" {
+		queries["columns"] = Todo{}.getTags("bson")
+	}
+	queries["columns"] = Todo{}.getTags("db") // TODO: use this to replace GetColumns()
 	rows, pagination := r.db.Select(queries)
 
 	var records Todos
