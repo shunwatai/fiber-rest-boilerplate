@@ -235,14 +235,14 @@ func (m *Postgres) Save(records Records) Rows {
 // func (m *Postgres) Update() {
 // 	fmt.Printf("update from Postgres, table: %+v\n", m.TableName)
 // }
-func (m *Postgres) Delete(ids *[]int64) error {
+func (m *Postgres) Delete(ids []string) error {
 	fmt.Printf("delete from Postgres, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
 
 	deleteStmt, args, err := sqlx.In(
 		fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
-		*ids,
+		ids,
 	)
 	if err != nil {
 		log.Printf("sqlx.In err: %+v\n", err.Error())

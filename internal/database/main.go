@@ -31,7 +31,7 @@ type IDatabase interface {
 	Save(Records) Rows
 
 	/* Delete records by ids(support batch delete) */
-	Delete(*[]int64) error
+	Delete([]string) error
 	// GetConnectionInfo() ConnectionInfo
 	constructSelectStmtFromQuerystring(queries map[string]interface{}) (string, *helper.Pagination, map[string]interface{})
 }

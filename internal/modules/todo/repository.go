@@ -66,9 +66,8 @@ func (r *Repository) Update(todos []*Todo) []*Todo {
 	return records
 }
 
-func (r *Repository) Delete(ids *[]int64) ([]*Todo, error) {
-	idsString, _ := helper.ConvertNumberSliceToString(*ids)
-	rows, _ := r.db.Select(map[string]interface{}{"id": idsString})
+func (r *Repository) Delete(ids []string) ([]*Todo, error) {
+	rows, _ := r.db.Select(map[string]interface{}{"id": ids})
 
 	var records Todos
 	if rows != nil {

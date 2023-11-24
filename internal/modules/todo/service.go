@@ -38,10 +38,9 @@ func (s *Service) Update(todos []*Todo) []*Todo {
 	return s.repo.Update(todos)
 }
 
-func (s *Service) Delete(ids *[]int64) ([]*Todo, error) {
-	idsString, _ := helper.ConvertNumberSliceToString(*ids)
+func (s *Service) Delete(ids []string) ([]*Todo, error) {
 	records,_ := s.repo.Get(map[string]interface{}{
-		"id": idsString,
+		"id": ids,
 	})
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
