@@ -25,8 +25,9 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagin
 	cfg.LoadEnvVariables()
 	if cfg.DbConf.Driver == "mongodb" {
 		queries["columns"] = Todo{}.getTags("bson")
+	} else {
+		queries["columns"] = Todo{}.getTags("db") // TODO: use this to replace GetColumns()
 	}
-	queries["columns"] = Todo{}.getTags("db") // TODO: use this to replace GetColumns()
 	rows, pagination := r.db.Select(queries)
 
 	var records Todos
@@ -66,19 +67,19 @@ func (r *Repository) Update(todos []*Todo) []*Todo {
 	return records
 }
 
-func (r *Repository) Delete(ids []string) ([]*Todo, error) {
-	rows, _ := r.db.Select(map[string]interface{}{"id": ids})
-
-	var records Todos
-	if rows != nil {
-		records = records.rowsToStruct(rows)
-	}
-	records.printValue()
+func (r *Repository) Delete(ids []string) error {
+	// rows, _ := r.db.Select(map[string]interface{}{"id": ids})
+	//
+	// var records Todos
+	// if rows != nil {
+	// 	records = records.rowsToStruct(rows)
+	// }
+	// records.printValue()
 
 	err := r.db.Delete(ids)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return records, nil
+	return nil
 }

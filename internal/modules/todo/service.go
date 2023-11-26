@@ -21,7 +21,7 @@ func (s *Service) Get(queries map[string]interface{}) ([]*Todo, *helper.Paginati
 func (s *Service) GetById(queries map[string]interface{}) ([]*Todo, error) {
 	fmt.Printf("todo service\n")
 
-	records,_ := s.repo.Get(queries)
+	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("%s with id: %s not found", tableName, queries["id"])
 	}
@@ -39,12 +39,23 @@ func (s *Service) Update(todos []*Todo) []*Todo {
 }
 
 func (s *Service) Delete(ids []string) ([]*Todo, error) {
-	records,_ := s.repo.Get(map[string]interface{}{
-		"id": ids,
-	})
+	var (
+		records    = []*Todo{}
+		conditions = map[string]interface{}{}
+	)
+
+	cfg.LoadEnvVariables()
+	if cfg.DbConf.Driver == "mongodb" {
+		conditions["_id"] = ids
+	} else {
+		conditions["id"] = ids
+	}
+
+	records, _ = s.repo.Get(conditions)
+	fmt.Printf("records: %+v\n", records)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
 	}
 
-	return s.repo.Delete(ids)
+	return records, s.repo.Delete(ids)
 }

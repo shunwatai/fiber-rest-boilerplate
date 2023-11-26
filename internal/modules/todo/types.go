@@ -94,7 +94,7 @@ func (todo Todo) getTags(key string) []string {
 			if name == "" {
 				name = fieldName
 			}
-			fmt.Println(name)
+			// fmt.Println(name)
 			cols = append(cols, name)
 		}
 	}

@@ -158,21 +158,35 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	// json.Unmarshal(c.BodyRaw(), &body)
 	// fmt.Printf("req body: %+v\n", body)
 	delIds := struct {
-		Ids []int64 `json:"ids" validate:"required,unique"`
+		Ids []int64 `json:"ids" validate:"required,min=1,unique"`
+	}{}
+
+	mongoDelIds := struct {
+		Ids []string `json:"ids" validate:"required,unique"`
 	}{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	err, _ := reqCtx.Payload.ParseJsonToStruct(&delIds, nil)
-	if err != nil {
-		log.Printf("failed to parse req json, %+v\n", err.Error())
-		return ctx.JSON(map[string]interface{}{"message": err.Error()})
+	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
+	if intIdsErr != nil && strIdsErr != nil {
+		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
+		return ctx.JSON(map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
+	}
+	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
+
+	var (
+		results []*Todo
+		err     error
+	)
+
+	cfg.LoadEnvVariables()
+	if cfg.DbConf.Driver == "mongodb" {
+		results, err = c.service.Delete(mongoDelIds.Ids)
+	} else {
+		idsString, _ := helper.ConvertNumberSliceToString(delIds.Ids)
+		results, err = c.service.Delete(idsString)
 	}
 
-	fmt.Printf("deletedIds: %+v\n", delIds)
-
-	idsString, _ := helper.ConvertNumberSliceToString(delIds.Ids)
-	results, err := c.service.Delete(idsString)
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound

@@ -379,8 +379,28 @@ func (m *Mongodb) Save(records Records) Rows {
 // func (m *Mongodb) Update() {
 // 	fmt.Printf("update from Mongodb, table: %+v\n", m.TableName)
 // }
-func (m *Mongodb) Delete(ids *[]int64) error {
-	fmt.Printf("delete from Mongodb, table: %+v\n", m.TableName)
+func (m *Mongodb) Delete(ids []string) error {
+	fmt.Printf("delete ids: %+v from Mongodb, table: %+v\n", ids, m.TableName)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	m.db = m.Connect()
+	defer m.db.Disconnect(ctx)
+	collection := m.db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+	objectIds := []primitive.ObjectID{}
+	for _, id := range ids {
+		if oid, err := primitive.ObjectIDFromHex(id); err != nil {
+			fmt.Printf("ObjectIDFromHex err: %+v\n", err)
+		} else {
+			objectIds = append(objectIds, oid)
+		}
+	}
+	filter := bson.D{{"_id", bson.D{{"$in", objectIds}}}}
+	result, err := collection.DeleteMany(ctx, filter)
+	if err != nil {
+		fmt.Printf("DeleteMany err: %+v\n", err)
+	}
+	fmt.Printf("result: %+v\n", result)
+
 	// m.db = m.Connect()
 	// defer m.db.Close()
 	//
