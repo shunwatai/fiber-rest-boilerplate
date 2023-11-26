@@ -3,6 +3,7 @@ package todo
 import (
 	"errors"
 	"fmt"
+	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
 	"strconv"
@@ -18,6 +19,7 @@ func NewController(s *Service) Controller {
 	return Controller{s}
 }
 
+var cfg = config.Cfg
 var respCode = fiber.StatusInternalServerError
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
@@ -25,10 +27,6 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
-	paramsMap["exactMatch"] = map[string]bool{
-		"id":   true,
-		"done": true, // bool match needs exact match, parram can be 0(false) & 1(true)
-	}
 	results, pagination := c.service.Get(paramsMap)
 
 	respCode = fiber.StatusOK
@@ -112,12 +110,21 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	// }
 
 	for _, todo := range todos {
-		if todo.Id == nil {
+		if todo.Id == nil && todo.MongoId == nil {
 			return ctx.
 				Status(respCode).
 				JSON(map[string]interface{}{"message": "please ensure all records with id for PATCH"})
 		}
-		existing, err := c.service.GetById(map[string]interface{}{"id": strconv.Itoa(int(*todo.Id))})
+
+		cfg.LoadEnvVariables()
+		conditions := map[string]interface{}{}
+		if cfg.DbConf.Driver == "mongodb" {
+			conditions["id"] = *todo.MongoId
+		} else {
+			conditions["id"] = *todo.Id
+		}
+
+		existing, err := c.service.GetById(conditions)
 		if len(existing) == 0 {
 			respCode = fiber.StatusNotFound
 			return ctx.
@@ -154,18 +161,32 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 		Ids []int64 `json:"ids" validate:"required,unique"`
 	}{}
 
+	mongoDelIds := struct {
+		Ids []string `json:"ids" validate:"required,unique"`
+	}{}
+
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	err, _ := reqCtx.Payload.ParseJsonToStruct(&delIds, nil)
-	if err != nil {
-		log.Printf("failed to parse req json, %+v\n", err.Error())
-		return ctx.JSON(map[string]interface{}{"message": err.Error()})
+	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
+	if intIdsErr != nil && strIdsErr != nil {
+		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
+		return ctx.JSON(map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
+	}
+	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
+
+	var (
+		results []*Todo
+		err     error
+	)
+
+	cfg.LoadEnvVariables()
+	if cfg.DbConf.Driver == "mongodb" {
+		results, err = c.service.Delete(mongoDelIds.Ids)
+	} else {
+		idsString, _ := helper.ConvertNumberSliceToString(delIds.Ids)
+		results, err = c.service.Delete(idsString)
 	}
 
-	fmt.Printf("deletedIds: %+v\n", delIds)
-
-	idsString, _ := helper.ConvertNumberSliceToString(delIds.Ids)
-	results, err := c.service.Delete(idsString)
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
