@@ -26,7 +26,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
 	paramsMap["exactMatch"] = map[string]bool{
-		"id":   true,
+		"id": true,
 	}
 	results, pagination := c.service.Get(paramsMap)
 
@@ -79,8 +79,13 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		fmt.Printf("user? %+v\n", user)
 	}
 
-	// return []*User{}
-	results := c.service.Create(users)
+	results, serviceErr := c.service.Create(users)
+	if serviceErr != nil {
+		respCode = fiber.StatusConflict
+		return ctx.
+			Status(respCode).
+			JSON(map[string]interface{}{"msg": serviceErr.Error()})
+	}
 
 	respCode = fiber.StatusCreated
 	if userErr == nil && len(results) > 0 {

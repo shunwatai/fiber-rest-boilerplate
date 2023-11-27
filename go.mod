@@ -13,6 +13,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/spf13/viper v1.17.0
 	github.com/swaggo/swag v1.16.2
+	golang.org/x/crypto v0.13.0
 )
 
 require (

@@ -13,9 +13,9 @@ import (
 type User struct {
 	Id        *int64                 `json:"id"   db:"id" example:"2"`
 	Name      string                 `json:"name" db:"name" example:"emma"`
-	Password  string                 `json:"password" db:"password" example:"password"`
-	FirstName *string                 `json:"firstName" db:"first_name" example:"Emma"`
-	LastName  *string                 `json:"lastName" db:"last_name" example:"Watson"`
+	Password  *string                `json:"password,omitempty" db:"password" example:"password"`
+	FirstName *string                `json:"firstName" db:"first_name" example:"Emma"`
+	LastName  *string                `json:"lastName" db:"last_name" example:"Watson"`
 	Disabled  bool                   `json:"disabled" db:"disabled" example:"false"`
 	CreatedAt *helper.CustomDatetime `db:"created_at" json:"createdAt"`
 	UpdatedAt *helper.CustomDatetime `db:"updated_at" json:"updatedAt"`

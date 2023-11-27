@@ -14,12 +14,12 @@ func NewService(r *Repository) *Service {
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
-	fmt.Printf("todo service\n")
+	fmt.Printf("todo service get\n")
 	return s.repo.Get(queries)
 }
 
 func (s *Service) GetById(queries map[string]interface{}) ([]*Todo, error) {
-	fmt.Printf("todo service\n")
+	fmt.Printf("todo service getById\n")
 
 	records,_ := s.repo.Get(queries)
 	if len(records) == 0 {

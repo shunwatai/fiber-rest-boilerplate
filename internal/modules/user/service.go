@@ -3,6 +3,8 @@ package user
 import (
 	"fmt"
 	"golang-api-starter/internal/helper"
+	"golang.org/x/crypto/bcrypt"
+	"log"
 )
 
 type Service struct {
@@ -11,6 +13,16 @@ type Service struct {
 
 func NewService(r *Repository) *Service {
 	return &Service{r}
+}
+
+func hashUserPassword(pwd *string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(*pwd), bcrypt.MinCost)
+	if err != nil {
+		return err
+	}
+
+	*pwd = string(hash)
+	return nil
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*User, *helper.Pagination) {
@@ -29,8 +41,24 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*User, error) {
 }
 
 func (s *Service) Create(users []*User) []*User {
+func (s *Service) Create(users []*User) ([]*User, error) {
 	fmt.Printf("user service create\n")
-	return s.repo.Create(users)
+	for _, user := range users {
+		// check if duplicated by "name"
+		existingUsers, _ := s.repo.Get(map[string]interface{}{"name": user.Name})
+		if len(existingUsers) > 0 {
+			errMsg := fmt.Sprintf("user service create error: %+v already exists.\n", user.Name)
+			log.Printf(errMsg)
+			return nil, fmt.Errorf(errMsg)
+		}
+
+		// hash plain password
+		if err := hashUserPassword(user.Password); err != nil {
+			return nil, fmt.Errorf(err.Error())
+		}
+	}
+
+	return s.repo.Create(users), nil
 }
 
 func (s *Service) Update(users []*User) []*User {
