@@ -40,22 +40,23 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*User, error) {
 	return records, nil
 }
 
-func (s *Service) Create(users []*User) []*User {
 func (s *Service) Create(users []*User) ([]*User, error) {
 	fmt.Printf("user service create\n")
+	newUserNames := []string{}
 	for _, user := range users {
-		// check if duplicated by "name"
-		existingUsers, _ := s.repo.Get(map[string]interface{}{"name": user.Name})
-		if len(existingUsers) > 0 {
-			errMsg := fmt.Sprintf("user service create error: %+v already exists.\n", user.Name)
-			log.Printf(errMsg)
-			return nil, fmt.Errorf(errMsg)
-		}
-
+		newUserNames = append(newUserNames, user.Name)
 		// hash plain password
 		if err := hashUserPassword(user.Password); err != nil {
 			return nil, fmt.Errorf(err.Error())
 		}
+	}
+
+	// check if duplicated by "name"
+	existingUsers, _ := s.repo.Get(map[string]interface{}{"name": newUserNames})
+	if len(existingUsers) > 0 {
+		errMsg := fmt.Sprintf("user service create error: provided user name(s) %+v already exists.\n", newUserNames)
+		log.Printf(errMsg)
+		return nil, fmt.Errorf(errMsg)
 	}
 
 	return s.repo.Create(users), nil
