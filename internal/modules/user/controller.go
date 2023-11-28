@@ -1,8 +1,6 @@
 package user
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"golang-api-starter/internal/helper"
 	"log"
@@ -134,53 +132,12 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		userIds = append(userIds, strconv.Itoa(int(*user.Id)))
 	}
 
-	// create map by existing user from DB
-	userIdMap := map[string]User{}
-	existings, _ := c.service.Get(map[string]interface{}{"id": userIds})
-	for _, user := range existings {
-		userIdMap[strconv.Itoa(int(*user.Id))] = *user
-	}
-
-	// check reqJson for non-existing ids
-	// also reuse the map storing the req's user which use for create the "update data"
-	nonExistIds := []int64{}
-	for _, reqUser := range users {
-		_, ok := userIdMap[strconv.Itoa(int(*reqUser.Id))]
-		if !ok {
-			nonExistIds = append(nonExistIds, *reqUser.Id)
-		}
-		userIdMap[strconv.Itoa(int(*reqUser.Id))] = *reqUser
-	}
-
-	if len(nonExistIds) > 0 || len(existings) == 0 {
-		respCode = fiber.StatusNotFound
-		notFoundMsg := fmt.Sprintf("cannot update non-existing id(s): %+v", nonExistIds)
+	results, httpErr := c.service.Update(users)
+	if httpErr != nil {
 		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{
-				"message": errors.Join(
-					errors.New(notFoundMsg),
-				).Error(),
-			})
+			Status(httpErr.Code).
+			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
 	}
-
-	// combining the req user that match with the existing user for update
-	for _, originalUser := range existings {
-		user := userIdMap[strconv.Itoa(int(*originalUser.Id))] // get the req user
-		if user.CreatedAt == nil {
-			user.CreatedAt = originalUser.CreatedAt
-		}
-		if user.Password == nil {
-			user.Password = originalUser.Password
-		} else {
-			hashUserPassword(user.Password)
-		}
-		fmt.Printf("??user: %+v, originalUserPw: %+v\n", user, originalUser.Password)
-		newUserBytes, _ := json.Marshal(user)       // convert req user into []byte
-		json.Unmarshal(newUserBytes, &originalUser) // unmarshal the req user into its original db record
-	}
-
-	results := c.service.Update(existings)
 	sanitise(results)
 
 	respCode = fiber.StatusOK
