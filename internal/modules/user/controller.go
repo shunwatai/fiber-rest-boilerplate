@@ -1,6 +1,7 @@
 package user
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"golang-api-starter/internal/helper"
@@ -12,6 +13,12 @@ import (
 
 type Controller struct {
 	service *Service
+}
+
+func sanitise(users Users) {
+	for _, u := range users {
+		u.Password = nil
+	}
 }
 
 func NewController(s *Service) Controller {
@@ -29,6 +36,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 		"id": true,
 	}
 	results, pagination := c.service.Get(paramsMap)
+	sanitise(results)
 
 	respCode = fiber.StatusOK
 	return ctx.
@@ -80,6 +88,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	}
 
 	results, serviceErr := c.service.Create(users)
+	sanitise(results)
 	if serviceErr != nil {
 		respCode = fiber.StatusConflict
 		return ctx.
@@ -115,29 +124,64 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	// 	log.Printf("users: %+v\n", t)
 	// }
 
+	userIds := []string{}
 	for _, user := range users {
 		if user.Id == nil {
 			return ctx.
 				Status(respCode).
-				JSON(map[string]interface{}{"message": "please ensure all records with id for PATCH"})
+				JSON(map[string]interface{}{"message": "please ensure all records with key 'id' for PATCH"})
 		}
-		existing, err := c.service.GetById(map[string]interface{}{"id": strconv.Itoa(int(*user.Id))})
-		if len(existing) == 0 {
-			respCode = fiber.StatusNotFound
-			return ctx.
-				Status(respCode).
-				JSON(map[string]interface{}{
-					"message": errors.Join(
-						errors.New("cannot update non-existing records..."),
-						err,
-					).Error(),
-				})
-		} else if user.CreatedAt == nil {
-			user.CreatedAt = existing[0].CreatedAt
-		}
+		userIds = append(userIds, strconv.Itoa(int(*user.Id)))
 	}
 
-	results := c.service.Update(users)
+	// create map by existing user from DB
+	userIdMap := map[string]User{}
+	existings, _ := c.service.Get(map[string]interface{}{"id": userIds})
+	for _, user := range existings {
+		userIdMap[strconv.Itoa(int(*user.Id))] = *user
+	}
+
+	// check reqJson for non-existing ids
+	// also reuse the map storing the req's user which use for create the "update data"
+	nonExistIds := []int64{}
+	for _, reqUser := range users {
+		_, ok := userIdMap[strconv.Itoa(int(*reqUser.Id))]
+		if !ok {
+			nonExistIds = append(nonExistIds, *reqUser.Id)
+		}
+		userIdMap[strconv.Itoa(int(*reqUser.Id))] = *reqUser
+	}
+
+	if len(nonExistIds) > 0 || len(existings) == 0 {
+		respCode = fiber.StatusNotFound
+		notFoundMsg := fmt.Sprintf("cannot update non-existing id(s): %+v", nonExistIds)
+		return ctx.
+			Status(respCode).
+			JSON(map[string]interface{}{
+				"message": errors.Join(
+					errors.New(notFoundMsg),
+				).Error(),
+			})
+	}
+
+	// combining the req user that match with the existing user for update
+	for _, originalUser := range existings {
+		user := userIdMap[strconv.Itoa(int(*originalUser.Id))] // get the req user
+		if user.CreatedAt == nil {
+			user.CreatedAt = originalUser.CreatedAt
+		}
+		if user.Password == nil {
+			user.Password = originalUser.Password
+		} else {
+			hashUserPassword(user.Password)
+		}
+		fmt.Printf("??user: %+v, originalUserPw: %+v\n", user, originalUser.Password)
+		newUserBytes, _ := json.Marshal(user)       // convert req user into []byte
+		json.Unmarshal(newUserBytes, &originalUser) // unmarshal the req user into its original db record
+	}
+
+	results := c.service.Update(existings)
+	sanitise(results)
 
 	respCode = fiber.StatusOK
 	if userErr == nil && len(results) > 0 {
@@ -169,6 +213,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	fmt.Printf("deletedIds: %+v\n", delIds)
 
 	results, err := c.service.Delete(&delIds.Ids)
+	sanitise(results)
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound

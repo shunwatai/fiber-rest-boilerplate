@@ -26,14 +26,16 @@ func hashUserPassword(pwd *string) error {
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*User, *helper.Pagination) {
-	fmt.Printf("user service\n")
-	return s.repo.Get(queries)
+	fmt.Printf("user service get\n")
+	users, pagination := s.repo.Get(queries)
+
+	return users, pagination
 }
 
 func (s *Service) GetById(queries map[string]interface{}) ([]*User, error) {
-	fmt.Printf("user service\n")
+	fmt.Printf("user service getById\n")
 
-	records,_ := s.repo.Get(queries)
+	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("%s with id: %s not found", tableName, queries["id"])
 	}
@@ -69,7 +71,7 @@ func (s *Service) Update(users []*User) []*User {
 
 func (s *Service) Delete(ids *[]int64) ([]*User, error) {
 	idsString, _ := helper.ConvertNumberSliceToString(*ids)
-	records,_ := s.repo.Get(map[string]interface{}{
+	records, _ := s.repo.Get(map[string]interface{}{
 		"id": idsString,
 	})
 	if len(records) == 0 {
