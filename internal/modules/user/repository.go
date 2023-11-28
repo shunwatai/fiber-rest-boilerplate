@@ -27,11 +27,11 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*User, *helper.Pagin
 	return records, pagination
 }
 
-func (r *Repository) Create(users []*User) []*User {
+func (r *Repository) Create(users []*User) ([]*User, error) {
 	for _, user := range users {
 		fmt.Printf("user repo add: %+v\n", user)
 	}
-	rows := r.db.Save(Users(users))
+	rows, err := r.db.Save(Users(users))
 
 	var records Users
 	if rows != nil {
@@ -39,12 +39,12 @@ func (r *Repository) Create(users []*User) []*User {
 	}
 	records.printValue()
 
-	return records
+	return records, err
 }
 
-func (r *Repository) Update(users []*User) []*User {
+func (r *Repository) Update(users []*User) ([]*User, error) {
 	fmt.Printf("user repo update\n")
-	rows := r.db.Save(Users(users))
+	rows, err := r.db.Save(Users(users))
 
 	var records Users
 	if rows != nil {
@@ -52,7 +52,7 @@ func (r *Repository) Update(users []*User) []*User {
 	}
 	records.printValue()
 
-	return records
+	return records, err
 }
 
 func (r *Repository) Delete(ids *[]int64) ([]*User, error) {

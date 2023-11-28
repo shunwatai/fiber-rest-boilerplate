@@ -52,7 +52,7 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 		respCode = fiber.StatusNotFound
 		return ctx.
 			Status(respCode).
-			JSON(map[string]interface{}{"msg": err.Error()})
+			JSON(map[string]interface{}{"message": err.Error()})
 	}
 	respCode = fiber.StatusOK
 	return ctx.JSON(map[string]interface{}{"data": results[0]})
@@ -85,13 +85,12 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		fmt.Printf("user? %+v\n", user)
 	}
 
-	results, serviceErr := c.service.Create(users)
+	results, httpErr := c.service.Create(users)
 	sanitise(results)
-	if serviceErr != nil {
-		respCode = fiber.StatusConflict
+	if httpErr.Err != nil {
 		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"msg": serviceErr.Error()})
+			Status(httpErr.Code).
+			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
 	}
 
 	respCode = fiber.StatusCreated
@@ -133,7 +132,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	}
 
 	results, httpErr := c.service.Update(users)
-	if httpErr != nil {
+	if httpErr.Err != nil {
 		return ctx.
 			Status(httpErr.Code).
 			JSON(map[string]interface{}{"message": httpErr.Err.Error()})

@@ -174,7 +174,7 @@ func (m *MariaDb) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pa
 	return rows, pagination
 }
 
-func (m *MariaDb) Save(records Records) *sqlx.Rows {
+func (m *MariaDb) Save(records Records) (*sqlx.Rows, error) {
 	fmt.Printf("save from MariaDB, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
@@ -215,6 +215,7 @@ func (m *MariaDb) Save(records Records) *sqlx.Rows {
 	sqlResult, err := m.db.NamedQuery(insertStmt, records)
 	if err != nil {
 		log.Printf("insert error: %+v\n", err)
+		return nil, err
 	}
 	// fmt.Printf("sqlResult: %+v\n", sqlResult)
 
@@ -223,13 +224,14 @@ func (m *MariaDb) Save(records Records) *sqlx.Rows {
 		err := sqlResult.Scan(&id)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
+			return nil, err
 		}
 		insertedIds = append(insertedIds, id)
 	}
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-	return rows
+	return rows, nil
 }
 
 // func (m *MariaDb) Update() {

@@ -19,7 +19,7 @@ type IDatabase interface {
 
 	// Insert new records, support upsert when id is present.
 	// And also support batch insert/upsert
-	Save(Records) *sqlx.Rows
+	Save(Records) (*sqlx.Rows, error)
 
 	/* Delete records by ids(support batch delete) */
 	Delete(*[]int64) error
@@ -141,4 +141,3 @@ func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
 	// fmt.Printf("dateConditions: %+v\n",dateConditions)
 	return strings.Join(dateRangeConditions, " AND ")
 }
-

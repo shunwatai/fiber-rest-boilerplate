@@ -27,11 +27,11 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagin
 	return records, pagination
 }
 
-func (r *Repository) Create(todos []*Todo) []*Todo {
+func (r *Repository) Create(todos []*Todo) ([]*Todo, error) {
 	for _, todo := range todos {
 		fmt.Printf("todo repo add: %+v\n", todo)
 	}
-	rows := r.db.Save(Todos(todos))
+	rows, err := r.db.Save(Todos(todos))
 
 	var records Todos
 	if rows != nil {
@@ -39,12 +39,12 @@ func (r *Repository) Create(todos []*Todo) []*Todo {
 	}
 	records.printValue()
 
-	return records
+	return records, err
 }
 
-func (r *Repository) Update(todos []*Todo) []*Todo {
+func (r *Repository) Update(todos []*Todo) ([]*Todo, error) {
 	fmt.Printf("todo repo update\n")
-	rows := r.db.Save(Todos(todos))
+	rows, err := r.db.Save(Todos(todos))
 
 	var records Todos
 	if rows != nil {
@@ -52,7 +52,7 @@ func (r *Repository) Update(todos []*Todo) []*Todo {
 	}
 	records.printValue()
 
-	return records
+	return records, err
 }
 
 func (r *Repository) Delete(ids *[]int64) ([]*Todo, error) {

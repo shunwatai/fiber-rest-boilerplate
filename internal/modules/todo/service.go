@@ -21,26 +21,28 @@ func (s *Service) Get(queries map[string]interface{}) ([]*Todo, *helper.Paginati
 func (s *Service) GetById(queries map[string]interface{}) ([]*Todo, error) {
 	fmt.Printf("todo service getById\n")
 
-	records,_ := s.repo.Get(queries)
+	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("%s with id: %s not found", tableName, queries["id"])
 	}
 	return records, nil
 }
 
-func (s *Service) Create(todos []*Todo) []*Todo {
+func (s *Service) Create(todos []*Todo) ([]*Todo, *helper.HttpErr) {
 	fmt.Printf("todo service create\n")
-	return s.repo.Create(todos)
+	results, _ := s.repo.Create(todos)
+	return results, nil
 }
 
-func (s *Service) Update(todos []*Todo) []*Todo {
+func (s *Service) Update(todos []*Todo) ([]*Todo, *helper.HttpErr) {
 	fmt.Printf("todo service update\n")
-	return s.repo.Update(todos)
+	results, _ := s.repo.Update(todos)
+	return results, nil
 }
 
 func (s *Service) Delete(ids *[]int64) ([]*Todo, error) {
 	idsString, _ := helper.ConvertNumberSliceToString(*ids)
-	records,_ := s.repo.Get(map[string]interface{}{
+	records, _ := s.repo.Get(map[string]interface{}{
 		"id": idsString,
 	})
 	if len(records) == 0 {

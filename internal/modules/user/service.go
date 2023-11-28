@@ -47,14 +47,14 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*User, error) {
 	return records, nil
 }
 
-func (s *Service) Create(users []*User) ([]*User, error) {
+func (s *Service) Create(users []*User) ([]*User, *helper.HttpErr) {
 	fmt.Printf("user service create\n")
 	newUserNames := []string{}
 	for _, user := range users {
 		newUserNames = append(newUserNames, user.Name)
 		// hash plain password
 		if err := hashUserPassword(user.Password); err != nil {
-			return nil, fmt.Errorf(err.Error())
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, err}
 		}
 	}
 
@@ -63,10 +63,11 @@ func (s *Service) Create(users []*User) ([]*User, error) {
 	if len(existingUsers) > 0 {
 		errMsg := fmt.Sprintf("user service create error: provided user name(s) %+v already exists.\n", newUserNames)
 		log.Printf(errMsg)
-		return nil, fmt.Errorf(errMsg)
+		return nil, &helper.HttpErr{fiber.StatusConflict, fmt.Errorf(errMsg)}
 	}
 
-	return s.repo.Create(users), nil
+	results, err := s.repo.Create(users)
+	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
 func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
@@ -105,6 +106,19 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 		return nil, httpErr
 	}
 
+	// USELESS, can simply set that column as UNIQUE in DB's table.
+	// check conflict of existing name
+	for _, user := range users {
+		conflicts, _ := s.repo.Get(map[string]interface{}{"name": user.Name})
+		if len(conflicts) > 0 && *conflicts[0].Id != *user.Id {
+			httpErr := &helper.HttpErr{
+				Code: fiber.StatusConflict,
+				Err:  fmt.Errorf("%+v is already existed, please try another name.", user.Name),
+			}
+			return nil, httpErr
+		}
+	}
+
 	// combining the req user that match with the existing user for update
 	for _, originalUser := range existings {
 		user := userIdMap[strconv.Itoa(int(*originalUser.Id))] // get the req user
@@ -120,7 +134,8 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 		json.Unmarshal(newUserBytes, &originalUser) // unmarshal the req user into its original db record
 	}
 
-	return s.repo.Update(existings), nil
+	results, err := s.repo.Update(existings)
+	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
 func (s *Service) Delete(ids *[]int64) ([]*User, error) {
