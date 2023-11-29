@@ -12,6 +12,8 @@ var Srvc = NewService(Repo)
 var ctrl = NewController(Srvc)
 
 func GetRoutes(router fiber.Router) {
+	router.Post("/login", Login)
+
 	r := router.Group("/users")
 	r.Get("/", GetAll)
 	r.Post("/", Create)
@@ -98,4 +100,18 @@ func Update(c *fiber.Ctx) error {
 //	@Router			/users [delete]
 func Delete(c *fiber.Ctx) error {
 	return ctrl.Delete(c)
+}
+
+// UserLogin godoc
+//
+//	@Summary		Login user
+//	@Description	login user
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			User	body	string	true	"Login request json"	SchemaExample({ "name": "admin", "password": "admin" })
+//	@Security		ApiKeyAuth
+//	@Router			/users [post]
+func Login(c *fiber.Ctx) error {
+	return ctrl.Login(c)
 }

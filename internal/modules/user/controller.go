@@ -183,3 +183,30 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 		Status(respCode).
 		JSON(map[string]interface{}{"data": results})
 }
+
+func (c *Controller) Login(ctx *fiber.Ctx) error {
+	fmt.Printf("user ctrl create\n")
+	user := &User{}
+	users := []*User{}
+
+	fctx := &helper.FiberCtx{Fctx: ctx}
+	reqCtx := &helper.ReqContext{Payload: fctx}
+	if userErr, _ := reqCtx.Payload.ParseJsonToStruct(user, &users); userErr != nil {
+		log.Printf("userErr: %+v\n", userErr)
+	}
+	// log.Printf("login req: %+v\n", user)
+
+	result, httpErr := c.service.Login(user)
+	if httpErr != nil {
+		return ctx.
+			Status(httpErr.Code).
+			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
+	}
+
+	users = append(users, result)
+	sanitise(users)
+	respCode = fiber.StatusOK
+	return ctx.
+		Status(respCode).
+		JSON(map[string]interface{}{"data": result})
+}

@@ -149,3 +149,27 @@ func (s *Service) Delete(ids *[]int64) ([]*User, error) {
 
 	return s.repo.Delete(ids)
 }
+
+func (s *Service) Login(user *User) (*User, *helper.HttpErr) {
+	fmt.Printf("user service login\n")
+	results, _ := s.repo.Get(map[string]interface{}{"name": user.Name})
+	if len(results) == 0 {
+		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
+	}
+
+	var checkPassword = func(hashedPwd string, plainPwd string) bool {
+		if err := bcrypt.CompareHashAndPassword([]byte(hashedPwd), []byte(plainPwd)); err != nil {
+			return false
+		}
+
+		return true
+	}
+
+	match := checkPassword(*results[0].Password, *user.Password)
+
+	if !match {
+		return nil, &helper.HttpErr{fiber.StatusInternalServerError, fmt.Errorf("password not match...")}
+	}
+
+	return results[0], nil
+}
