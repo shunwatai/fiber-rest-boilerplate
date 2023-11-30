@@ -12,13 +12,13 @@ var Srvc = NewService(Repo)
 var ctrl = NewController(Srvc)
 
 func GetRoutes(router fiber.Router) {
-	router.Post("/login", Login)
-
 	r := router.Group("/users")
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)
 	r.Delete("/", Delete)
+	r.Post("/login", Login)
+	r.Post("/refresh", Refresh)
 
 	rById := r.Group("/:id")
 	rById.Get("/", GetById)
@@ -114,4 +114,8 @@ func Delete(c *fiber.Ctx) error {
 //	@Router			/users [post]
 func Login(c *fiber.Ctx) error {
 	return ctrl.Login(c)
+}
+
+func Refresh(c *fiber.Ctx) error {
+	return ctrl.Refresh(c)
 }

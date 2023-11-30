@@ -2,9 +2,11 @@ package user
 
 import (
 	"fmt"
+	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -24,6 +26,27 @@ func NewController(s *Service) Controller {
 }
 
 var respCode = fiber.StatusInternalServerError
+
+/* helper func for Login & Refresh funcs below */
+func SetRefreshTokenInCookie(result map[string]interface{}, c *fiber.Ctx) {
+	cfg.LoadEnvVariables()
+	env := cfg.ServerConf.Env
+	refreshToken := result["refreshToken"].(string)
+	cookie := &fiber.Cookie{
+		Name:     "refreshToken",
+		Value:    refreshToken,
+		Expires:  time.Now().Add(time.Hour * 720), // 30 days
+		HTTPOnly: true,
+		Secure:   true,
+		Path:     "/",
+	}
+	if env == "local" {
+		cookie.Secure = false
+	}
+
+	c.Cookie(cookie)
+	delete(result, "refreshToken")
+}
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
 	fmt.Printf("user ctrl\n")
@@ -151,9 +174,6 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
-	// body := map[string]interface{}{}
-	// json.Unmarshal(c.BodyRaw(), &body)
-	// fmt.Printf("req body: %+v\n", body)
 	delIds := struct {
 		Ids []int64 `json:"ids" validate:"required,min=1,unique"`
 	}{}
@@ -203,8 +223,32 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
 	}
 
-	users = append(users, result)
-	sanitise(users)
+	SetRefreshTokenInCookie(result, ctx)
+	respCode = fiber.StatusOK
+	return ctx.
+		Status(respCode).
+		JSON(map[string]interface{}{"data": result})
+}
+
+func (c *Controller) Refresh(ctx *fiber.Ctx) error {
+	// Read cookie
+	cookie := ctx.Cookies("refreshToken")
+
+	refreshToken := "Bearer " + cookie
+	fmt.Printf("%s\n", refreshToken)
+
+	claims, err := auth.ParseJwt(refreshToken)
+	if claims["tokenType"] != "refreshToken" || err != nil {
+		respCode = fiber.StatusExpectationFailed
+		return ctx.
+			Status(respCode).
+			JSON(map[string]interface{}{"message": "Invalid Token type... please try to login again"})
+	}
+
+	userId := int64(claims["userId"].(float64))
+	result, _ := c.service.Refresh(&User{Id: &userId})
+	SetRefreshTokenInCookie(result, ctx)
+
 	respCode = fiber.StatusOK
 	return ctx.
 		Status(respCode).

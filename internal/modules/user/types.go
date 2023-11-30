@@ -6,9 +6,17 @@ import (
 	"golang-api-starter/internal/helper"
 	"log"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/iancoleman/strcase"
 	"github.com/jmoiron/sqlx"
 )
+
+type UserClaims struct {
+	UserId    int64  `json:"userId"`
+	Username  string `json:"username"`
+	TokenType string `json:"tokenType"`
+	jwt.StandardClaims
+}
 
 type User struct {
 	Id        *int64                 `json:"id"   db:"id" example:"2"`

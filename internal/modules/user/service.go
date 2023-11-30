@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang-api-starter/internal/auth"
+	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,6 +22,53 @@ type Service struct {
 
 func NewService(r *Repository) *Service {
 	return &Service{r}
+}
+
+var cfg = config.Cfg
+
+/* this func for generate the jwt claims like the access & refresh tokens */
+func GenerateUserToken(user User, tokenType string) *jwt.Token {
+	var expireTime = time.Now().Add(time.Minute * 10).Unix() // 10 mins for access token?
+
+	cfg.LoadEnvVariables()
+	env := cfg.ServerConf.Env
+	if env == "local" { // if local development, set expire time to 1 year
+		expireTime = time.Now().Add(time.Hour * 8760).Unix()
+		// expireTime = time.Now().Add(time.Second * 10).Unix() // 10 seconds token to test in local env
+	}
+	if tokenType == "refreshToken" {
+		expireTime = time.Now().Add(time.Hour * 720).Unix() // 30 days for refresh token?
+	}
+
+	claims := &UserClaims{
+		UserId:    *user.Id,
+		Username:  user.Name,
+		TokenType: tokenType,
+		StandardClaims: jwt.StandardClaims{
+			Issuer:    strconv.Itoa(int(*user.Id)),
+			ExpiresAt: expireTime,
+		}}
+
+	return auth.GetToken(claims)
+}
+
+func GetUserTokenResponse(user *User) (map[string]interface{}, error) {
+	accessClaims := GenerateUserToken(*user, "accessToken")
+	refreshClaims := GenerateUserToken(*user, "refreshToken")
+
+	cfg.LoadEnvVariables()
+	secret := cfg.Jwt.Secret
+	accessToken, accessTokenErr := accessClaims.SignedString([]byte(secret))
+	refreshToken, refreshTokenErr := refreshClaims.SignedString([]byte(secret))
+	if accessTokenErr != nil || refreshTokenErr != nil {
+		return nil, fmt.Errorf("failed to make jwt: %+v", errors.Join(accessTokenErr, refreshTokenErr).Error())
+	}
+
+	return map[string]interface{}{
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
+		"user":         *user,
+	}, nil
 }
 
 func hashUserPassword(pwd *string) error {
@@ -150,7 +201,7 @@ func (s *Service) Delete(ids *[]int64) ([]*User, error) {
 	return s.repo.Delete(ids)
 }
 
-func (s *Service) Login(user *User) (*User, *helper.HttpErr) {
+func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
 	fmt.Printf("user service login\n")
 	results, _ := s.repo.Get(map[string]interface{}{"name": user.Name})
 	if len(results) == 0 {
@@ -171,5 +222,28 @@ func (s *Service) Login(user *User) (*User, *helper.HttpErr) {
 		return nil, &helper.HttpErr{fiber.StatusInternalServerError, fmt.Errorf("password not match...")}
 	}
 
-	return results[0], nil
+	sanitise(results)
+	if userTokenResponse, err := GetUserTokenResponse(results[0]); err != nil {
+		msg := fmt.Sprintf("failed to refresh token: %+v", err)
+		fmt.Println(msg)
+		return nil, &helper.HttpErr{fiber.StatusInternalServerError, errors.New(msg)}
+	} else {
+		return userTokenResponse, nil
+	}
+}
+
+func (s *Service) Refresh(user *User) (map[string]interface{}, *helper.HttpErr) {
+	fmt.Printf("user service login\n")
+
+	results, _ := s.repo.Get(map[string]interface{}{"id": user.Id})
+	if len(results) == 0 {
+		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
+	}
+
+	sanitise(results)
+	if userTokenResponse, err := GetUserTokenResponse(results[0]); err != nil {
+		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("failed to refresh token: %+v", err.Error())}
+	} else {
+		return userTokenResponse, nil
+	}
 }

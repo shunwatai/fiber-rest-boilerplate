@@ -32,9 +32,9 @@ type PostgresConf struct {
 }
 
 type DbConf struct {
-	Driver      string `mapstructure:"engine"`
-	SqliteConf  `mapstructure:"sqlite"`
-	MariadbConf `mapstructure:"mariadb"`
+	Driver       string `mapstructure:"engine"`
+	SqliteConf   `mapstructure:"sqlite"`
+	MariadbConf  `mapstructure:"mariadb"`
 	PostgresConf `mapstructure:"postgres"`
 }
 
@@ -44,9 +44,14 @@ type ServerConf struct {
 	Port string
 }
 
+type Jwt struct {
+	Secret string
+}
+
 type Config struct {
 	*DbConf     `mapstructure:"database"`
 	*ServerConf `mapstructure:"server"`
+	*Jwt        `mapstructure:"jwt"`
 	Vpr         *viper.Viper
 }
 
