@@ -3,6 +3,8 @@ package todo
 import (
 	"fmt"
 	"golang-api-starter/internal/helper"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type Service struct {
@@ -30,14 +32,14 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*Todo, error) {
 
 func (s *Service) Create(todos []*Todo) ([]*Todo, *helper.HttpErr) {
 	fmt.Printf("todo service create\n")
-	results, _ := s.repo.Create(todos)
-	return results, nil
+	results, err := s.repo.Create(todos)
+	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
 func (s *Service) Update(todos []*Todo) ([]*Todo, *helper.HttpErr) {
 	fmt.Printf("todo service update\n")
-	results, _ := s.repo.Update(todos)
-	return results, nil
+	results, err := s.repo.Update(todos)
+	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
 func (s *Service) Delete(ids *[]int64) ([]*Todo, error) {

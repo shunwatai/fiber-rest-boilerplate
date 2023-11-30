@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"golang-api-starter/internal/config"
@@ -18,8 +17,7 @@ func ParseJwt(token string) (jwt.MapClaims, error) {
 	// fmt.Println("tokenStr:", len(tokenStr), tokenStr)
 
 	if len(tokenStr) != 2 {
-		errResp, _ := json.Marshal(map[string]string{"error": "Malformed token"})
-		return nil, fmt.Errorf(string(errResp))
+		return nil, fmt.Errorf("Malformed token")
 	}
 
 	tokenString := tokenStr[1]
@@ -58,9 +56,6 @@ func ParseJwt(token string) (jwt.MapClaims, error) {
 
 	return claims, nil
 }
-
-
-
 
 func GetToken(claims jwt.Claims) *jwt.Token {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

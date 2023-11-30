@@ -1,8 +1,10 @@
 package user
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/database"
+	"golang-api-starter/internal/middleware/jwtcheck"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 var tableName = "users"
@@ -12,13 +14,15 @@ var Srvc = NewService(Repo)
 var ctrl = NewController(Srvc)
 
 func GetRoutes(router fiber.Router) {
-	r := router.Group("/users")
+	authRoute := router.Group("/auth")
+	authRoute.Post("/login", Login)
+	authRoute.Post("/refresh", Refresh)
+
+	r := router.Group("/users", jwtcheck.CheckFromHeader())
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)
 	r.Delete("/", Delete)
-	r.Post("/login", Login)
-	r.Post("/refresh", Refresh)
 
 	rById := r.Group("/:id")
 	rById.Get("/", GetById)

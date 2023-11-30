@@ -1,8 +1,10 @@
 package todo
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/database"
+	"golang-api-starter/internal/middleware/jwtcheck"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 var tableName = "todos"
@@ -12,7 +14,7 @@ var Srvc = NewService(Repo)
 var ctrl = NewController(Srvc)
 
 func GetRoutes(router fiber.Router) {
-	r := router.Group("/todos")
+	r := router.Group("/todos", jwtcheck.CheckFromHeader())
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)

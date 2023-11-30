@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type Controller struct {
@@ -68,6 +69,10 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// for _, t := range todos {
 	// 	log.Printf("todos: %+v\n", t)
 	// }
+
+	// use the claims for mark the "createdBy/updatedBy" in database
+	claims := ctx.Locals("claims").(jwt.MapClaims)
+	fmt.Println("req by:", claims["userId"], claims["username"])
 
 	for _, todo := range todos {
 		if todo.Id == nil {
