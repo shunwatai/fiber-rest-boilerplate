@@ -3,12 +3,12 @@ package user
 import (
 	"encoding/json"
 	"fmt"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"log"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/iancoleman/strcase"
-	"github.com/jmoiron/sqlx"
 )
 
 type UserClaims struct {
@@ -47,7 +47,7 @@ func (users Users) StructToMap() []map[string]interface{} {
 	return mapsResults
 }
 
-func (users Users) rowsToStruct(rows *sqlx.Rows) []*User {
+func (users Users) rowsToStruct(rows database.Rows) []*User {
 	defer rows.Close()
 
 	records := make([]*User, 0)

@@ -171,7 +171,7 @@ func (m *Sqlite) constructSelectStmtFromQuerystring(
 // 	return *m.ConnectionInfo
 // }
 
-func (m *Sqlite) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pagination) {
+func (m *Sqlite) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
 	fmt.Printf("select from Sqlite, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
@@ -192,7 +192,7 @@ func (m *Sqlite) Select(queries map[string]interface{}) (*sqlx.Rows, *helper.Pag
 	return rows, pagination
 }
 
-func (m *Sqlite) Save(records Records) (*sqlx.Rows, error) {
+func (m *Sqlite) Save(records Records) (Rows, error) {
 	fmt.Printf("save from Sqlite, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
 	m.db = m.Connect()
@@ -250,6 +250,7 @@ func (m *Sqlite) Save(records Records) (*sqlx.Rows, error) {
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
+
 	return rows, nil
 }
 
@@ -258,14 +259,14 @@ func (m *Sqlite) Save(records Records) (*sqlx.Rows, error) {
 // 	return &sqlx.Rows{}
 // }
 
-func (m *Sqlite) Delete(ids *[]int64) error {
-	fmt.Printf("delete from Sqlite, table: %+v where id in (%+v)\n", m.TableName, *ids)
+func (m *Sqlite) Delete(ids []string) error {
+	fmt.Printf("delete from Sqlite, table: %+v where id in (%+v)\n", m.TableName, ids)
 	db := m.Connect()
 	defer db.Close()
 
 	deleteStmt, args, err := sqlx.In(
 		fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
-		*ids,
+		ids,
 	)
 	if err != nil {
 		log.Printf("sqlx.In err: %+v\n", err.Error())

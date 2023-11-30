@@ -188,7 +188,8 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 
 	fmt.Printf("deletedIds: %+v\n", delIds)
 
-	results, err := c.service.Delete(&delIds.Ids)
+	idsString, _ := helper.ConvertNumberSliceToString(delIds.Ids)
+	results, err := c.service.Delete(idsString)
 	sanitise(results)
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())

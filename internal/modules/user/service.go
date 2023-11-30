@@ -189,10 +189,9 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
-func (s *Service) Delete(ids *[]int64) ([]*User, error) {
-	idsString, _ := helper.ConvertNumberSliceToString(*ids)
+func (s *Service) Delete(ids []string) ([]*User, error) {
 	records, _ := s.repo.Get(map[string]interface{}{
-		"id": idsString,
+		"id": ids,
 	})
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)

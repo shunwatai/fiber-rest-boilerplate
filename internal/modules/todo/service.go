@@ -42,10 +42,9 @@ func (s *Service) Update(todos []*Todo) ([]*Todo, *helper.HttpErr) {
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
-func (s *Service) Delete(ids *[]int64) ([]*Todo, error) {
-	idsString, _ := helper.ConvertNumberSliceToString(*ids)
-	records, _ := s.repo.Get(map[string]interface{}{
-		"id": idsString,
+func (s *Service) Delete(ids []string) ([]*Todo, error) {
+	records,_ := s.repo.Get(map[string]interface{}{
+		"id": ids,
 	})
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)

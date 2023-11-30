@@ -55,9 +55,8 @@ func (r *Repository) Update(users []*User) ([]*User, error) {
 	return records, err
 }
 
-func (r *Repository) Delete(ids *[]int64) ([]*User, error) {
-	idsString, _ := helper.ConvertNumberSliceToString(*ids)
-	rows, _ := r.db.Select(map[string]interface{}{"id": idsString})
+func (r *Repository) Delete(ids []string) ([]*User, error) {
+	rows, _ := r.db.Select(map[string]interface{}{"id": ids})
 
 	var records Users
 	if rows != nil {
