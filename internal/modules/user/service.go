@@ -81,6 +81,7 @@ func hashUserPassword(pwd *string) error {
 	return nil
 }
 
+
 func (s *Service) Get(queries map[string]interface{}) ([]*User, *helper.Pagination) {
 	fmt.Printf("user service get\n")
 	users, pagination := s.repo.Get(queries)
@@ -160,7 +161,12 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 	// USELESS, can simply set that column as UNIQUE in DB's table.
 	// check conflict of existing name
 	for _, user := range users {
-		conflicts, _ := s.repo.Get(map[string]interface{}{"name": user.Name})
+		conflicts, _ := s.repo.Get(map[string]interface{}{
+			"name": user.Name,
+			"exactMatch": map[string]bool{
+				"name": true,
+			},
+		})
 		if len(conflicts) > 0 && *conflicts[0].Id != *user.Id {
 			httpErr := &helper.HttpErr{
 				Code: fiber.StatusConflict,
@@ -202,7 +208,13 @@ func (s *Service) Delete(ids []string) ([]*User, error) {
 
 func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
 	fmt.Printf("user service login\n")
-	results, _ := s.repo.Get(map[string]interface{}{"name": user.Name})
+
+	results, _ := s.repo.Get(map[string]interface{}{
+		"name": user.Name,
+		"exactMatch": map[string]bool{
+			"name": true,
+		},
+	})
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
 	}
