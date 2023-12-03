@@ -7,6 +7,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/gofiber/fiber/v2 v2.50.0
 	github.com/gofiber/swagger v0.1.14
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
@@ -14,6 +15,7 @@ require (
 	github.com/spf13/viper v1.17.0
 	github.com/swaggo/swag v1.16.2
 	go.mongodb.org/mongo-driver v1.13.0
+	golang.org/x/crypto v0.13.0
 )
 
 require (

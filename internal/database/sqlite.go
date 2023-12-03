@@ -192,7 +192,7 @@ func (m *Sqlite) Select(queries map[string]interface{}) (Rows, *helper.Paginatio
 	return rows, pagination
 }
 
-func (m *Sqlite) Save(records Records) Rows {
+func (m *Sqlite) Save(records Records) (Rows, error) {
 	fmt.Printf("save from Sqlite, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
 	m.db = m.Connect()
@@ -237,6 +237,7 @@ func (m *Sqlite) Save(records Records) Rows {
 		sqlResult, err := m.db.NamedExec(insertStmt, record)
 		if err != nil {
 			log.Printf("insert error: %+v\n", err)
+			return nil, err
 		}
 		lastId, _ := sqlResult.LastInsertId()
 
@@ -249,7 +250,8 @@ func (m *Sqlite) Save(records Records) Rows {
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-	return rows.(*sqlx.Rows)
+
+	return rows, nil
 }
 
 // func (m *Sqlite) Update(records Records) *sqlx.Rows {

@@ -2,6 +2,7 @@ projectName: "Fiber rest starter"
 
 server:
   env: local # local, dev, prod
+  host: "localhost"
   port: 7000
 
 jwt:

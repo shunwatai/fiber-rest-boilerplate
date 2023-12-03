@@ -162,7 +162,11 @@ func (m *MariaDb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	fmt.Printf("bindvarMap: %+v\n", bindvarMap)
 	fmt.Printf("selectStmt: %+v\n", selectStmt)
 
-	rows, err := m.db.NamedQuery(selectStmt, bindvarMap)
+	// unlike postgres, mysql needs to use "Prepare" in order to scan the column into interface{} correctly instead of unexpected []int8
+	// ref:https://github.com/go-sql-driver/mysql/issues/407#issuecomment-172583652
+	stmt, err := m.db.PrepareNamed(selectStmt)
+	rows, err := stmt.Queryx(bindvarMap)
+
 	if err != nil {
 		log.Printf("Queryx err: %+v\n", err.Error())
 	}
@@ -174,7 +178,7 @@ func (m *MariaDb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	return rows, pagination
 }
 
-func (m *MariaDb) Save(records Records) Rows {
+func (m *MariaDb) Save(records Records) (Rows, error) {
 	fmt.Printf("save from MariaDB, table: %+v\n", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
@@ -215,6 +219,7 @@ func (m *MariaDb) Save(records Records) Rows {
 	sqlResult, err := m.db.NamedQuery(insertStmt, records)
 	if err != nil {
 		log.Printf("insert error: %+v\n", err)
+		return nil, err
 	}
 	// fmt.Printf("sqlResult: %+v\n", sqlResult)
 
@@ -223,13 +228,18 @@ func (m *MariaDb) Save(records Records) Rows {
 		err := sqlResult.Scan(&id)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
+			return nil, err
 		}
 		insertedIds = append(insertedIds, id)
+	}
+	if len(insertedIds) == 0 { // mariadb no error throw when violated foreign key... so check the error here
+		return nil, fmt.Errorf("insert error...")
 	}
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-	return rows.(*sqlx.Rows)
+
+	return rows.(*sqlx.Rows), nil
 }
 
 // func (m *MariaDb) Update() {

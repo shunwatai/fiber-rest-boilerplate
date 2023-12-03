@@ -265,7 +265,7 @@ func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	return &MongoRows{cur, ctx}, pagination
 }
 
-func (m *Mongodb) Save(records Records) Rows {
+func (m *Mongodb) Save(records Records) (Rows, error) {
 	fmt.Printf("save from Mongodb, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -373,7 +373,7 @@ func (m *Mongodb) Save(records Records) Rows {
 		"_id":     upsertedIds,
 		"columns": records.GetTags("bson"),
 	})
-	return rows
+	return rows, nil
 }
 
 // func (m *Mongodb) Update() {

@@ -1,56 +1,54 @@
-package todo
+package user
 
 import (
 	"encoding/json"
 	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
-	"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/iancoleman/strcase"
 )
 
-type Todo struct {
+type UserClaims struct {
+	UserId    interface{} `json:"userId"`
+	Username  string      `json:"username"`
+	TokenType string      `json:"tokenType"`
+	jwt.StandardClaims
+}
+
+type User struct {
 	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty"` // https://stackoverflow.com/a/20739427
 	Id        *int64                 `json:"id,omitempty" db:"id" bson:"id,omitempty" example:"2"`
-	UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty"`
-	User      *user.User             `json:"user"`
-	Task      string                 `json:"task" db:"task" bson:"task,omitempty"`
-	Done      bool                   `json:"done" db:"done" bson:"done,omitempty"`
-	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
+	Name      string                 `json:"name" db:"name" bson:"name,omitempty" example:"emma"`
+	Password  *string                `json:"password,omitempty" db:"password" bson:"password,omitempty" example:"password"`
+	FirstName *string                `json:"firstName" db:"first_name" bson:"first_name,omitempty" example:"Emma"`
+	LastName  *string                `json:"lastName" db:"last_name" bson:"last_name,omitempty" example:"Watson"`
+	Disabled  bool                   `json:"disabled" db:"disabled" bson:"disabled,omitempty" example:"false"`
+	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at"  bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
-	// CreatedAt *string `db:"created_at" json:"createdAt,omitempty"`
-	// UpdatedAt *string `db:"updated_at" json:"updatedAt,omitempty"`
 }
 
-type Todos []*Todo
+type Users []*User
 
-func (todo *Todo) GetId() string {
+func (user *User) GetId() string {
 	if cfg.DbConf.Driver == "mongodb" {
-		return *todo.MongoId
+		return *user.MongoId
 	} else {
-		return strconv.Itoa(int(*todo.Id))
+		return strconv.Itoa(int(*user.Id))
 	}
 }
 
-func (todo *Todo) GetUserId() string {
-	if cfg.DbConf.Driver == "mongodb" {
-		return todo.UserId.(string)
-	} else {
-		return strconv.Itoa(int(todo.UserId.(int64)))
-	}
-}
-
-func (todos Todos) StructToMap() []map[string]interface{} {
+func (users Users) StructToMap() []map[string]interface{} {
 	mapsResults := []map[string]interface{}{}
-	for _, todo := range todos {
+	for _, user := range users {
 		tmp := map[string]interface{}{}
 		result := map[string]interface{}{}
-		data, _ := json.Marshal(todo)
+		data, _ := json.Marshal(user)
 		json.Unmarshal(data, &tmp)
 		for k, v := range tmp {
 			result[strcase.ToSnake(k)] = v
@@ -61,32 +59,32 @@ func (todos Todos) StructToMap() []map[string]interface{} {
 	return mapsResults
 }
 
-func (todos Todos) rowsToStruct(rows database.Rows) []*Todo {
+func (users Users) rowsToStruct(rows database.Rows) []*User {
 	defer rows.Close()
 
-	records := make([]*Todo, 0)
+	records := make([]*User, 0)
 	for rows.Next() {
-		var todo Todo
-		err := rows.StructScan(&todo)
+		var user User
+		err := rows.StructScan(&user)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
-		records = append(records, &todo)
+		records = append(records, &user)
 	}
 
 	return records
 }
 
-func (todos Todos) GetTags(key string) []string {
-	if len(todos) == 0 {
+func (users Users) GetTags(key string) []string {
+	if len(users) == 0 {
 		return []string{}
 	}
 
-	return todos[0].getTags(key)
+	return users[0].getTags(key)
 }
 
-func (todos *Todos) printValue() {
-	for _, v := range *todos {
+func (users *Users) printValue() {
+	for _, v := range *users {
 		if v.Id != nil {
 			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
 		}
@@ -94,9 +92,7 @@ func (todos *Todos) printValue() {
 	}
 }
 
-// get the tags by key(json / db / bson) name from the struct
-// ref: https://stackoverflow.com/a/40865028
-func (todo Todo) getTags(key ...string) []string {
+func (user User) getTags(key ...string) []string {
 	var tag string
 	cfg.LoadEnvVariables()
 	if len(key) == 1 {
@@ -108,7 +104,7 @@ func (todo Todo) getTags(key ...string) []string {
 	}
 
 	cols := []string{}
-	val := reflect.ValueOf(todo)
+	val := reflect.ValueOf(user)
 	for i := 0; i < val.Type().NumField(); i++ {
 		t := val.Type().Field(i)
 		fieldName := t.Name

@@ -28,7 +28,7 @@ type IDatabase interface {
 
 	// Insert new records, support upsert when id is present.
 	// And also support batch insert/upsert
-	Save(Records) Rows
+	Save(Records) (Rows, error)
 
 	/* Delete records by ids(support batch delete) */
 	Delete([]string) error

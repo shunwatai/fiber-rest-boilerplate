@@ -171,7 +171,7 @@ func (m *Postgres) Select(queries map[string]interface{}) (Rows, *helper.Paginat
 	return rows, pagination
 }
 
-func (m *Postgres) Save(records Records) Rows {
+func (m *Postgres) Save(records Records) (Rows, error) {
 	fmt.Printf("save from Postgres, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
 	m.db = m.Connect()
@@ -215,6 +215,7 @@ func (m *Postgres) Save(records Records) Rows {
 	sqlResult, err := m.db.NamedQuery(insertStmt, records)
 	if err != nil {
 		log.Printf("insert error: %+v\n", err)
+		return nil, err
 	}
 	// fmt.Printf("sqlResult: %+v\n", sqlResult)
 
@@ -223,13 +224,15 @@ func (m *Postgres) Save(records Records) Rows {
 		err := sqlResult.Scan(&id)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
+			return nil, err
 		}
 		insertedIds = append(insertedIds, id)
 	}
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-	return rows.(*sqlx.Rows)
+
+	return rows.(*sqlx.Rows), nil
 }
 
 // func (m *Postgres) Update() {
