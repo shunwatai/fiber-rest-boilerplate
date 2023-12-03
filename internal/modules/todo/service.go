@@ -3,16 +3,17 @@ package todo
 import (
 	"fmt"
 	"golang-api-starter/internal/helper"
-
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type Service struct {
 	repo *Repository
+	ctx  *fiber.Ctx
 }
 
 func NewService(r *Repository) *Service {
-	return &Service{r}
+	return &Service{r, nil}
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
@@ -32,6 +33,16 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*Todo, error) {
 
 func (s *Service) Create(todos []*Todo) ([]*Todo, *helper.HttpErr) {
 	fmt.Printf("todo service create\n")
+
+	// use the claims for mark the "createdBy/updatedBy" in database
+	claims := s.ctx.Locals("claims").(jwt.MapClaims)
+	fmt.Println("req by:", claims["userId"], claims["username"])
+	for _, todo := range todos {
+		if todo.UserId == nil {
+			todo.UserId = claims["userId"]
+		}
+	}
+
 	results, err := s.repo.Create(todos)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
@@ -43,7 +54,7 @@ func (s *Service) Update(todos []*Todo) ([]*Todo, *helper.HttpErr) {
 }
 
 func (s *Service) Delete(ids []string) ([]*Todo, error) {
-	records,_ := s.repo.Get(map[string]interface{}{
+	records, _ := s.repo.Get(map[string]interface{}{
 		"id": ids,
 	})
 	if len(records) == 0 {

@@ -81,6 +81,14 @@ func hashUserPassword(pwd *string) error {
 	return nil
 }
 
+func (s *Service) GetIdMap(users Users) map[string]*User {
+	userMap := map[string]*User{}
+	sanitise(users)
+	for _, user := range users {
+		userMap[strconv.Itoa(int(*user.Id))] = user
+	}
+	return userMap
+}
 
 func (s *Service) Get(queries map[string]interface{}) ([]*User, *helper.Pagination) {
 	fmt.Printf("user service get\n")

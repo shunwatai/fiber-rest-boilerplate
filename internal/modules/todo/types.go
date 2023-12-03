@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/modules/user"
 	"log"
 
 	"github.com/iancoleman/strcase"
 )
 
 type Todo struct {
-	Id        *int64                 `json:"id"   db:"id" example:"2"`
+	Id        *int64                 `json:"id" db:"id" example:"2"`
+	UserId    interface{}            `json:"userId" db:"user_id" example:"2"`
+	User      *user.User             `json:"user"`
 	Task      string                 `json:"task" db:"task" example:"go practice"`
 	Done      bool                   `json:"done" db:"done" example:"false"`
 	CreatedAt *helper.CustomDatetime `db:"created_at" json:"createdAt"`
