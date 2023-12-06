@@ -72,6 +72,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	// ) (string, *helper.Pagination, map[string]interface{}) {
 ) (bson.D, *options.FindOptions, *helper.Pagination) {
 	exactMatchCols := map[string]bool{"id": true, "_id": true} // default id(PK) & _id(mongo) have to be exact match
+	// fmt.Printf("mongo query: %+v\n\n",queries)
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
 			exactMatchCols[k] = true
@@ -79,7 +80,9 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	}
 
 	// bindvarMap := map[string]interface{}{}
-	// cols := m.GetColumns()
+	if queries["columns"] ==nil{
+		fmt.Printf("error: queries[\"columns\"] is nil")
+	}
 	cols := queries["columns"]
 	pagination := helper.GetPagination(queries)
 	dateRangeStmt := getDateRangeBson(queries)
@@ -306,7 +309,7 @@ func (m *Mongodb) Save(records Records) (Rows, error) {
 			log.Fatal(err)
 		}
 
-		/* only new created records has res.UpsertedID, existing's Ids appended in if condition above */
+		/* only new created records has res.UpsertedID, existing's Ids appended in the if condition above */
 		if res.UpsertedID == nil {
 			continue
 		}
@@ -424,18 +427,26 @@ func (m *Mongodb) Delete(ids []string) error {
 	return nil
 }
 
+// useless for mongo, it implemented by sqlite, postgres, mariadb
 func (m *Mongodb) RawQuery(sql string) *sqlx.Rows {
-	fmt.Printf("raw query from Mongodb\n")
-	// m.db = m.Connect()
-	// defer m.db.Close()
-	//
-	// rows, err := m.db.Queryx(sql)
-	// if err != nil {
-	// 	log.Printf("Queryx err: %+v\n", err.Error())
-	// }
-	// if rows.Err() != nil {
-	// 	log.Printf("rows.Err(): %+v\n", err.Error())
-	// }
-
+	// fmt.Printf("raw query from Mongodb\n")
 	return &sqlx.Rows{}
+}
+
+// mongo version of RawQuery
+func (m *Mongodb) runCommands(cmds []bson.D) error {
+	for _, cmd := range cmds {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		m.db = m.Connect()
+		defer m.db.Disconnect(ctx)
+		db := m.db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+
+		err := db.Database().RunCommand(ctx, cmd).Err()
+		if err != nil {
+			log.Printf("mongo cmd failed: %+v\n", err)
+			return err
+		}
+	}
+	return nil
 }
