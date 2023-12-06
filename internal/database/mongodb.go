@@ -299,6 +299,11 @@ func (m *Mongodb) Save(records Records) (Rows, error) {
 			record["created_at"] = time.Now()
 		}
 
+		// reserve createdBy userId
+		if record["user_id"] == nil {
+			delete(record, "user_id")
+		}
+
 		res, err := collection.UpdateOne(ctx, filter, bson.D{
 			{Key: "$set", Value: record},
 		}, opts)
