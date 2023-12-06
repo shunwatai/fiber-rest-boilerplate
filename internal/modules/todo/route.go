@@ -32,6 +32,7 @@ func GetRoutes(router fiber.Router) {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id		query	number	false	"id"							example(2)
+//	@Param			userId	query	number	false	"search by userId"				example(2)
 //	@Param			task	query	string	false	"search by task"				example(go practice)
 //	@Param			done	query	boolean	false	"search by done"				example(1)
 //	@Param			page	query	string	false	"page number for pagination"	example(1)
