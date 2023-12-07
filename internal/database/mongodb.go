@@ -89,9 +89,6 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	// fmt.Printf("dateRangeStmt: %+v, len: %+v\n", dateRangeStmt, len(dateRangeStmt))
 	helper.SanitiseQuerystring(cols.([]string), queries)
 
-	// countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
-	// selectStmt := fmt.Sprintf(`SELECT * FROM %s`, m.TableName)
-	// countAllStmt := bson.D{}
 	selectStmt := bson.D{}
 
 	fmt.Printf("queries: %+v, len: %+v\n", queries, len(queries))
