@@ -6,30 +6,42 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"log"
+	"reflect"
+	"strconv"
+	"strings"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/iancoleman/strcase"
 )
 
 type UserClaims struct {
-	UserId    int64  `json:"userId"`
-	Username  string `json:"username"`
-	TokenType string `json:"tokenType"`
+	UserId    interface{} `json:"userId"`
+	Username  string      `json:"username"`
+	TokenType string      `json:"tokenType"`
 	jwt.StandardClaims
 }
 
 type User struct {
-	Id        *int64                 `json:"id"   db:"id" example:"2"`
-	Name      string                 `json:"name" db:"name" example:"emma"`
-	Password  *string                `json:"password,omitempty" db:"password" example:"password"`
-	FirstName *string                `json:"firstName" db:"first_name" example:"Emma"`
-	LastName  *string                `json:"lastName" db:"last_name" example:"Watson"`
-	Disabled  bool                   `json:"disabled" db:"disabled" example:"false"`
-	CreatedAt *helper.CustomDatetime `db:"created_at" json:"createdAt"`
-	UpdatedAt *helper.CustomDatetime `db:"updated_at" json:"updatedAt"`
+	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty"` // https://stackoverflow.com/a/20739427
+	Id        *int64                 `json:"id,omitempty" db:"id" bson:"id,omitempty" example:"2"`
+	Name      string                 `json:"name" db:"name" bson:"name,omitempty" example:"emma"`
+	Password  *string                `json:"password,omitempty" db:"password" bson:"password,omitempty" example:"password"`
+	FirstName *string                `json:"firstName" db:"first_name" bson:"first_name,omitempty" example:"Emma"`
+	LastName  *string                `json:"lastName" db:"last_name" bson:"last_name,omitempty" example:"Watson"`
+	Disabled  bool                   `json:"disabled" db:"disabled" bson:"disabled,omitempty" example:"false"`
+	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at"  bson:"created_at,omitempty"`
+	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 }
 
 type Users []*User
+
+func (user *User) GetId() string {
+	if cfg.DbConf.Driver == "mongodb" {
+		return *user.MongoId
+	} else {
+		return strconv.Itoa(int(*user.Id))
+	}
+}
 
 func (users Users) StructToMap() []map[string]interface{} {
 	mapsResults := []map[string]interface{}{}
@@ -63,6 +75,14 @@ func (users Users) rowsToStruct(rows database.Rows) []*User {
 	return records
 }
 
+func (users Users) GetTags(key string) []string {
+	if len(users) == 0 {
+		return []string{}
+	}
+
+	return users[0].getTags(key)
+}
+
 func (users *Users) printValue() {
 	for _, v := range *users {
 		if v.Id != nil {
@@ -70,4 +90,38 @@ func (users *Users) printValue() {
 		}
 		fmt.Printf("new --> v: %+v\n", *v)
 	}
+}
+
+func (user User) getTags(key ...string) []string {
+	var tag string
+	cfg.LoadEnvVariables()
+	if len(key) == 1 {
+		tag = key[0]
+	} else if cfg.DbConf.Driver == "mongodb" {
+		tag = "bson"
+	} else {
+		tag = "db"
+	}
+
+	cols := []string{}
+	val := reflect.ValueOf(user)
+	for i := 0; i < val.Type().NumField(); i++ {
+		t := val.Type().Field(i)
+		fieldName := t.Name
+
+		switch jsonTag := t.Tag.Get(tag); jsonTag {
+		case "-":
+		case "":
+			// fmt.Println(fieldName)
+		default:
+			parts := strings.Split(jsonTag, ",")
+			name := parts[0]
+			if name == "" {
+				name = fieldName
+			}
+			// fmt.Println(name)
+			cols = append(cols, name)
+		}
+	}
+	return cols
 }

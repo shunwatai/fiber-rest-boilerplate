@@ -31,11 +31,20 @@ type PostgresConf struct {
 	Database *string
 }
 
+type MongodbConf struct {
+	Host     *string
+	Port     *string
+	User     *string
+	Pass     *string
+	Database *string
+}
+
 type DbConf struct {
 	Driver       string `mapstructure:"engine"`
 	SqliteConf   `mapstructure:"sqlite"`
 	MariadbConf  `mapstructure:"mariadb"`
 	PostgresConf `mapstructure:"postgres"`
+	MongodbConf `mapstructure:"mongodb"`
 }
 
 type ServerConf struct {

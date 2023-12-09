@@ -41,11 +41,19 @@ func GenerateUserToken(user User, tokenType string) *jwt.Token {
 	}
 
 	claims := &UserClaims{
-		UserId:    *user.Id,
+		UserId: func() interface{} {
+			userId := user.GetId()
+			if cfg.DbConf.Driver == "mongodb" {
+				return userId
+			} else {
+				userIdInt, _ := strconv.ParseInt(userId, 10, 64)
+				return userIdInt
+			}
+		}(),
 		Username:  user.Name,
 		TokenType: tokenType,
 		StandardClaims: jwt.StandardClaims{
-			Issuer:    strconv.Itoa(int(*user.Id)),
+			Issuer:    user.GetId(),
 			ExpiresAt: expireTime,
 		}}
 
@@ -81,11 +89,26 @@ func hashUserPassword(pwd *string) error {
 	return nil
 }
 
+// GetUserIdMap() return map[string]interface{} sth like map[string]interface{}{"id":[]string{x,y,z}}
+// which uses for Get() to retrieve records by id(s)
+func GetUserIdMap(ids []string) map[string]interface{} {
+	condition := map[string]interface{}{}
+
+	cfg.LoadEnvVariables()
+	if cfg.DbConf.Driver == "mongodb" {
+		condition["_id"] = ids
+	} else {
+		condition["id"] = ids
+	}
+
+	return condition
+}
+
 func (s *Service) GetIdMap(users Users) map[string]*User {
 	userMap := map[string]*User{}
 	sanitise(users)
 	for _, user := range users {
-		userMap[strconv.Itoa(int(*user.Id))] = user
+		userMap[user.GetId()] = user
 	}
 	return userMap
 }
@@ -135,25 +158,26 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 
 	userIds := []string{}
 	for _, user := range users {
-		userIds = append(userIds, strconv.Itoa(int(*user.Id)))
+		userIds = append(userIds, user.GetId())
 	}
 
 	// create map by existing user from DB
 	userIdMap := map[string]User{}
-	existings, _ := s.repo.Get(map[string]interface{}{"id": userIds})
+	getByUserIdsCondition := GetUserIdMap(userIds)
+	existings, _ := s.repo.Get(getByUserIdsCondition)
 	for _, user := range existings {
-		userIdMap[strconv.Itoa(int(*user.Id))] = *user
+		userIdMap[user.GetId()] = *user
 	}
 
 	// check reqJson for non-existing ids
 	// also reuse the map storing the req's user which use for create the "update data"
-	nonExistIds := []int64{}
+	nonExistIds := []string{}
 	for _, reqUser := range users {
-		_, ok := userIdMap[strconv.Itoa(int(*reqUser.Id))]
+		_, ok := userIdMap[reqUser.GetId()]
 		if !ok {
-			nonExistIds = append(nonExistIds, *reqUser.Id)
+			nonExistIds = append(nonExistIds, reqUser.GetId())
 		}
-		userIdMap[strconv.Itoa(int(*reqUser.Id))] = *reqUser
+		userIdMap[reqUser.GetId()] = *reqUser
 	}
 
 	if len(nonExistIds) > 0 || len(existings) == 0 {
@@ -175,7 +199,7 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 				"name": true,
 			},
 		})
-		if len(conflicts) > 0 && *conflicts[0].Id != *user.Id {
+		if len(conflicts) > 0 && conflicts[0].GetId() != user.GetId() {
 			httpErr := &helper.HttpErr{
 				Code: fiber.StatusConflict,
 				Err:  fmt.Errorf("%+v is already existed, please try another name.", user.Name),
@@ -186,7 +210,7 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 
 	// combining the req user that match with the existing user for update
 	for _, originalUser := range existings {
-		user := userIdMap[strconv.Itoa(int(*originalUser.Id))] // get the req user
+		user := userIdMap[originalUser.GetId()] // get the req user
 		if user.CreatedAt == nil {
 			user.CreatedAt = originalUser.CreatedAt
 		}
@@ -204,14 +228,15 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 }
 
 func (s *Service) Delete(ids []string) ([]*User, error) {
-	records, _ := s.repo.Get(map[string]interface{}{
-		"id": ids,
-	})
+	fmt.Printf("user service delete\n")
+	records := []*User{}
+	getByUserIdsCondition := GetUserIdMap(ids)
+	records, _ = s.repo.Get(getByUserIdsCondition)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
 	}
 
-	return s.repo.Delete(ids)
+	return records, s.repo.Delete(ids)
 }
 
 func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
@@ -242,6 +267,7 @@ func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
 	}
 
 	sanitise(results)
+
 	if userTokenResponse, err := GetUserTokenResponse(results[0]); err != nil {
 		msg := fmt.Sprintf("failed to refresh token: %+v", err)
 		fmt.Println(msg)
@@ -254,7 +280,9 @@ func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
 func (s *Service) Refresh(user *User) (map[string]interface{}, *helper.HttpErr) {
 	fmt.Printf("user service login\n")
 
-	results, _ := s.repo.Get(map[string]interface{}{"id": user.Id})
+	results := []*User{}
+	condition := GetUserIdMap([]string{user.GetId()})
+	results, _ = s.repo.Get(condition)
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
 	}

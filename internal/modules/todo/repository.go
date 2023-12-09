@@ -5,7 +5,7 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/modules/user"
-	"strconv"
+	"golang.org/x/exp/maps"
 )
 
 type Repository struct {
@@ -18,24 +18,33 @@ func NewRepository(db database.IDatabase) *Repository {
 
 func cascadeFields(todos Todos) {
 	// cascade user
-	userIds := []string{}
+	cfg.LoadEnvVariables()
+	var (
+		userIds []string
+		userId  string
+	)
 	for _, todo := range todos {
 		if todo.UserId == nil {
 			continue
 		}
-		userId := strconv.Itoa(int(todo.UserId.(int64)))
+
+		userId = todo.GetUserId()
 		userIds = append(userIds, userId)
 	}
 
 	if len(userIds) > 0 {
-		users, _ := user.Srvc.Get(map[string]interface{}{"id": userIds})
+		users := []*user.User{}
+
+		condition := user.GetUserIdMap(userIds)
+		users, _ = user.Srvc.Get(condition)
 		userMap := user.Srvc.GetIdMap(users)
 
 		for _, todo := range todos {
 			if todo.UserId == nil {
 				continue
 			}
-			user := userMap[strconv.Itoa(int(todo.UserId.(int64)))]
+			user := &user.User{}
+			user = userMap[todo.GetUserId()]
 			todo.User = user
 		}
 	}
@@ -54,6 +63,16 @@ func cascadeFields(todos Todos) {
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
 	fmt.Printf("todo repo\n")
+	defaultExactMatch := map[string]bool{
+		"id":   true,
+		"_id":  true,
+		"done": true, // bool match needs exact match, parram can be 0(false) & 1(true)
+	}
+	if queries["exactMatch"] != nil {
+		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
+	}
+
+	queries["columns"] = Todo{}.getTags()
 	rows, pagination := r.db.Select(queries)
 
 	var records Todos
@@ -95,19 +114,12 @@ func (r *Repository) Update(todos []*Todo) ([]*Todo, error) {
 	return records, err
 }
 
-func (r *Repository) Delete(ids []string) ([]*Todo, error) {
-	rows, _ := r.db.Select(map[string]interface{}{"id": ids})
-
-	var records Todos
-	if rows != nil {
-		records = records.rowsToStruct(rows)
-	}
-	records.printValue()
-
+func (r *Repository) Delete(ids []string) error {
+	fmt.Printf("todo repo delete\n")
 	err := r.db.Delete(ids)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return records, nil
+	return nil
 }

@@ -1,13 +1,12 @@
 package user
 
 import (
+	"errors"
 	"fmt"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
 	"log"
-	"strconv"
 	"time"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -53,9 +52,6 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
-	paramsMap["exactMatch"] = map[string]bool{
-		"id": true,
-	}
 	results, pagination := c.service.Get(paramsMap)
 	sanitise(results)
 
@@ -101,11 +97,10 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		if user.Id == nil {
 			continue
 		} else if existing, err := c.service.GetById(map[string]interface{}{
-			"id": strconv.Itoa(int(*user.Id)),
+			"id": user.GetId(),
 		}); err == nil && user.CreatedAt == nil {
 			user.CreatedAt = existing[0].CreatedAt
 		}
-		fmt.Printf("user? %+v\n", user)
 	}
 
 	results, httpErr := c.service.Create(users)
@@ -144,14 +139,31 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	// 	log.Printf("users: %+v\n", t)
 	// }
 
-	userIds := []string{}
 	for _, user := range users {
-		if user.Id == nil {
+		if user.Id == nil && user.MongoId == nil {
 			return ctx.
 				Status(respCode).
-				JSON(map[string]interface{}{"message": "please ensure all records with key 'id' for PATCH"})
+				JSON(map[string]interface{}{"message": "please ensure all records with id for PATCH"})
 		}
-		userIds = append(userIds, strconv.Itoa(int(*user.Id)))
+
+		cfg.LoadEnvVariables()
+		conditions := map[string]interface{}{}
+		conditions["id"] = user.GetId()
+
+		existing, err := c.service.GetById(conditions)
+		if len(existing) == 0 {
+			respCode = fiber.StatusNotFound
+			return ctx.
+				Status(respCode).
+				JSON(map[string]interface{}{
+					"message": errors.Join(
+						errors.New("cannot update non-existing records..."),
+						err,
+					).Error(),
+				})
+		} else if user.CreatedAt == nil {
+			user.CreatedAt = existing[0].CreatedAt
+		}
 	}
 
 	results, httpErr := c.service.Update(users)
@@ -175,22 +187,36 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	delIds := struct {
-		Ids []int64 `json:"ids" validate:"required,min=1,unique"`
+		Ids []int64 `json:"ids" validate:"required,unique"`
+	}{}
+
+	mongoDelIds := struct {
+		Ids []string `json:"ids" validate:"required,unique"`
 	}{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	err, _ := reqCtx.Payload.ParseJsonToStruct(&delIds, nil)
-	if err != nil {
-		log.Printf("failed to parse req json, %+v\n", err.Error())
-		return ctx.JSON(map[string]interface{}{"message": err.Error()})
+	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
+	if intIdsErr != nil && strIdsErr != nil {
+		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
+		return ctx.JSON(map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
+	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
-	fmt.Printf("deletedIds: %+v\n", delIds)
+	var (
+		results []*User
+		err     error
+	)
 
-	idsString, _ := helper.ConvertNumberSliceToString(delIds.Ids)
-	results, err := c.service.Delete(idsString)
+	cfg.LoadEnvVariables()
+	if cfg.DbConf.Driver == "mongodb" {
+		results, err = c.service.Delete(mongoDelIds.Ids)
+	} else {
+		idsString, _ := helper.ConvertNumberSliceToString(delIds.Ids)
+		results, err = c.service.Delete(idsString)
+	}
 	sanitise(results)
+
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
@@ -246,8 +272,15 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 			JSON(map[string]interface{}{"message": "Invalid Token type... please try to login again"})
 	}
 
-	userId := int64(claims["userId"].(float64))
-	result, _ := c.service.Refresh(&User{Id: &userId})
+	result := map[string]interface{}{}
+	cfg.LoadEnvVariables()
+	if cfg.DbConf.Driver == "mongodb" {
+		userId := claims["userId"].(string)
+		result, _ = c.service.Refresh(&User{MongoId: &userId})
+	} else {
+		userId := int64(claims["userId"].(float64))
+		result, _ = c.service.Refresh(&User{Id: &userId})
+	}
 	SetRefreshTokenInCookie(result, ctx)
 
 	respCode = fiber.StatusOK

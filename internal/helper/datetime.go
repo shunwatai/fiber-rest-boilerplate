@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 type CustomDatetime struct {
@@ -56,6 +58,22 @@ func (t CustomDatetime) MarshalJSON() ([]byte, error) {
 	}
 	jsonDatetime = fmt.Sprintf("\"%s\"", t.Time.Format(*t.Format))
 	return []byte(jsonDatetime), nil
+}
+
+func (t *CustomDatetime) UnmarshalBSONValue(bt bsontype.Type, value []byte) error {
+	// fmt.Printf("UnmarshalBSONValue type:%+v,  value:(%+v)\n",value, bt)
+	if bt != bsontype.DateTime {
+		return fmt.Errorf("invalid bson value type '%s'", t.String())
+	}
+
+	parsedTime, _, ok := bsoncore.ReadTime(value)
+	if !ok {
+		return fmt.Errorf("invalid bson datetime value")
+	}
+
+	// fmt.Printf("parsedTime: %+v\n", parsedTime)
+	t.Time = &parsedTime
+	return nil
 }
 
 // ref: https://stackoverflow.com/a/54921922

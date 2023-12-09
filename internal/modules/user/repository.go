@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang.org/x/exp/maps"
 )
 
 type Repository struct {
@@ -16,6 +17,16 @@ func NewRepository(db database.IDatabase) *Repository {
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*User, *helper.Pagination) {
 	fmt.Printf("user repo\n")
+	defaultExactMatch := map[string]bool{
+		"id":       true,
+		"_id":      true,
+		"disabled": true, // bool match needs exact match, parram can be 0(false) & 1(true)
+	}
+	if queries["exactMatch"] != nil {
+		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
+	}
+
+	queries["columns"] = User{}.getTags()
 	rows, pagination := r.db.Select(queries)
 
 	var records Users
@@ -55,19 +66,11 @@ func (r *Repository) Update(users []*User) ([]*User, error) {
 	return records, err
 }
 
-func (r *Repository) Delete(ids []string) ([]*User, error) {
-	rows, _ := r.db.Select(map[string]interface{}{"id": ids})
-
-	var records Users
-	if rows != nil {
-		records = records.rowsToStruct(rows)
-	}
-	records.printValue()
-
+func (r *Repository) Delete(ids []string) error {
 	err := r.db.Delete(ids)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return records, nil
+	return nil
 }
