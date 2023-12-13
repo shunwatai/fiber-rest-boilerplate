@@ -200,7 +200,8 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(VALUES(%s), CURRENT_TIMESTAMP)", col, col))
 			continue
 		}
-		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=VALUES(%s)", col, col))
+		// colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=VALUES(%s)", col, col))
+		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(VALUES(%s), %s.%s)", col, col, m.TableName, col))
 	}
 
 	insertStmt := fmt.Sprintf(

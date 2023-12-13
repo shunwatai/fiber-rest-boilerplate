@@ -215,7 +215,8 @@ func (m *Sqlite) Save(records Records) (Rows, error) {
 			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(excluded.%s, CURRENT_TIMESTAMP)", col, col))
 			continue
 		}
-		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=excluded.%s", col, col))
+		// colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=excluded.%s", col, col))
+		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(excluded.%s, %s.%s)", col, col, m.TableName, col))
 	}
 
 	insertStmt := fmt.Sprintf(
@@ -234,6 +235,7 @@ func (m *Sqlite) Save(records Records) (Rows, error) {
 	insertedIds := []string{}
 	mapsResults := records.StructToMap()
 	for _, record := range mapsResults {
+		fmt.Printf("record: %+v \n", record)
 		sqlResult, err := m.db.NamedExec(insertStmt, record)
 		if err != nil {
 			log.Printf("insert error: %+v\n", err)

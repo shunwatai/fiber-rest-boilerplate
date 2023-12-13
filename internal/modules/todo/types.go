@@ -16,7 +16,7 @@ import (
 
 type Todo struct {
 	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty"` // https://stackoverflow.com/a/20739427
-	Id        *int64                 `json:"id,omitempty" db:"id" bson:"id,omitempty" example:"2"`
+	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2"`
 	UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty"`
 	User      *user.User             `json:"user"`
 	Task      string                 `json:"task" db:"task" bson:"task,omitempty"`

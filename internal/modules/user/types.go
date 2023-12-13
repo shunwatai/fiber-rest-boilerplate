@@ -23,7 +23,7 @@ type UserClaims struct {
 
 type User struct {
 	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty"` // https://stackoverflow.com/a/20739427
-	Id        *int64                 `json:"id,omitempty" db:"id" bson:"id,omitempty" example:"2"`
+	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2"`
 	Name      string                 `json:"name" db:"name" bson:"name,omitempty" example:"emma"`
 	Password  *string                `json:"password,omitempty" db:"password" bson:"password,omitempty" example:"password"`
 	FirstName *string                `json:"firstName" db:"first_name" bson:"first_name,omitempty" example:"Emma"`

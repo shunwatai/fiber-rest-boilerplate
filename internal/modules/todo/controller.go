@@ -75,7 +75,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		}); err == nil && todo.CreatedAt == nil {
 			todo.CreatedAt = existing[0].CreatedAt
 		}
-		fmt.Printf("todo? %+v\n", todo)
+		// fmt.Printf("todo? %+v\n", todo)
 	}
 
 	// return []*Todo{}
