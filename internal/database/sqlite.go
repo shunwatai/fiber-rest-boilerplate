@@ -19,26 +19,27 @@ type Sqlite struct {
 	db        *sqlx.DB
 }
 
-func (m *Sqlite) GetColumns() []string {
-	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
-
-	if m.db == nil { // for run the test case
-		m.db = m.Connect()
-	}
-
-	rows, err := m.db.Queryx(selectStmt)
-	if err != nil {
-		log.Printf("Queryx err: %+v\n", err)
-	}
-	defer rows.Close()
-
-	cols, err := rows.Columns()
-	if err != nil {
-		log.Printf("Failed to get columns err: %+v\n", err)
-	}
-
-	return cols
-}
+// Get all columns from db by m.TableName
+// func (m *Sqlite) GetColumns() []string {
+// 	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
+//
+// 	if m.db == nil { // for run the test case
+// 		m.db = m.Connect()
+// 	}
+//
+// 	rows, err := m.db.Queryx(selectStmt)
+// 	if err != nil {
+// 		log.Printf("Queryx err: %+v\n", err)
+// 	}
+// 	defer rows.Close()
+//
+// 	cols, err := rows.Columns()
+// 	if err != nil {
+// 		log.Printf("Failed to get columns err: %+v\n", err)
+// 	}
+//
+// 	return cols
+// }
 
 func (m *Sqlite) Connect() *sqlx.DB {
 	fmt.Printf("connecting to Sqlite... \n")
@@ -78,7 +79,7 @@ func (m *Sqlite) constructSelectStmtFromQuerystring(
 	}
 
 	bindvarMap := map[string]interface{}{}
-	cols := m.GetColumns()
+	cols := queries["columns"].([]string)
 
 	pagination := helper.GetPagination(queries)
 	dateRangeStmt := getDateRangeStmt(queries, bindvarMap)
@@ -198,7 +199,7 @@ func (m *Sqlite) Save(records Records) (Rows, error) {
 	m.db = m.Connect()
 	defer m.db.Close()
 
-	cols := m.GetColumns()
+	cols := records.GetTags("db")
 
 	// fmt.Printf("cols: %+v\n", cols)
 	var colWithColon, colUpdateSet []string
@@ -251,7 +252,10 @@ func (m *Sqlite) Save(records Records) (Rows, error) {
 	}
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
-	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
+	rows, _ := m.Select(map[string]interface{}{
+		"id":      insertedIds,
+		"columns": cols,
+	})
 
 	return rows, nil
 }
