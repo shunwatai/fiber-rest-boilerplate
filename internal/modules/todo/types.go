@@ -15,12 +15,12 @@ import (
 )
 
 type Todo struct {
-	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty"` // https://stackoverflow.com/a/20739427
-	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2"`
-	UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty"`
+	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"` // https://stackoverflow.com/a/20739427
+	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
+	UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
 	User      *user.User             `json:"user"`
-	Task      string                 `json:"task" db:"task" bson:"task,omitempty"`
-	Done      bool                   `json:"done" db:"done" bson:"done,omitempty"`
+	Task      string                 `json:"task" db:"task" bson:"task,omitempty" validate:"required"`
+	Done      *bool                  `json:"done" db:"done" bson:"done,omitempty" validate:"required,boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 	// CreatedAt *string `db:"created_at" json:"createdAt,omitempty"`
@@ -39,7 +39,11 @@ func (todo *Todo) GetId() string {
 
 func (todo *Todo) GetUserId() string {
 	if cfg.DbConf.Driver == "mongodb" {
-		return todo.UserId.(string)
+		userId, ok := todo.UserId.(string)
+		if !ok {
+			return ""
+		}
+		return userId
 	} else {
 		return strconv.Itoa(int(todo.UserId.(int64)))
 	}

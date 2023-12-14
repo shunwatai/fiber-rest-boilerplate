@@ -58,7 +58,18 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	todoErr, _ := reqCtx.Payload.ParseJsonToStruct(todo, &todos)
+	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
+		return ctx.
+			Status(fiber.StatusUnprocessableEntity).
+			JSON(map[string]interface{}{"message": invalidJson.Error()})
+	}
+
+	todoErr, parseErr := reqCtx.Payload.ParseJsonToStruct(todo, &todos)
+	if parseErr != nil {
+		return ctx.
+			Status(fiber.StatusUnprocessableEntity).
+			JSON(map[string]interface{}{"message": parseErr.Error()})
+	}
 	if todoErr == nil {
 		todos = append(todos, todo)
 	}
@@ -68,6 +79,12 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// }
 
 	for _, todo := range todos {
+		if validErr := helper.ValidateStruct(*todo); validErr != nil {
+			return ctx.
+				Status(fiber.StatusUnprocessableEntity).
+				JSON(map[string]interface{}{"message": validErr.Error()})
+		}
+
 		if todo.Id == nil {
 			continue
 		} else if existing, err := c.service.GetById(map[string]interface{}{
@@ -105,16 +122,28 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	todoErr, _ := reqCtx.Payload.ParseJsonToStruct(todo, &todos)
+	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
+		return ctx.
+			Status(fiber.StatusUnprocessableEntity).
+			JSON(map[string]interface{}{"message": invalidJson.Error()})
+	}
+
+	todoErr, parseErr := reqCtx.Payload.ParseJsonToStruct(todo, &todos)
+	if parseErr != nil {
+		return ctx.
+			Status(fiber.StatusUnprocessableEntity).
+			JSON(map[string]interface{}{"message": parseErr.Error()})
+	}
 	if todoErr == nil {
 		todos = append(todos, todo)
 	}
-	// log.Printf("todoErr: %+v, todosErr: %+v\n", todoErr, todosErr)
-	// for _, t := range todos {
-	// 	log.Printf("todos: %+v\n", t)
-	// }
 
 	for _, todo := range todos {
+		if validErr := helper.ValidateStruct(*todo); validErr != nil {
+			return ctx.
+				Status(fiber.StatusUnprocessableEntity).
+				JSON(map[string]interface{}{"message": validErr.Error()})
+		}
 		if todo.Id == nil && todo.MongoId == nil {
 			return ctx.
 				Status(respCode).

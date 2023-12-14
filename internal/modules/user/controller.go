@@ -3,11 +3,11 @@ package user
 import (
 	"errors"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
 	"log"
 	"time"
-	"github.com/gofiber/fiber/v2"
 )
 
 type Controller struct {
@@ -84,16 +84,28 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	userErr, _ := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
+		return ctx.
+			Status(fiber.StatusUnprocessableEntity).
+			JSON(map[string]interface{}{"message": invalidJson.Error()})
+	}
+
+	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	if parseErr != nil {
+		return ctx.
+			Status(fiber.StatusUnprocessableEntity).
+			JSON(map[string]interface{}{"message": parseErr.Error()})
+	}
 	if userErr == nil {
 		users = append(users, user)
 	}
-	// log.Printf("userErr: %+v, usersErr: %+v\n", userErr, usersErr)
-	// for _, t := range users {
-	// 	log.Printf("users: %+v\n", t)
-	// }
 
 	for _, user := range users {
+		if validErr := helper.ValidateStruct(*user); validErr != nil {
+			return ctx.
+				Status(fiber.StatusUnprocessableEntity).
+				JSON(map[string]interface{}{"message": validErr.Error()})
+		}
 		if user.Id == nil {
 			continue
 		} else if existing, err := c.service.GetById(map[string]interface{}{
@@ -130,16 +142,28 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	userErr, _ := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
+		return ctx.
+			Status(fiber.StatusUnprocessableEntity).
+			JSON(map[string]interface{}{"message": invalidJson.Error()})
+	}
+
+	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	if parseErr != nil {
+		return ctx.
+			Status(fiber.StatusUnprocessableEntity).
+			JSON(map[string]interface{}{"message": parseErr.Error()})
+	}
 	if userErr == nil {
 		users = append(users, user)
 	}
-	// log.Printf("userErr: %+v, usersErr: %+v\n", userErr, usersErr)
-	// for _, t := range users {
-	// 	log.Printf("users: %+v\n", t)
-	// }
 
 	for _, user := range users {
+		if validErr := helper.ValidateStruct(*user); validErr != nil {
+			return ctx.
+				Status(fiber.StatusUnprocessableEntity).
+				JSON(map[string]interface{}{"message": validErr.Error()})
+		}
 		if user.Id == nil && user.MongoId == nil {
 			return ctx.
 				Status(respCode).
