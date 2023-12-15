@@ -56,45 +56,51 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	sanitise(results)
 
 	respCode = fiber.StatusOK
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": results, "pagination": pagination})
+	return fctx.JsonResponse(
+		respCode,
+		map[string]interface{}{"data": results, "pagination": pagination},
+	)
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
 	fmt.Printf("user ctrl\n")
-	id := ctx.Params("id")
+	fctx := &helper.FiberCtx{Fctx: ctx}
+	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
 	results, err := c.service.GetById(paramsMap)
 
 	if err != nil {
 		respCode = fiber.StatusNotFound
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"message": err.Error()})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"message": err.Error()},
+		)
 	}
 	respCode = fiber.StatusOK
-	return ctx.JSON(map[string]interface{}{"data": results[0]})
+	return fctx.JsonResponse(respCode, map[string]interface{}{"data": results[0]})
 }
 
 func (c *Controller) Create(ctx *fiber.Ctx) error {
 	fmt.Printf("user ctrl create\n")
+	c.service.ctx = ctx
 	user := &User{}
 	users := []*User{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
-		return ctx.
-			Status(fiber.StatusUnprocessableEntity).
-			JSON(map[string]interface{}{"message": invalidJson.Error()})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"message": invalidJson.Error()},
+		)
 	}
 
 	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
 	if parseErr != nil {
-		return ctx.
-			Status(fiber.StatusUnprocessableEntity).
-			JSON(map[string]interface{}{"message": parseErr.Error()})
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]interface{}{"message": parseErr.Error()},
+		)
 	}
 	if userErr == nil {
 		users = append(users, user)
@@ -102,9 +108,10 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 
 	for _, user := range users {
 		if validErr := helper.ValidateStruct(*user); validErr != nil {
-			return ctx.
-				Status(fiber.StatusUnprocessableEntity).
-				JSON(map[string]interface{}{"message": validErr.Error()})
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": validErr.Error()},
+			)
 		}
 		if user.Id == nil {
 			continue
@@ -118,20 +125,23 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	results, httpErr := c.service.Create(users)
 	sanitise(results)
 	if httpErr.Err != nil {
-		return ctx.
-			Status(httpErr.Code).
-			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
+		return fctx.JsonResponse(
+			httpErr.Code,
+			map[string]interface{}{"message": httpErr.Err.Error()},
+		)
 	}
 
 	respCode = fiber.StatusCreated
 	if userErr == nil && len(results) > 0 {
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"data": results[0]})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"data": results[0]},
+		)
 	}
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": results})
+	return fctx.JsonResponse(
+		respCode,
+		map[string]interface{}{"data": results},
+	)
 }
 
 func (c *Controller) Update(ctx *fiber.Ctx) error {
@@ -143,16 +153,18 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
-		return ctx.
-			Status(fiber.StatusUnprocessableEntity).
-			JSON(map[string]interface{}{"message": invalidJson.Error()})
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]interface{}{"message": invalidJson.Error()},
+		)
 	}
 
 	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
 	if parseErr != nil {
-		return ctx.
-			Status(fiber.StatusUnprocessableEntity).
-			JSON(map[string]interface{}{"message": parseErr.Error()})
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]interface{}{"message": parseErr.Error()},
+		)
 	}
 	if userErr == nil {
 		users = append(users, user)
@@ -160,14 +172,16 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	for _, user := range users {
 		if validErr := helper.ValidateStruct(*user); validErr != nil {
-			return ctx.
-				Status(fiber.StatusUnprocessableEntity).
-				JSON(map[string]interface{}{"message": validErr.Error()})
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": validErr.Error()},
+			)
 		}
 		if user.Id == nil && user.MongoId == nil {
-			return ctx.
-				Status(respCode).
-				JSON(map[string]interface{}{"message": "please ensure all records with id for PATCH"})
+			return fctx.JsonResponse(
+				respCode,
+				map[string]interface{}{"message": "please ensure all records with id for PATCH"},
+			)
 		}
 
 		cfg.LoadEnvVariables()
@@ -177,14 +191,15 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		existing, err := c.service.GetById(conditions)
 		if len(existing) == 0 {
 			respCode = fiber.StatusNotFound
-			return ctx.
-				Status(respCode).
-				JSON(map[string]interface{}{
+			return fctx.JsonResponse(
+				respCode,
+				map[string]interface{}{
 					"message": errors.Join(
 						errors.New("cannot update non-existing records..."),
 						err,
 					).Error(),
-				})
+				},
+			)
 		} else if user.CreatedAt == nil {
 			user.CreatedAt = existing[0].CreatedAt
 		}
@@ -192,21 +207,24 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	results, httpErr := c.service.Update(users)
 	if httpErr.Err != nil {
-		return ctx.
-			Status(httpErr.Code).
-			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
+		return fctx.JsonResponse(
+			httpErr.Code,
+			map[string]interface{}{"message": httpErr.Err.Error()},
+		)
 	}
 	sanitise(results)
 
 	respCode = fiber.StatusOK
 	if userErr == nil && len(results) > 0 {
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"data": results[0]})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"data": results[0]},
+		)
 	}
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": results})
+	return fctx.JsonResponse(
+		respCode,
+		map[string]interface{}{"data": results},
+	)
 }
 
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
@@ -223,7 +241,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
 	if intIdsErr != nil && strIdsErr != nil {
 		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
-		return ctx.JSON(map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
 	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
@@ -244,15 +262,11 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"message": err.Error()})
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": err.Error()})
 	}
 
 	respCode = fiber.StatusOK
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": results})
+	return fctx.JsonResponse(respCode, map[string]interface{}{"data": results})
 }
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
@@ -269,19 +283,16 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 
 	result, httpErr := c.service.Login(user)
 	if httpErr != nil {
-		return ctx.
-			Status(httpErr.Code).
-			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": httpErr.Err.Error()})
 	}
 
 	SetRefreshTokenInCookie(result, ctx)
 	respCode = fiber.StatusOK
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": result})
+	return fctx.JsonResponse(respCode, map[string]interface{}{"data": result})
 }
 
 func (c *Controller) Refresh(ctx *fiber.Ctx) error {
+	fctx := &helper.FiberCtx{Fctx: ctx}
 	// Read cookie
 	cookie := ctx.Cookies("refreshToken")
 
@@ -291,9 +302,10 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 	claims, err := auth.ParseJwt(refreshToken)
 	if claims["tokenType"] != "refreshToken" || err != nil {
 		respCode = fiber.StatusExpectationFailed
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"message": "Invalid Token type... please try to login again"})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"message": "Invalid Token type... please try to login again"},
+		)
 	}
 
 	result := map[string]interface{}{}
@@ -308,7 +320,5 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 	SetRefreshTokenInCookie(result, ctx)
 
 	respCode = fiber.StatusOK
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": result})
+	return fctx.JsonResponse(respCode, map[string]interface{}{"data": result})
 }

@@ -18,10 +18,11 @@ import (
 
 type Service struct {
 	repo *Repository
+	ctx  *fiber.Ctx
 }
 
 func NewService(r *Repository) *Service {
-	return &Service{r}
+	return &Service{r, nil}
 }
 
 var cfg = config.Cfg

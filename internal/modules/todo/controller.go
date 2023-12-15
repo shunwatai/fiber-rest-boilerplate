@@ -29,25 +29,29 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	results, pagination := c.service.Get(paramsMap)
 
 	respCode = fiber.StatusOK
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": results, "pagination": pagination})
+	return fctx.JsonResponse(
+		respCode,
+		map[string]interface{}{"data": results, "pagination": pagination},
+	)
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
 	fmt.Printf("todo ctrl\n")
-	id := ctx.Params("id")
+	fctx := &helper.FiberCtx{Fctx: ctx}
+	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
 	results, err := c.service.GetById(paramsMap)
 
 	if err != nil {
 		respCode = fiber.StatusNotFound
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"message": err.Error()})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"message": err.Error()},
+		)
 	}
+
 	respCode = fiber.StatusOK
-	return ctx.JSON(map[string]interface{}{"data": results[0]})
+	return fctx.JsonResponse(respCode, map[string]interface{}{"data": results[0]})
 }
 
 func (c *Controller) Create(ctx *fiber.Ctx) error {
@@ -59,16 +63,18 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
-		return ctx.
-			Status(fiber.StatusUnprocessableEntity).
-			JSON(map[string]interface{}{"message": invalidJson.Error()})
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]interface{}{"message": invalidJson.Error()},
+		)
 	}
 
 	todoErr, parseErr := reqCtx.Payload.ParseJsonToStruct(todo, &todos)
 	if parseErr != nil {
-		return ctx.
-			Status(fiber.StatusUnprocessableEntity).
-			JSON(map[string]interface{}{"message": parseErr.Error()})
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]interface{}{"message": parseErr.Error()},
+		)
 	}
 	if todoErr == nil {
 		todos = append(todos, todo)
@@ -80,9 +86,10 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 
 	for _, todo := range todos {
 		if validErr := helper.ValidateStruct(*todo); validErr != nil {
-			return ctx.
-				Status(fiber.StatusUnprocessableEntity).
-				JSON(map[string]interface{}{"message": validErr.Error()})
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": validErr.Error()},
+			)
 		}
 
 		if todo.Id == nil {
@@ -98,20 +105,23 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// return []*Todo{}
 	results, httpErr := c.service.Create(todos)
 	if httpErr.Err != nil {
-		return ctx.
-			Status(httpErr.Code).
-			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
+		return fctx.JsonResponse(
+			httpErr.Code,
+			map[string]interface{}{"message": httpErr.Err.Error()},
+		)
 	}
 
 	respCode = fiber.StatusCreated
 	if todoErr == nil && len(results) > 0 {
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"data": results[0]})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"data": results[0]},
+		)
 	}
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": results})
+	return fctx.JsonResponse(
+		respCode,
+		map[string]interface{}{"data": results},
+	)
 }
 
 func (c *Controller) Update(ctx *fiber.Ctx) error {
@@ -123,16 +133,18 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
-		return ctx.
-			Status(fiber.StatusUnprocessableEntity).
-			JSON(map[string]interface{}{"message": invalidJson.Error()})
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]interface{}{"message": invalidJson.Error()},
+		)
 	}
 
 	todoErr, parseErr := reqCtx.Payload.ParseJsonToStruct(todo, &todos)
 	if parseErr != nil {
-		return ctx.
-			Status(fiber.StatusUnprocessableEntity).
-			JSON(map[string]interface{}{"message": parseErr.Error()})
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]interface{}{"message": parseErr.Error()},
+		)
 	}
 	if todoErr == nil {
 		todos = append(todos, todo)
@@ -140,14 +152,16 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	for _, todo := range todos {
 		if validErr := helper.ValidateStruct(*todo); validErr != nil {
-			return ctx.
-				Status(fiber.StatusUnprocessableEntity).
-				JSON(map[string]interface{}{"message": validErr.Error()})
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": validErr.Error()},
+			)
 		}
 		if todo.Id == nil && todo.MongoId == nil {
-			return ctx.
-				Status(respCode).
-				JSON(map[string]interface{}{"message": "please ensure all records with id for PATCH"})
+			return fctx.JsonResponse(
+				respCode,
+				map[string]interface{}{"message": "please ensure all records with id for PATCH"},
+			)
 		}
 
 		cfg.LoadEnvVariables()
@@ -157,14 +171,15 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		existing, err := c.service.GetById(conditions)
 		if len(existing) == 0 {
 			respCode = fiber.StatusNotFound
-			return ctx.
-				Status(respCode).
-				JSON(map[string]interface{}{
+			return fctx.JsonResponse(
+				respCode,
+				map[string]interface{}{
 					"message": errors.Join(
 						errors.New("cannot update non-existing records..."),
 						err,
 					).Error(),
-				})
+				},
+			)
 		} else if todo.CreatedAt == nil {
 			todo.CreatedAt = existing[0].CreatedAt
 		}
@@ -172,20 +187,23 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 
 	results, httpErr := c.service.Update(todos)
 	if httpErr.Err != nil {
-		return ctx.
-			Status(httpErr.Code).
-			JSON(map[string]interface{}{"message": httpErr.Err.Error()})
+		return fctx.JsonResponse(
+			httpErr.Code,
+			map[string]interface{}{"message": httpErr.Err.Error()},
+		)
 	}
 
 	respCode = fiber.StatusOK
 	if todoErr == nil && len(results) > 0 {
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"data": results[0]})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"data": results[0]},
+		)
 	}
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": results})
+	return fctx.JsonResponse(
+		respCode,
+		map[string]interface{}{"data": results},
+	)
 }
 
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
@@ -206,7 +224,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
 	if intIdsErr != nil && strIdsErr != nil {
 		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
-		return ctx.JSON(map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
 	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
@@ -226,13 +244,15 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	if err != nil {
 		log.Printf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
-		return ctx.
-			Status(respCode).
-			JSON(map[string]interface{}{"message": err.Error()})
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"message": err.Error()},
+		)
 	}
 
 	respCode = fiber.StatusOK
-	return ctx.
-		Status(respCode).
-		JSON(map[string]interface{}{"data": results})
+	return fctx.JsonResponse(
+		respCode,
+		map[string]interface{}{"data": results},
+	)
 }
