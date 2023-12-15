@@ -72,6 +72,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	// ) (string, *helper.Pagination, map[string]interface{}) {
 ) (bson.D, *options.FindOptions, *helper.Pagination) {
 	exactMatchCols := map[string]bool{"id": true, "_id": true} // default id(PK) & _id(mongo) have to be exact match
+	// fmt.Printf("mongo query: %+v\n\n",queries)
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
 			exactMatchCols[k] = true
@@ -79,16 +80,15 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	}
 
 	// bindvarMap := map[string]interface{}{}
-	// cols := m.GetColumns()
+	if queries["columns"] == nil {
+		fmt.Printf("error: queries[\"columns\"] is nil")
+	}
 	cols := queries["columns"]
 	pagination := helper.GetPagination(queries)
 	dateRangeStmt := getDateRangeBson(queries)
 	// fmt.Printf("dateRangeStmt: %+v, len: %+v\n", dateRangeStmt, len(dateRangeStmt))
 	helper.SanitiseQuerystring(cols.([]string), queries)
 
-	// countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
-	// selectStmt := fmt.Sprintf(`SELECT * FROM %s`, m.TableName)
-	// countAllStmt := bson.D{}
 	selectStmt := bson.D{}
 
 	fmt.Printf("queries: %+v, len: %+v\n", queries, len(queries))
@@ -143,14 +143,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 		}
 		selectStmt = append(selectStmt, whereClauses...)
 	}
-	// fmt.Printf("countAllStmt: %+v, bindvarmap: %+v\n", countAllStmt, bindvarMap)
 
-	// if totalRow, err := m.db.NamedQuery(countAllStmt, bindvarMap); err != nil {
-	// 	log.Printf("Queryx Count(*) err: %+v\n", err.Error())
-	// } else if totalRow.Next() {
-	// 	defer totalRow.Close()
-	// 	totalRow.Scan(&pagination.Count)
-	// }
 	if count, err := countFunc(selectStmt); err != nil {
 		fmt.Printf("count error: %+v\n", err)
 	} else {
@@ -183,16 +176,6 @@ func (m *Mongodb) getConditionsFromQuerystring(
 		},
 	)
 
-	// selectStmt = fmt.Sprintf(`%s
-	// 		ORDER BY %s %s
-	// 		LIMIT %s OFFSET %s
-	// 	`,
-	// 	selectStmt,
-	// 	pagination.OrderBy["key"], pagination.OrderBy["by"],
-	// 	limit, offset,
-	// )
-
-	// return selectStmt, pagination, bindvarMap
 	return selectStmt, options, pagination
 }
 
@@ -209,27 +192,11 @@ func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	defer m.db.Disconnect(ctx)
 	collection := m.db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
 
-	fmt.Printf("queries: %+v\n", queries)
 	var (
 		cur *mongo.Cursor
 		err error
 	)
-
 	// fmt.Printf("len(queries):%+v, %+v\n", queries, len(queries))
-	// if queries["_id"] != nil { // add where clause
-	// 	// if len(queries) != 0 { // add where clause
-	// 	cur, err = collection.Find(ctx, bson.M{
-	// 		"_id": bson.M{"$in": queries["_id"]},
-	// 	})
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// } else {
-	// 	cur, err = collection.Find(ctx, bson.D{})
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// }
 
 	var countFunc = func(filter interface{}) (int64, error) {
 		count, err := collection.CountDocuments(ctx, filter)
@@ -237,35 +204,17 @@ func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	}
 
 	conditions, findOptions, pagination := m.getConditionsFromQuerystring(queries, countFunc)
-	// conditions:=bson.D{{"task", "/take passport/"}}
 	fmt.Printf("m conditions: %+v\n", conditions)
 	cur, err = collection.Find(ctx, conditions, findOptions)
-	// cur, err = collection.Find(ctx, bson.D{{"created_at", bson.D{{"$lt", primitive.NewDateTimeFromTime(time.Now())}}}}, findOptions)
 
-	// oid1, _ := primitive.ObjectIDFromHex("6551ee5f53a746ae0824c3ee")
-	// oid2, _ := primitive.ObjectIDFromHex("65519d29973632f67580045d")
-	// cur, err = collection.Find(ctx, bson.D{bson.E{"_id", bson.D{{"$in", []primitive.ObjectID{oid1, oid2}}}}})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// selectStmt, pagination, bindvarMap := m.constructSelectStmtFromQuerystring(queries)
-	// fmt.Printf("bindvarMap: %+v\n", bindvarMap)
-	// fmt.Printf("selectStmt: %+v\n", selectStmt)
-	//
-	// rows, err := m.db.NamedQuery(selectStmt, bindvarMap)
-	// if err != nil {
-	// 	log.Printf("Queryx err: %+v\n", err.Error())
-	// }
-	//
-	// if rows.Err() != nil {
-	// 	log.Printf("rows.Err(): %+v\n", err.Error())
-	// }
-
 	return &MongoRows{cur, ctx}, pagination
 }
 
-func (m *Mongodb) Save(records Records) Rows {
+func (m *Mongodb) Save(records Records) (Rows, error) {
 	fmt.Printf("save from Mongodb, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -299,6 +248,11 @@ func (m *Mongodb) Save(records Records) Rows {
 			record["created_at"] = time.Now()
 		}
 
+		// reserve createdBy userId
+		if record["user_id"] == nil {
+			delete(record, "user_id")
+		}
+
 		res, err := collection.UpdateOne(ctx, filter, bson.D{
 			{Key: "$set", Value: record},
 		}, opts)
@@ -306,7 +260,7 @@ func (m *Mongodb) Save(records Records) Rows {
 			log.Fatal(err)
 		}
 
-		/* only new created records has res.UpsertedID, existing's Ids appended in if condition above */
+		/* only new created records has res.UpsertedID, existing's Ids appended in the if condition above */
 		if res.UpsertedID == nil {
 			continue
 		}
@@ -314,71 +268,13 @@ func (m *Mongodb) Save(records Records) Rows {
 	}
 	fmt.Printf("upsertedIds: %+v\n", upsertedIds)
 
-	// cols := m.GetColumns()
-	//
-	// // fmt.Printf("cols: %+v\n", cols)
-	// var colWithColon, colUpdateSet []string
-	// for _, col := range cols {
-	// 	// use in SQL's VALUES()
-	// 	if col == "id" {
-	// 		colWithColon = append(colWithColon, fmt.Sprintf("COALESCE(:%s, nextval('%s_id_seq'))", col, m.TableName))
-	// 	} else if strings.Contains(col, "_at") {
-	// 		colWithColon = append(colWithColon, fmt.Sprintf("COALESCE(:%s, CURRENT_TIMESTAMP)", col))
-	// 	} else {
-	// 		colWithColon = append(colWithColon, fmt.Sprintf(":%s", col))
-	// 	}
-	//
-	// 	// use in SQL's ON DUPLICATE KEY UPDATE
-	// 	if strings.Contains(col, "_at") {
-	// 		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=COALESCE(EXCLUDED.%s, %s.%s)", col, col, m.TableName, col))
-	// 		continue
-	// 	}
-	// 	colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=COALESCE(EXCLUDED.%s, %s.%s)", col, col, m.TableName, col))
-	// }
-	//
-	// insertStmt := fmt.Sprintf(
-	// 	`INSERT INTO %s (%s) VALUES (%s)
-	// 	ON CONFLICT (id) DO UPDATE SET
-	//    %s
-	// 	RETURNING id;`,
-	// 	m.TableName,
-	// 	fmt.Sprintf(strings.Join(cols[:], ",")),
-	// 	fmt.Sprintf(strings.Join(colWithColon[:], ",")),
-	// 	fmt.Sprintf(strings.Join(colUpdateSet[:], ",\n")),
-	// )
-	// fmt.Printf("%+v \n", insertStmt)
-	//
-	// insertedIds := []string{}
-	// sqlResult, err := m.db.NamedQuery(insertStmt, records)
-	// if err != nil {
-	// 	log.Printf("insert error: %+v\n", err)
-	// }
-	// // fmt.Printf("sqlResult: %+v\n", sqlResult)
-	//
-	// for sqlResult.Next() {
-	// 	var id string
-	// 	err := sqlResult.Scan(&id)
-	// 	if err != nil {
-	// 		log.Fatalf("Scan: %v", err)
-	// 	}
-	// 	insertedIds = append(insertedIds, id)
-	// }
-	//
-	// fmt.Printf("insertedIds: %+v\n", insertedIds)
-	// rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-
-	// return &sqlx.Rows{}
-
 	rows, _ := m.Select(map[string]interface{}{
 		"_id":     upsertedIds,
 		"columns": records.GetTags("bson"),
 	})
-	return rows
+	return rows, nil
 }
 
-// func (m *Mongodb) Update() {
-// 	fmt.Printf("update from Mongodb, table: %+v\n", m.TableName)
-// }
 func (m *Mongodb) Delete(ids []string) error {
 	fmt.Printf("delete ids: %+v from Mongodb, table: %+v\n", ids, m.TableName)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -401,41 +297,28 @@ func (m *Mongodb) Delete(ids []string) error {
 	}
 	fmt.Printf("result: %+v\n", result)
 
-	// m.db = m.Connect()
-	// defer m.db.Close()
-	//
-	// deleteStmt, args, err := sqlx.In(
-	// 	fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
-	// 	*ids,
-	// )
-	// if err != nil {
-	// 	log.Printf("sqlx.In err: %+v\n", err.Error())
-	// 	return err
-	// }
-	// deleteStmt = m.db.Rebind(deleteStmt)
-	// fmt.Printf("stmt: %+v, args: %+v\n", deleteStmt, args)
-	//
-	// _, err = m.db.Exec(deleteStmt, args...)
-	// if err != nil {
-	// 	log.Printf("Delete Query err: %+v\n", err.Error())
-	// 	return err
-	// }
-
 	return nil
 }
 
+// useless for mongo, it implemented by sqlite, postgres, mariadb
 func (m *Mongodb) RawQuery(sql string) *sqlx.Rows {
-	fmt.Printf("raw query from Mongodb\n")
-	// m.db = m.Connect()
-	// defer m.db.Close()
-	//
-	// rows, err := m.db.Queryx(sql)
-	// if err != nil {
-	// 	log.Printf("Queryx err: %+v\n", err.Error())
-	// }
-	// if rows.Err() != nil {
-	// 	log.Printf("rows.Err(): %+v\n", err.Error())
-	// }
-
 	return &sqlx.Rows{}
+}
+
+// mongo version of RawQuery
+func (m *Mongodb) runCommands(cmds []bson.D) error {
+	for _, cmd := range cmds {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		m.db = m.Connect()
+		defer m.db.Disconnect(ctx)
+		db := m.db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+
+		err := db.Database().RunCommand(ctx, cmd).Err()
+		if err != nil {
+			log.Printf("mongo cmd failed: %+v\n", err)
+			return err
+		}
+	}
+	return nil
 }

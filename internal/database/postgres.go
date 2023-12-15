@@ -44,7 +44,7 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 	}
 
 	bindvarMap := map[string]interface{}{}
-	cols := m.GetColumns()
+	cols := queries["columns"].([]string)
 	pagination := helper.GetPagination(queries)
 	dateRangeStmt := getDateRangeStmt(queries, bindvarMap)
 	fmt.Printf("dateRangeStmt: %+v, len: %+v\n", dateRangeStmt, len(dateRangeStmt))
@@ -128,27 +128,27 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 	return selectStmt, pagination, bindvarMap
 }
 
-// Get all columns []string by m.TableName
-func (m *Postgres) GetColumns() []string {
-	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
-
-	if m.db == nil { // for run the test case
-		m.db = m.Connect()
-	}
-
-	rows, err := m.db.Queryx(selectStmt)
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
-	defer rows.Close()
-
-	cols, err := rows.Columns()
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
-
-	return cols
-}
+// Get all columns from db by m.TableName
+// func (m *Postgres) GetColumns() []string {
+// 	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
+//
+// 	if m.db == nil { // for run the test case
+// 		m.db = m.Connect()
+// 	}
+//
+// 	rows, err := m.db.Queryx(selectStmt)
+// 	if err != nil {
+// 		log.Printf("%+v\n", err)
+// 	}
+// 	defer rows.Close()
+//
+// 	cols, err := rows.Columns()
+// 	if err != nil {
+// 		log.Printf("%+v\n", err)
+// 	}
+//
+// 	return cols
+// }
 
 func (m *Postgres) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
 	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
@@ -171,13 +171,13 @@ func (m *Postgres) Select(queries map[string]interface{}) (Rows, *helper.Paginat
 	return rows, pagination
 }
 
-func (m *Postgres) Save(records Records) Rows {
+func (m *Postgres) Save(records Records) (Rows, error) {
 	fmt.Printf("save from Postgres, table: %+v\n", m.TableName)
 	// fmt.Printf("records: %+v\n", records)
 	m.db = m.Connect()
 	defer m.db.Close()
 
-	cols := m.GetColumns()
+	cols := records.GetTags("db")
 
 	// fmt.Printf("cols: %+v\n", cols)
 	var colWithColon, colUpdateSet []string
@@ -215,6 +215,7 @@ func (m *Postgres) Save(records Records) Rows {
 	sqlResult, err := m.db.NamedQuery(insertStmt, records)
 	if err != nil {
 		log.Printf("insert error: %+v\n", err)
+		return nil, err
 	}
 	// fmt.Printf("sqlResult: %+v\n", sqlResult)
 
@@ -223,18 +224,20 @@ func (m *Postgres) Save(records Records) Rows {
 		err := sqlResult.Scan(&id)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
+			return nil, err
 		}
 		insertedIds = append(insertedIds, id)
 	}
 
 	fmt.Printf("insertedIds: %+v\n", insertedIds)
-	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
-	return rows.(*sqlx.Rows)
+	rows, _ := m.Select(map[string]interface{}{
+		"id":      insertedIds,
+		"columns": cols,
+	})
+
+	return rows.(*sqlx.Rows), nil
 }
 
-// func (m *Postgres) Update() {
-// 	fmt.Printf("update from Postgres, table: %+v\n", m.TableName)
-// }
 func (m *Postgres) Delete(ids []string) error {
 	fmt.Printf("delete from Postgres, table: %+v\n", m.TableName)
 	m.db = m.Connect()

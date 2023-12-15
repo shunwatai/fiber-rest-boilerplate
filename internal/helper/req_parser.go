@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -13,6 +15,7 @@ import (
 type IReqPayload interface {
 	GetQueryString() map[string]interface{}
 	ParseJsonToStruct(interface{}, interface{}) (error, error)
+	ValidateJson() error
 }
 
 type ReqContext struct {
@@ -52,6 +55,14 @@ func (c *FiberCtx) GetQueryString() map[string]interface{} {
 	return paramsMap
 }
 
+func (c *FiberCtx) ValidateJson() error {
+	if !json.Valid(c.Fctx.BodyRaw()) {
+		return fmt.Errorf("request JSON not valid...")
+	}
+
+	return nil
+}
+
 func (c *FiberCtx) ParseJsonToStruct(single interface{}, plural interface{}) (error, error) {
 	singleErr := c.Fctx.BodyParser(single)
 	pluralErr := c.Fctx.BodyParser(plural)
@@ -64,5 +75,10 @@ func (c *FiberCtx) ParseJsonToStruct(single interface{}, plural interface{}) (er
 		log.Printf("singleErr err: %+v\n", singleErr.Error())
 	}
 
-	return singleErr, pluralErr
+	var allFailed error
+	if singleErr != nil && pluralErr != nil {
+		allFailed = errors.Join(fmt.Errorf("failed to parse given json into struct. "), singleErr, pluralErr)
+	}
+
+	return singleErr, allFailed
 }

@@ -40,9 +40,9 @@ type MongodbConf struct {
 }
 
 type DbConf struct {
-	Driver      string `mapstructure:"engine"`
-	SqliteConf  `mapstructure:"sqlite"`
-	MariadbConf `mapstructure:"mariadb"`
+	Driver       string `mapstructure:"engine"`
+	SqliteConf   `mapstructure:"sqlite"`
+	MariadbConf  `mapstructure:"mariadb"`
 	PostgresConf `mapstructure:"postgres"`
 	MongodbConf `mapstructure:"mongodb"`
 }
@@ -53,9 +53,14 @@ type ServerConf struct {
 	Port string
 }
 
+type Jwt struct {
+	Secret string
+}
+
 type Config struct {
 	*DbConf     `mapstructure:"database"`
 	*ServerConf `mapstructure:"server"`
+	*Jwt        `mapstructure:"jwt"`
 	Vpr         *viper.Viper
 }
 
