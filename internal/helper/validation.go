@@ -13,18 +13,18 @@ func ValidateStruct(strct interface{}) error {
 	var invalidErrs []error
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
-	// validates that an enum is within the interval
 	err := validate.RegisterValidation("id_custom_validation", func(fl validator.FieldLevel) bool {
-		// fmt.Printf("what is is? %+v\n", fl.Field().Interface())
 		cfg.LoadEnvVariables()
+		// fmt.Printf("what is is? %+v, db: %+v\n", fl.Field().Interface(),cfg.DbConf.Driver)
 		if cfg.DbConf.Driver == "mongodb" {
 			_, ok := fl.Field().Interface().(string)
 			if !ok {
 				return false
 			}
 		} else {
-			_, ok := fl.Field().Interface().(int64)
-			if !ok {
+			_, isFloat64 := fl.Field().Interface().(float64)
+			_, isInt64 := fl.Field().Interface().(int64)
+			if !isFloat64 && !isInt64 {
 				return false
 			}
 		}
