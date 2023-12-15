@@ -308,17 +308,26 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 		)
 	}
 
-	result := map[string]interface{}{}
+	var (
+		result     = map[string]interface{}{}
+		refreshErr *helper.HttpErr
+	)
 	cfg.LoadEnvVariables()
 	if cfg.DbConf.Driver == "mongodb" {
 		userId := claims["userId"].(string)
-		result, _ = c.service.Refresh(&User{MongoId: &userId})
+		result, refreshErr = c.service.Refresh(&User{MongoId: &userId})
 	} else {
 		userId := int64(claims["userId"].(float64))
-		result, _ = c.service.Refresh(&User{Id: &userId})
+		result, refreshErr = c.service.Refresh(&User{Id: &userId})
 	}
-	SetRefreshTokenInCookie(result, ctx)
+	if refreshErr != nil {
+		return fctx.JsonResponse(
+			refreshErr.Code,
+			map[string]interface{}{"message": refreshErr.Err.Error()},
+		)
+	}
 
+	SetRefreshTokenInCookie(result, ctx)
 	respCode = fiber.StatusOK
 	return fctx.JsonResponse(respCode, map[string]interface{}{"data": result})
 }

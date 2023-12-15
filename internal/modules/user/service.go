@@ -279,13 +279,13 @@ func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
 }
 
 func (s *Service) Refresh(user *User) (map[string]interface{}, *helper.HttpErr) {
-	fmt.Printf("user service login\n")
+	fmt.Printf("user service refresh\n")
 
 	results := []*User{}
 	condition := GetUserIdMap([]string{user.GetId()})
 	results, _ = s.repo.Get(condition)
 	if len(results) == 0 {
-		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
+		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists... failed to refresh, please try login again")}
 	}
 
 	sanitise(results)
