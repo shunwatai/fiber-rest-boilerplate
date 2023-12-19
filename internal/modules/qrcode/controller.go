@@ -3,6 +3,7 @@ package qrcode
 import (
 	"fmt"
 	"golang-api-starter/internal/config"
+	"golang-api-starter/internal/helper"
 	"io"
 	"sync"
 	"time"
@@ -23,7 +24,9 @@ var respCode = fiber.StatusInternalServerError
 
 func (c *Controller) GetQrcodeContentFromPdf(ctx *fiber.Ctx) error {
 	fmt.Printf("qrcode ctrl GetQrcodeContentFromPdf\n")
-	form, err := ctx.MultipartForm()
+	fctx := &helper.FiberCtx{Fctx: ctx}
+
+	form, err := fctx.Fctx.MultipartForm()
 	if err != nil { /* handle error */
 		fmt.Printf("failed to get multipartForm, err: %+v\n", err.Error())
 		return err
@@ -73,8 +76,10 @@ func (c *Controller) GetQrcodeContentFromPdf(ctx *fiber.Ctx) error {
 		fmt.Printf("duration: %+v\n", time.Since(start))
 	}()
 
+	resp := map[string]interface{}{}
 	// get the results from chan
 	for r := range result {
+		resp[r.filename] = r.logNumber
 		if r.logNumber == nil {
 			fmt.Printf("result: %+v --> %+v\n", r.filename, nil)
 			continue
@@ -82,6 +87,15 @@ func (c *Controller) GetQrcodeContentFromPdf(ctx *fiber.Ctx) error {
 		fmt.Printf("result: %+v --> %+v\n", r.filename, *r.logNumber)
 	}
 
-	c.service.GetQrcodeContentFromPdf()
-	return nil
+	err = c.service.GetQrcodeContentFromPdf()
+	if err != nil {
+		fmt.Printf("GetQrcodeContentFromPdf err: %+v\n", err.Error())
+		return err
+	}
+
+	respCode = fiber.StatusOK
+	return fctx.JsonResponse(
+		respCode,
+		map[string]interface{}{"data": resp},
+	)
 }
