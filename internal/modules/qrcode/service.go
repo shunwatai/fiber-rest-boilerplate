@@ -25,11 +25,12 @@ func NewService() *Service {
 	return &Service{nil}
 }
 
-func PdfToImg(fileBytes []byte, filename string) string {
+func PdfToImg(fileBytes []byte, filename string) (string, error) {
 	imagesPath := ""
 	doc, err := fitz.NewFromMemory(fileBytes)
 	if err != nil {
-		panic(err)
+		fmt.Printf("fitz.NewFromMemory failed, err: %+v\n", err.Error())
+		return "", err
 	}
 
 	// Extract pages as images
@@ -39,7 +40,8 @@ func PdfToImg(fileBytes []byte, filename string) string {
 		}
 		img, err := doc.Image(n)
 		if err != nil {
-			panic(err)
+			fmt.Printf("failed to get image from pdf, err: %+v\n", err.Error())
+			return "", err
 		}
 		width := img.Bounds().Dx()
 		// height := img.Bounds().Dy()
@@ -49,44 +51,63 @@ func PdfToImg(fileBytes []byte, filename string) string {
 
 		err = os.MkdirAll("qrcodes/", 0755)
 		if err != nil {
-			panic(err)
+			fmt.Printf("failed create directory qrcodes, err: %+v\n", err.Error())
+			return "", err
 		}
 
 		// imagesLocation = filepath.Join("qrcodes/", fmt.Sprintf("image-%05d.jpg", n))
 		imagesPath = filepath.Join("qrcodes/", fmt.Sprintf("%s.jpg", filename))
 		f, err := os.Create(imagesPath)
 		if err != nil {
-			panic(err)
+			fmt.Printf("failed create image, err: %+v\n", err.Error())
+			return "", err
 		}
 
 		err = jpeg.Encode(f, resizedImg, nil)
 		if err != nil {
-			panic(err)
+			fmt.Printf("failed encode resizedImg jpeg, err: %+v\n", err.Error())
+			return "", err
 		}
 
 		f.Close()
 	}
 
-	return imagesPath
+	return imagesPath, nil
 }
 
-func GetContentFromImg(path string) *string {
+func GetContentFromImg(path string) (*string,error) {
 	// open and decode image file
-	file, _ := os.Open(path)
-	img, _, _ := image.Decode(file)
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Printf("os.Open failed, err: %+v\n", err.Error())
+		return nil, err
+	}
+	img, _, err := image.Decode(file)
+	if err != nil {
+		fmt.Printf("image.Decode failed, err: %+v\n", err.Error())
+		return nil, err
+	}
 
 	// prepare BinaryBitmap
-	bmp, _ := gozxing.NewBinaryBitmapFromImage(img)
+	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
+	if err != nil {
+		fmt.Printf("gozxing.NewBinaryBitmapFromImage failed, err: %+v\n", err.Error())
+		return nil, err
+	}
 
 	// decode image
 	qrReader := qrcode.NewQRCodeReader()
-	result, _ := qrReader.Decode(bmp, nil)
+	result, err := qrReader.Decode(bmp, nil)
+	if err != nil {
+		fmt.Printf("qrReader.Decode failed, err: %+v\n", err.Error())
+		return nil, err
+	}
 
 	if result == nil {
-		return nil
+		return nil, fmt.Errorf("no qrcode detect in given image")
 	}
 	content := result.String()
-	return &content
+	return &content,nil
 }
 
 func (s *Service) GetQrcodeContentFromPdf() error {

@@ -7,7 +7,6 @@ import (
 	"io"
 	"sync"
 	"time"
-
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -60,8 +59,15 @@ func (c *Controller) GetQrcodeContentFromPdf(ctx *fiber.Ctx) error {
 
 			go func(fb []byte, filename string, wg *sync.WaitGroup) {
 				defer wg.Done()
-				imagesLocation := PdfToImg(fb, filename)
-				logNumber := GetContentFromImg(imagesLocation)
+				imagesLocation, err := PdfToImg(fb, filename)
+				if err != nil {
+					fmt.Printf("PdfToImg failed, err: %+v\n", err)
+				}
+
+				logNumber,err := GetContentFromImg(imagesLocation)
+				if err != nil {
+					fmt.Printf("GetContentFromImg failed, err: %+v\n", err)
+				}
 				result <- struct {
 					filename  string
 					logNumber *string
