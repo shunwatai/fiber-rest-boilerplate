@@ -6,8 +6,12 @@ import (
 	"image/jpeg"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
+	"mime/multipart"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/karmdip-mi/go-fitz"
@@ -75,7 +79,7 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 	return imagesPath, nil
 }
 
-func GetContentFromImg(path string) (*string,error) {
+func GetContentFromImg(path string) (*string, error) {
 	// open and decode image file
 	file, err := os.Open(path)
 	if err != nil {
@@ -107,10 +111,81 @@ func GetContentFromImg(path string) (*string,error) {
 		return nil, fmt.Errorf("no qrcode detect in given image")
 	}
 	content := result.String()
-	return &content,nil
+	return &content, nil
 }
 
-func (s *Service) GetQrcodeContentFromPdf() error {
+func (s *Service) GetQrcodeContentFromPdf(form *multipart.Form) (map[string]interface{}, error) {
 	fmt.Printf("qrcode service GetQrcodeContentFromPdf\n")
-	return nil
+
+	result := map[string]interface{}{}
+	resultChan := make(chan struct {
+		filename  string
+		logNumber *string
+		err       error
+	})
+
+	var wg sync.WaitGroup
+	start := time.Now()
+	for formFileName, fileHeaders := range form.File {
+		for _, header := range fileHeaders {
+			wg.Add(1)
+			// process uploaded file here
+			go func(head *multipart.FileHeader, wg *sync.WaitGroup) {
+				fmt.Printf("fieldName: %+v, fileName: %+v, fileType: %+v, fileSize: %+v\n", formFileName, head.Filename, head.Header["Content-Type"][0], head.Size)
+
+				file, err := head.Open()
+				defer file.Close()
+				if err != nil {
+					fmt.Printf("failed to open file, err: %+v\n", err.Error())
+					// return result, err
+				}
+
+				fileBytes, err := io.ReadAll(file)
+				if err != nil {
+					fmt.Printf("failed to read file, err: %+v\n", err.Error())
+					// return result, err
+				}
+
+				// go func(fb []byte, filename string, wg *sync.WaitGroup) {
+				defer wg.Done()
+				imagesLocation, err := PdfToImg(fileBytes, head.Filename)
+				if err != nil {
+					fmt.Printf("PdfToImg failed, err: %+v\n", err)
+				}
+
+				logNumber, err := GetContentFromImg(imagesLocation)
+				if err != nil {
+					fmt.Printf("GetContentFromImg failed, err: %+v\n", err)
+				}
+
+				resultChan <- struct {
+					filename  string
+					logNumber *string
+					err       error
+				}{head.Filename, logNumber, err}
+			}(header, &wg)
+		}
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+		fmt.Printf("duration: %+v\n", time.Since(start))
+	}()
+
+	// get the results from chan
+	for r := range resultChan {
+		if r.err != nil {
+			fmt.Printf("result err: %+v --> %+v\n", r.filename, r.err.Error())
+			continue
+		}
+		if r.logNumber == nil {
+			fmt.Printf("result: %+v --> %+v\n", r.filename, nil)
+			continue
+		}
+		result[r.filename] = r.logNumber
+		fmt.Printf("result: %+v --> %+v\n", r.filename, *r.logNumber)
+	}
+
+	return result, nil
 }

@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
-	"io"
-	"sync"
-	"time"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -31,69 +28,7 @@ func (c *Controller) GetQrcodeContentFromPdf(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	result := make(chan struct {
-		filename  string
-		logNumber *string
-	})
-
-	var wg sync.WaitGroup
-	start := time.Now()
-	for formFieldName, fileHeaders := range form.File {
-		for _, header := range fileHeaders {
-			wg.Add(1)
-			// process uploaded file here
-			fmt.Printf("fieldName: %+v, fileName: %+v, fileType: %+v, fileSize: %+v\n", formFieldName, header.Filename, header.Header["Content-Type"][0], header.Size)
-
-			file, err := header.Open()
-			defer file.Close()
-			if err != nil {
-				fmt.Printf("failed to open file, err: %+v\n", err.Error())
-				return err
-			}
-
-			fileBytes, err := io.ReadAll(file)
-			if err != nil {
-				fmt.Printf("failed to read file, err: %+v\n", err.Error())
-				return err
-			}
-
-			go func(fb []byte, filename string, wg *sync.WaitGroup) {
-				defer wg.Done()
-				imagesLocation, err := PdfToImg(fb, filename)
-				if err != nil {
-					fmt.Printf("PdfToImg failed, err: %+v\n", err)
-				}
-
-				logNumber,err := GetContentFromImg(imagesLocation)
-				if err != nil {
-					fmt.Printf("GetContentFromImg failed, err: %+v\n", err)
-				}
-				result <- struct {
-					filename  string
-					logNumber *string
-				}{filename, logNumber}
-			}(fileBytes, header.Filename, &wg)
-		}
-	}
-
-	go func() {
-		wg.Wait()
-		close(result)
-		fmt.Printf("duration: %+v\n", time.Since(start))
-	}()
-
-	resp := map[string]interface{}{}
-	// get the results from chan
-	for r := range result {
-		resp[r.filename] = r.logNumber
-		if r.logNumber == nil {
-			fmt.Printf("result: %+v --> %+v\n", r.filename, nil)
-			continue
-		}
-		fmt.Printf("result: %+v --> %+v\n", r.filename, *r.logNumber)
-	}
-
-	err = c.service.GetQrcodeContentFromPdf()
+	result, err := c.service.GetQrcodeContentFromPdf(form)
 	if err != nil {
 		fmt.Printf("GetQrcodeContentFromPdf err: %+v\n", err.Error())
 		return err
@@ -102,6 +37,6 @@ func (c *Controller) GetQrcodeContentFromPdf(ctx *fiber.Ctx) error {
 	respCode = fiber.StatusOK
 	return fctx.JsonResponse(
 		respCode,
-		map[string]interface{}{"data": resp},
+		map[string]interface{}{"data": result},
 	)
 }
