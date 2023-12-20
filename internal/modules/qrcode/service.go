@@ -49,7 +49,7 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 		}
 		width := img.Bounds().Dx()
 		// height := img.Bounds().Dy()
-		topImg := imaging.Fill(img, 500, 500, imaging.Top, imaging.CatmullRom)
+		topImg := imaging.Fill(img, 600, 600, imaging.Top, imaging.CatmullRom)
 		// resizedImg := imaging.Fit(topRightImg, width/2, height/2, imaging.Lanczos)
 		resizedImg := imaging.Resize(topImg, width/2, 0, imaging.CatmullRom)
 
@@ -177,6 +177,7 @@ func (s *Service) GetQrcodeContentFromPdf(form *multipart.Form) (map[string]inte
 	for r := range resultChan {
 		if r.err != nil {
 			fmt.Printf("result err: %+v --> %+v\n", r.filename, r.err.Error())
+			result[r.filename] = fmt.Sprintf("%s-err", r.filename)
 			continue
 		}
 		if r.logNumber == nil {
