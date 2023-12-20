@@ -21,7 +21,13 @@ type Fiber struct {
 }
 
 func (f *Fiber) GetApp() {
-	f.App = fiber.New()
+	f.App = fiber.New(fiber.Config{
+		// Prefork:       true,
+		CaseSensitive: true,
+		StrictRouting: false,
+		ServerHeader:  "Fiber",
+		BodyLimit:     500 << 20, // 500Mb
+	})
 }
 
 func (f *Fiber) LoadMiddlewares() {
