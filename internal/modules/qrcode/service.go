@@ -39,7 +39,7 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 
 	// Extract pages as images
 	for n := 0; n < doc.NumPage(); n++ {
-		if n > 0 {
+		if n > 0 { // only handle first page
 			break
 		}
 		img, err := doc.Image(n)
@@ -49,9 +49,10 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 		}
 		width := img.Bounds().Dx()
 		// height := img.Bounds().Dy()
-		topImg := imaging.Fill(img, 600, 600, imaging.Top, imaging.CatmullRom)
-		// resizedImg := imaging.Fit(topRightImg, width/2, height/2, imaging.Lanczos)
-		resizedImg := imaging.Resize(topImg, width/2, 0, imaging.CatmullRom)
+		// img = imaging.Sharpen(img, 0.7)
+		highContrastImg := imaging.AdjustContrast(img, 40)
+		topImg := imaging.Fill(highContrastImg, 600, 600, imaging.TopRight, imaging.Lanczos)
+		resizedImg := imaging.Resize(topImg, width/2, 0, imaging.Lanczos)
 
 		err = os.MkdirAll("qrcodes/", 0755)
 		if err != nil {
