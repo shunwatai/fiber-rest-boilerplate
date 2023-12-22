@@ -1,0 +1,80 @@
+package {{.ModuleName}}
+
+import (
+	"fmt"
+	"github.com/gofiber/fiber/v2"
+	"golang-api-starter/internal/helper"
+)
+
+type Service struct {
+	repo *Repository
+	ctx  *fiber.Ctx
+}
+
+func NewService(r *Repository) *Service {
+	return &Service{r, nil}
+}
+
+func (s *Service) Get(queries map[string]interface{}) ([]*{{.StructName}}, *helper.Pagination) {
+	fmt.Printf("{{.ModuleName}} service get\n")
+	return s.repo.Get(queries)
+}
+
+func (s *Service) GetById(queries map[string]interface{}) ([]*{{.StructName}}, error) {
+	fmt.Printf("{{.ModuleName}} service getById\n")
+
+	records, _ := s.repo.Get(queries)
+	if len(records) == 0 {
+		return nil, fmt.Errorf("%s with id: %s not found", tableName, queries["id"])
+	}
+	return records, nil
+}
+
+func (s *Service) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, *helper.HttpErr) {
+	fmt.Printf("{{.ModuleName}} service create\n")
+  /*
+	// use the claims for mark the "createdBy/updatedBy" in database
+	claims := s.ctx.Locals("claims").(jwt.MapClaims)
+	fmt.Println("req by:", claims["userId"], claims["username"])
+	for _, {{.ModuleName}} := range {{.ModuleName}}s {
+		if {{.ModuleName}}.UserId == nil {
+			{{.ModuleName}}.UserId = claims["userId"]
+		}
+		if validErr := helper.ValidateStruct(*{{.ModuleName}}); validErr != nil {
+			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
+		}
+	}
+  */
+
+	results, err := s.repo.Create({{.ModuleName}}s)
+	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
+}
+
+func (s *Service) Update({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, *helper.HttpErr) {
+	fmt.Printf("{{.ModuleName}} service update\n")
+	results, err := s.repo.Update({{.ModuleName}}s)
+	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
+}
+
+func (s *Service) Delete(ids []string) ([]*{{.StructName}}, error) {
+	fmt.Printf("{{.ModuleName}} service delete\n")
+	var (
+		records    = []*{{.StructName}}{}
+		conditions = map[string]interface{}{}
+	)
+
+	cfg.LoadEnvVariables()
+	if cfg.DbConf.Driver == "mongodb" {
+		conditions["_id"] = ids
+	} else {
+		conditions["id"] = ids
+	}
+
+	records, _ = s.repo.Get(conditions)
+	fmt.Printf("records: %+v\n", records)
+	if len(records) == 0 {
+		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
+	}
+
+	return records, s.repo.Delete(ids)
+}

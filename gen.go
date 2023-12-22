@@ -56,15 +56,11 @@ func main() {
 	// wg.Add(7) // number of go routines
 	/* generate all related files route, controller, service, repo, interface, model, migration */
 	// modelsDirectory := "internal/database/models"
-	newModule.createFile("type", typeTemplate)
-	newModule.createFile("controller", controllerTemplate)
-	// go generateRoute(newModule, newDirectory)
-	// go generateController(newModule, newDirectory)
-	// go generateService(newModule, newDirectory)
-	// go generateRepository(newModule, newDirectory)
-	// go generateInterfaces(newModule, newDirectory)
-	// go generateModel(newModule, modelsDirectory)
-	// go generateMigration(&newModule)
+	newModule.createFile("type.go", typeTemplate)
+	newModule.createFile("route.go", routeTemplate)
+	newModule.createFile("controller.go", controllerTemplate)
+	newModule.createFile("service.go", serviceTemplate)
+	newModule.createFile("repository.go", repositoryTemplate)
 	// wg.Wait()
 	//
 	// /* re-generate server.go */
@@ -99,7 +95,10 @@ func Pluralfy(word string) (plural string) {
 }
 
 func (e *entity) createFile(fileName, templateFile string) {
-	filePath := fmt.Sprintf("%s/%s.go", e.Path, fileName)
+	filePath := e.Path
+	if len(fileName) > 0 {
+		filePath = fmt.Sprintf("%s/%s", e.Path, fileName)
+	}
 	file, err := os.Create(filePath)
 	if err != nil {
 		log.Printf("create %s failed: %s\n", filePath, err)
@@ -135,12 +134,6 @@ func (e *entity) generateType() {
 // func generateRepository(newModule entity, dirPath string) {
 // 	filePath := fmt.Sprintf("%s/repository.go", dirPath)
 // 	createFile(newModule, filePath, "repository", repositoryTemplate)
-// 	wg.Done()
-// }
-
-// func generateInterfaces(newModule entity, dirPath string) {
-// 	filePath := fmt.Sprintf("%s/interfaces.go", dirPath)
-// 	createFile(newModule, filePath, "interfaces", interfacesTemplate)
 // 	wg.Done()
 // }
 
@@ -236,11 +229,11 @@ var typeTemplate string
 //go:embed skel/model.tmpl
 var modelTemplate string
 
-//go:embed skel/migrate-up.tmpl
-var migrateUpTemplate string
+//go:embed skel/migrate-pg-up.tmpl
+var migratePgUpTemplate string
 
-//go:embed skel/migrate-down.tmpl
-var migrateDownTemplate string
+//go:embed skel/migrate-pg-down.tmpl
+var migratePgDownTemplate string
 
 //go:embed skel/server.tmpl
 var serverTemplate string
