@@ -20,11 +20,9 @@ func GetRoutes(router fiber.Router) {
 //	@Summary		Get Qrcode content from pdf
 //	@Description	Get Qrcode content from pdf
 //	@Tags			qrcodes
-//	@Accept			json
+//	@Accept			multipart/form-data
 //	@Produce		json
-//	@Param			Qrcode	body	string	true	"single Qrcode request json"	SchemaExample({ "task": "take shower", "done": false })
-//	@Param			Qrcodes	body	string	true	"batch Qrcode request json"	SchemaExample([{ "task": "take shower", "done": false }, { "task": "go practice", "done": false }])
-//	@Security		ApiKeyAuth
+//	@Param			file	formData	file	true	"A document file like image or pdf"
 //	@Router			/qrcodes [post]
 func GetQrcodeContentFromPdf(c *fiber.Ctx) error {
 	return ctrl.GetQrcodeContentFromPdf(c)
