@@ -1,0 +1,24 @@
+-- Create TRIGGER function for auto update updated_at column after records being altered
+CREATE OR REPLACE FUNCTION update_updated_at_column()   
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;   
+END;
+$$ language 'plpgsql';
+
+-- Create {{.TableName}} table
+DROP SEQUENCE IF EXISTS {{.TableName}}_id_seq;
+CREATE SEQUENCE {{.TableName}}_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+
+CREATE TABLE "public"."{{.TableName}}" (
+    "id" integer DEFAULT nextval('{{.TableName}}_id_seq') NOT NULL,
+    "col1" character varying(255) NOT NULL,
+    "col2" boolean DEFAULT false NOT NULL,
+    "created_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updated_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT "{{.TableName}}_pkey" PRIMARY KEY ("id")
+) WITH (oids = false);
+
+-- Apply trigger update_updated_at_column()
+CREATE TRIGGER update_{{.TableName}}_updated_at BEFORE UPDATE ON {{.TableName}} FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();

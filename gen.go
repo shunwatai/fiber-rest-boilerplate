@@ -7,15 +7,13 @@ package main
 import (
 	_ "embed"
 
+	"os/exec"
 	"fmt"
-	// "io/ioutil"
 	"log"
 	"os"
-	// "os/exec"
 	"strings"
 	"sync"
 	"text/template"
-
 	// "golang.org/x/text/cases"
 	// "golang.org/x/text/language"
 	"github.com/iancoleman/strcase"
@@ -61,6 +59,7 @@ func main() {
 	newModule.createFile("controller.go", controllerTemplate)
 	newModule.createFile("service.go", serviceTemplate)
 	newModule.createFile("repository.go", repositoryTemplate)
+	newModule.generateMigration()
 	// wg.Wait()
 	//
 	// /* re-generate server.go */
@@ -144,72 +143,62 @@ func (e *entity) generateType() {
 // 	wg.Done()
 // }
 
-// func generateMigration(newModule *entity) {
-// 	newModule.Plural = strings.ToLower(newModule.Plural)
-// 	whichOutput, _ := exec.Command("which", "migrate").Output()
-// 	// fmt.Println("whichOutput",string(whichOutput))
-// 	migrateBinPath := strings.Fields(string(whichOutput))
-// 	if len(migrateBinPath) == 0 {
-// 		log.Fatal("migrate command not found")
-// 	}
-// 	// fmt.Println("migrateBinPath?",migrateBinPath[1])
-//
-// 	migrationName := fmt.Sprintf("create_%s", *newModule.TableName)
-// 	argstr := []string{"create", "-ext", "sql", "-dir", "migrations", "-seq", migrationName}
-// 	out, err := exec.Command(migrateBinPath[0], argstr...).CombinedOutput()
-// 	migrationOut := strings.Split(strings.ReplaceAll(string(out), "\r\n", "\n"), "\n")
-// 	// fmt.Println("up", migrationOut[0])
-// 	// fmt.Println("down", migrationOut[1])
-//
-// 	/* create migrateion-up.sql */
-// 	createFile(*newModule, migrationOut[0], "migrate-up", migrateUpTemplate)
-// 	fmt.Printf("created %s\n", migrationOut[0])
-//
-// 	/* create migrateion-down.sql */
-// 	createFile(*newModule, migrationOut[1], "migrate-down", migrateDownTemplate)
-// 	fmt.Printf("created %s\n\n", migrationOut[1])
-//
-// 	if err != nil {
-// 		log.Fatal(err)
-// 		os.Exit(1)
-// 	}
-//
-// 	fmt.Printf("DB migration files for %s created in ./migrations, \nplease go to add the SQL statements in up+down files, and then run: make migrate-up \n\n", newModule.ModuleName)
-// 	wg.Done()
-// }
+func (ent *entity) generateMigration() {
+	ent.Plural = strings.ToLower(ent.Plural)
+	whichOutput, _ := exec.Command("which", "migrate").Output()
+	// fmt.Println("whichOutput",string(whichOutput))
+	migrateBinPath := strings.Fields(string(whichOutput))
+	if len(migrateBinPath) == 0 {
+		log.Fatal("migrate command not found")
+	}
+	// fmt.Println("migrateBinPath?",migrateBinPath[1])
 
-// func reGenerateServerFile(newModule entity) {
-// 	var allModules []entity
-// 	moduleDirs, err := ioutil.ReadDir("internal/modules/")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-//
-// 	for _, dir := range moduleDirs {
-// 		// structName := fmt.Sprintf("%s", cases.Title(language.English, cases.Compact).String(dir.Name()))
-// 		// structName := strcase.ToCamel(dir.Name())
-// 		// routeName := strcase.ToKebab(dir.Name())
-// 		// tableName := strings.ToLower(Pluralfy(routeName))
-// 		module := getNewModuleStruct(dir.Name())
-// 		module.Initial = nil
-//
-// 		// module := &entity{ModuleName: dir.Name(), StructName: structName, Plural: strings.ToLower(Pluralfy(structName)), RouteName: &routeName, TableName:&tableName }
-// 		allModules = append(allModules, module)
-// 	}
-//
-// 	// fmt.Println(allModules)
-// 	filePath := fmt.Sprintf("cmd/server/server.go")
-// 	tmplData := map[string][]entity{"Modules": allModules}
-//
-// 	file, err := os.Create(filePath)
-// 	if err != nil {
-// 		log.Println("re-generate server.go failed: ", err)
-// 		return
-// 	}
-//
-// 	t := template.Must(template.New("server").Parse(serverTemplate))
-// 	t.Execute(file, tmplData)
-// }
+	migrationName := fmt.Sprintf("create_%s", *ent.TableName)
+	// fmt.Println("up", migrationOut[0])
+	// fmt.Println("down", migrationOut[1])
+
+	dbEngines := map[string]map[string]string{
+		"postgres": map[string]string{
+			"up":   migratePgUpTemplate,
+			"down": migratePgDownTemplate,
+		},
+		// "mariadb": map[string]string{
+		// 	"up":   migratePgUpTemplate,
+		// 	"down": migratePgDownTemplate,
+		// },
+		// "sqlite": map[string]string{
+		// 	"up":   migratePgUpTemplate,
+		// 	"down": migratePgDownTemplate,
+		// },
+		// "mongodb": map[string]string{
+		// 	"up":   migratePgUpTemplate,
+		// 	"down": migratePgDownTemplate,
+		// },
+	}
+	for dbEngine, migrations := range dbEngines {
+		argstr := []string{"create", "-ext", "sql", "-dir", fmt.Sprintf("migrations/%s", dbEngine), "-seq", migrationName}
+		out, err := exec.Command(migrateBinPath[0], argstr...).CombinedOutput()
+		migrationOut := strings.Split(strings.ReplaceAll(string(out), "\r\n", "\n"), "\n")
+
+		/* create migrateion-up.sql */
+		ent.Path = migrationOut[0]
+		ent.createFile("", migrations["up"])
+		fmt.Printf("created %s\n", migrationOut[0])
+
+		/* create migrateion-down.sql */
+		ent.Path = migrationOut[1]
+		ent.createFile("", migrations["down"])
+		fmt.Printf("created %s\n\n", migrationOut[1])
+
+		if err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
+	}
+
+	fmt.Printf("DB migration files for %s created in ./migrations, \nplease go to add the SQL statements in up+down files, and then run: make migrate-up \n\n", ent.ModuleName)
+	// wg.Done()
+}
 
 //go:embed skel/route.tmpl
 var routeTemplate string
