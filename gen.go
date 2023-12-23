@@ -162,10 +162,10 @@ func (ent *entity) generateMigration() {
 			"up":   migratePgUpTemplate,
 			"down": migratePgDownTemplate,
 		},
-		// "mariadb": map[string]string{
-		// 	"up":   migratePgUpTemplate,
-		// 	"down": migratePgDownTemplate,
-		// },
+		"mariadb": map[string]string{
+			"up":   migrateMariaUpTemplate,
+			"down": migrateMariaDownTemplate,
+		},
 		// "sqlite": map[string]string{
 		// 	"up":   migratePgUpTemplate,
 		// 	"down": migratePgDownTemplate,
@@ -220,9 +220,13 @@ var modelTemplate string
 
 //go:embed skel/migrate-pg-up.tmpl
 var migratePgUpTemplate string
-
 //go:embed skel/migrate-pg-down.tmpl
 var migratePgDownTemplate string
+
+//go:embed skel/migrate-mariadb-up.tmpl
+var migrateMariaUpTemplate string
+//go:embed skel/migrate-mariadb-down.tmpl
+var migrateMariaDownTemplate string
 
 //go:embed skel/server.tmpl
 var serverTemplate string
