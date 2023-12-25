@@ -6,7 +6,7 @@ package main
 
 import (
 	_ "embed"
-
+	"io/ioutil"
 	"os/exec"
 	"fmt"
 	"log"
@@ -61,9 +61,9 @@ func main() {
 	newModule.createFile("repository.go", repositoryTemplate)
 	newModule.generateMigration()
 	// wg.Wait()
-	//
-	// /* re-generate server.go */
-	// reGenerateServerFile(newModule)
+
+	/* re-generate server.go */
+	reGenerateServerFile()
 }
 
 func getNewModuleStruct(inputName string) *entity {
@@ -198,6 +198,39 @@ func (ent *entity) generateMigration() {
 
 	fmt.Printf("DB migration files for %s created in ./migrations, \nplease go to add the SQL statements in up+down files, and then run: make migrate-up \n\n", ent.ModuleName)
 	// wg.Done()
+}
+
+func reGenerateServerFile() {
+	var allModules []entity
+	moduleDirs, err := ioutil.ReadDir("internal/modules/")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, dir := range moduleDirs {
+		// structName := fmt.Sprintf("%s", cases.Title(language.English, cases.Compact).String(dir.Name()))
+		// structName := strcase.ToCamel(dir.Name())
+		// routeName := strcase.ToKebab(dir.Name())
+		// tableName := strings.ToLower(Pluralfy(routeName))
+		module := getNewModuleStruct(dir.Name())
+		module.Initial = nil
+
+		// module := &entity{ModuleName: dir.Name(), StructName: structName, Plural: strings.ToLower(Pluralfy(structName)), RouteName: &routeName, TableName:&tableName }
+		allModules = append(allModules, *module)
+	}
+
+	// fmt.Println(allModules)
+	filePath := fmt.Sprintf("cmd/server/main.go")
+	tmplData := map[string][]entity{"Modules": allModules}
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Println("re-generate server.go failed: ", err)
+		return
+	}
+
+	t := template.Must(template.New("server.go").Parse(serverTemplate))
+	t.Execute(file, tmplData)
 }
 
 //go:embed skel/route.tmpl
