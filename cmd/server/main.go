@@ -21,7 +21,9 @@ type Fiber struct {
 
 func (f *Fiber) GetApp() {
 	f.App = fiber.New(fiber.Config{
-		BodyLimit:     500 << 20, // 500Mb
+		BodyLimit:                    500 << 20, // 500Mb
+		DisablePreParseMultipartForm: true,      // ref:https://github.com/gofiber/fiber/issues/1838#issuecomment-1086214017
+		StreamRequestBody:            true,
 	})
 }
 
