@@ -167,12 +167,12 @@ func (ent *entity) generateMigration() {
 			"down": migrateMariaDownTemplate,
 		},
 		"sqlite": map[string]string{
-			"up":   migratePgUpTemplate,
-			"down": migratePgDownTemplate,
+			"up":   migrateSqliteUpTemplate,
+			"down": migrateSqliteDownTemplate,
 		},
 		"mongodb": map[string]string{
-			"up":   migratePgUpTemplate,
-			"down": migratePgDownTemplate,
+			"up":   migrateMongoUpTemplate,
+			"down": migrateMongoDownTemplate,
 		},
 	}
 	for dbEngine, migrations := range dbEngines {
@@ -247,9 +247,6 @@ var repositoryTemplate string
 
 //go:embed skel/type.tmpl
 var typeTemplate string
-
-//go:embed skel/model.tmpl
-var modelTemplate string
 
 //go:embed skel/migrate-pg-up.tmpl
 var migratePgUpTemplate string

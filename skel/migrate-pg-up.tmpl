@@ -13,8 +13,8 @@ CREATE SEQUENCE {{.TableName}}_id_seq INCREMENT 1 MINVALUE 1 MAXVALUE 2147483647
 
 CREATE TABLE "public"."{{.TableName}}" (
     "id" integer DEFAULT nextval('{{.TableName}}_id_seq') NOT NULL,
-    "col1" character varying(255) NOT NULL,
-    "col2" boolean DEFAULT false NOT NULL,
+    "col_1" character varying(255) NOT NULL,
+    "col_2" boolean DEFAULT false NOT NULL,
     "created_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updated_at" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT "{{.TableName}}_pkey" PRIMARY KEY ("id")

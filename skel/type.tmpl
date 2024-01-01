@@ -19,8 +19,8 @@ type {{.StructName}} struct {
 	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	//UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
 	//User      *user.User             `json:"user"`
-	Col1      string                 `json:"col1" db:"col1" bson:"col1,omitempty" validate:"required"`
-	Col2      *bool                  `json:"col2" db:"col2" bson:"col2,omitempty" validate:"required,boolean"`
+	Col1      string                 `json:"col1" db:"col_1" bson:"col_1,omitempty" validate:"required"`
+	Col2      *bool                  `json:"col2" db:"col_2" bson:"col_2,omitempty" validate:"required,boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 }
