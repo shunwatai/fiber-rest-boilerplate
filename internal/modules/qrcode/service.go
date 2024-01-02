@@ -2,6 +2,7 @@ package qrcode
 
 import (
 	"fmt"
+	"golang-api-starter/internal/helper"
 	"image"
 	"image/jpeg"
 	_ "image/jpeg"
@@ -126,7 +127,7 @@ func (s *Service) GetQrcodeContentFromPdf(form *multipart.Form) (map[string]inte
 	})
 
 	var wg sync.WaitGroup
-	start := time.Now()
+	timer := helper.Timer(time.Now())
 	for formFileName, fileHeaders := range form.File {
 		for _, header := range fileHeaders {
 			wg.Add(1)
@@ -171,7 +172,7 @@ func (s *Service) GetQrcodeContentFromPdf(form *multipart.Form) (map[string]inte
 	go func() {
 		wg.Wait()
 		close(resultChan)
-		fmt.Printf("duration: %+v\n", time.Since(start))
+		timer()
 	}()
 
 	// get the results from chan
