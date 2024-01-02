@@ -7,7 +7,6 @@ import (
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
-	"strconv"
 )
 
 type Controller struct {
@@ -57,62 +56,28 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 func (c *Controller) Create(ctx *fiber.Ctx) error {
 	fmt.Printf("document ctrl create\n")
 	c.service.ctx = ctx
-	document := &Document{}
-	documents := []*Document{}
-
 	fctx := &helper.FiberCtx{Fctx: ctx}
-	reqCtx := &helper.ReqContext{Payload: fctx}
-	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
+
+	form, err := fctx.Fctx.MultipartForm()
+	if err != nil { /* handle error */
+		fmt.Printf("failed to get multipartForm, err: %+v\n", err.Error())
 		return fctx.JsonResponse(
-			fiber.StatusUnprocessableEntity,
-			map[string]interface{}{"message": invalidJson.Error()},
+			respCode,
+			map[string]interface{}{"message": err.Error()},
 		)
 	}
 
-	documentErr, parseErr := reqCtx.Payload.ParseJsonToStruct(document, &documents)
-	if parseErr != nil {
-		return fctx.JsonResponse(
-			fiber.StatusUnprocessableEntity,
-			map[string]interface{}{"message": parseErr.Error()},
-		)
-	}
-	if documentErr == nil {
-		documents = append(documents, document)
-	}
-	// log.Printf("documentErr: %+v, documentsErr: %+v\n", documentErr, documentsErr)
-	// for _, t := range documents {
-	// 	log.Printf("documents: %+v\n", t)
-	// }
-
-	for _, document := range documents {
-		if validErr := helper.ValidateStruct(*document); validErr != nil {
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
-			)
-		}
-
-		if document.Id == nil {
-			continue
-		} else if existing, err := c.service.GetById(map[string]interface{}{
-			"id": strconv.Itoa(int(*document.Id)),
-		}); err == nil && document.CreatedAt == nil {
-			document.CreatedAt = existing[0].CreatedAt
-		}
-		// fmt.Printf("document? %+v\n", document)
-	}
-
-	// return []*Document{}
-	results, httpErr := c.service.Create(documents)
+	results, httpErr := c.service.Create(form)
 	if httpErr.Err != nil {
+		fmt.Printf("document upload failed err: %+v\n", err.Error())
 		return fctx.JsonResponse(
-			httpErr.Code,
-			map[string]interface{}{"message": httpErr.Err.Error()},
+			respCode,
+			map[string]interface{}{"message": err.Error()},
 		)
 	}
 
 	respCode = fiber.StatusCreated
-	if documentErr == nil && len(results) > 0 {
+	if len(results) == 1 {
 		return fctx.JsonResponse(
 			respCode,
 			map[string]interface{}{"data": results[0]},

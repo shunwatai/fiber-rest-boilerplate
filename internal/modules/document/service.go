@@ -1,9 +1,20 @@
 package document
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
+	"errors"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/helper"
+	"io"
+	"log"
+	"mime/multipart"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type Service struct {
@@ -30,21 +41,84 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*Document, error) {
 	return records, nil
 }
 
-func (s *Service) Create(documents []*Document) ([]*Document, *helper.HttpErr) {
+func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 	fmt.Printf("document service create\n")
-  /*
-	// use the claims for mark the "createdBy/updatedBy" in database
+
+	/* create upload folder if not exists */
+	baseUploadDir := "./uploads"
+	if _, err := os.Stat(baseUploadDir); errors.Is(err, os.ErrNotExist) {
+		err := os.MkdirAll(baseUploadDir, os.ModePerm)
+		if err != nil {
+			log.Println("upload path create failed ", err)
+		}
+	}
+
+	documents := []*Document{}
+
+	/* extract files from the form-data and copy them into ./uploads */
+	if form.File["file"] == nil {
+		return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, fmt.Errorf("key \"file\" missing")}
+	}
+
 	claims := s.ctx.Locals("claims").(jwt.MapClaims)
-	fmt.Println("req by:", claims["userId"], claims["username"])
-	for _, document := range documents {
+	for _, fh := range form.File["file"] {
+		file, err := fh.Open()
+		if err != nil {
+			log.Println("failed to open file", err)
+			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, err}
+		}
+		defer file.Close()
+
+		t := time.Now()
+		filename := fmt.Sprintf("%s-%s", t.Format("20060102150405"), fh.Filename)
+		uploadPath := fmt.Sprintf("%s/%s", baseUploadDir, filename)
+		out, err := os.OpenFile(uploadPath, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			log.Println("failed to create file", err)
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, err}
+		}
+		defer out.Close()
+		// fmt.Printf("file?: %T\n", file)
+
+		hash := sha1.New()
+		f := io.TeeReader(file, hash)
+
+		_, copyError := io.Copy(out, f)
+		if copyError != nil {
+			log.Println("failed to copy file", copyError)
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, copyError}
+		}
+		// fmt.Println("uploaded to ", uploadPath)
+
+		sha1Sum := hex.EncodeToString(hash.Sum(nil))
+		// fmt.Println("file hash: ", sha1Sum, hash.Sum(nil))
+		recordsWithSameHash, _ := s.repo.Get(map[string]interface{}{"hash": sha1Sum})
+		// fmt.Println("sameRecord",recordsWithSameHash,len(recordsWithSameHash) )
+
+		document := &Document{
+			Name:     fh.Filename,
+			FilePath: uploadPath,
+			FileType: strings.Split(fh.Header["Content-Type"][0], "/")[1],
+			FileSize: fh.Size,
+			Hash:     sha1Sum,
+			Public:   true,
+		}
+
 		if document.UserId == nil {
 			document.UserId = claims["userId"]
 		}
 		if validErr := helper.ValidateStruct(*document); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
+
+		/* use same file, remove newly uploaded same file */
+		if len(recordsWithSameHash) > 0 {
+			os.Remove(document.FilePath)
+			document.FilePath = recordsWithSameHash[0].FilePath
+		}
+
+		documents = append(documents, document)
 	}
-  */
 
 	results, err := s.repo.Create(documents)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}

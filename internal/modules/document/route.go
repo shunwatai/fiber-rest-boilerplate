@@ -16,7 +16,7 @@ func GetRoutes(router fiber.Router) {
 	r := router.Group("/documents", jwtcheck.CheckFromHeader())
 	r.Get("/", GetAll)
 	r.Post("/", Create)
-	r.Patch("/", Update)
+	// r.Patch("/", Update)
 	r.Delete("/", Delete)
 
 	rById := r.Group("/:id")
