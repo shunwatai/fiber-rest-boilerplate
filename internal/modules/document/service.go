@@ -1,18 +1,25 @@
 package document
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"golang-api-starter/internal/helper"
+	"image"
+	"image/jpeg"
 	"io"
 	"log"
 	"mime/multipart"
+	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/disintegration/imaging"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -43,6 +50,8 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*Document, error) {
 
 func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 	fmt.Printf("document service create\n")
+	timer := helper.Timer(time.Now())
+	defer timer()
 
 	/* create upload folder if not exists */
 	baseUploadDir := "./uploads"
@@ -54,6 +63,7 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 	}
 
 	documents := []*Document{}
+	documentsMap := map[string]string{} // for keep track on duplicated same file in form.File["file"]
 
 	/* extract files from the form-data and copy them into ./uploads */
 	if form.File["file"] == nil {
@@ -92,8 +102,6 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 
 		sha1Sum := hex.EncodeToString(hash.Sum(nil))
 		// fmt.Println("file hash: ", sha1Sum, hash.Sum(nil))
-		recordsWithSameHash, _ := s.repo.Get(map[string]interface{}{"hash": sha1Sum})
-		// fmt.Println("sameRecord",recordsWithSameHash,len(recordsWithSameHash) )
 
 		document := &Document{
 			Name:     fh.Filename,
@@ -103,6 +111,17 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 			Hash:     sha1Sum,
 			Public:   true,
 		}
+
+		prevUploadPath, exists := documentsMap[sha1Sum]
+		if exists {
+			os.Remove(uploadPath)
+			document.FilePath = prevUploadPath
+			documentsMap[sha1Sum] = prevUploadPath
+		} else {
+			documentsMap[sha1Sum] = uploadPath
+		}
+		recordsWithSameHash, _ := s.repo.Get(map[string]interface{}{"hash": sha1Sum})
+		// fmt.Println("sameRecord",recordsWithSameHash,len(recordsWithSameHash) )
 
 		if document.UserId == nil {
 			document.UserId = claims["userId"]
@@ -151,4 +170,73 @@ func (s *Service) Delete(ids []string) ([]*Document, error) {
 	}
 
 	return records, s.repo.Delete(ids)
+}
+
+func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, string, error) {
+	fmt.Printf("GetDocument service\n")
+	var size int64 = 0
+	if queries["size"] != nil {
+		size, _ = strconv.ParseInt(queries["size"].(string), 10, 64)
+	}
+	repoData, _ := s.repo.Get(queries)
+
+	if len(repoData) == 0 {
+		return nil, "", "", fmt.Errorf("not found")
+	}
+
+	// fmt.Printf("filePath: %+v\n", *repoData.DocumentRequest.FilePath)
+	f, err := os.Open(repoData[0].FilePath)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to open file, %+v", err.Error())
+	}
+	defer f.Close()
+
+	fileType, err := GetFileContentType(f)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to get file type, %+v", err.Error())
+	}
+	fmt.Println("fileType: ", fileType)
+	fileBytes, fileErr := os.ReadFile(repoData[0].FilePath)
+	if fileErr != nil {
+		return nil, "", "", fmt.Errorf("failed to get file type, %+v", fileErr.Error())
+	}
+
+	fileName := repoData[0].Name
+	/* use imaging to resize the image by given size for thumbnail */
+	jpgPngRegex := regexp.MustCompile(`png|jpg|jpeg|jpe`)
+	if size != 0 && strings.Contains(fileType, "image") && jpgPngRegex.MatchString(fileType) {
+		buf := new(bytes.Buffer)
+		img, _, err := image.Decode(bytes.NewReader(fileBytes))
+		if err != nil {
+			log.Fatalln("image.Decode err: ", err)
+		}
+		resizedImg := imaging.Resize(img, int(size), 0, imaging.Lanczos)
+		err = jpeg.Encode(buf, resizedImg, nil)
+		if err != nil {
+			log.Fatalln("jpeg.Encode err: ", err)
+		}
+
+		return buf.Bytes(), "image/jpeg", fileName, nil
+	}
+
+	return fileBytes, fileType, fileName, nil
+}
+
+func GetFileContentType(ouput *os.File) (string, error) {
+	// to sniff the content type only the first 512 bytes are used.
+	buf := make([]byte, 512)
+
+	_, err := ouput.Read(buf)
+
+	if err != nil {
+		return "", err
+	}
+
+	/* get mime type */
+	contentType := http.DetectContentType(buf)
+
+	/* reset the file point to beginning for further actions like decode img etc. */
+	ouput.Seek(0, 0)
+
+	return contentType, nil
 }
