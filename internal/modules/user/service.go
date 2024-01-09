@@ -90,21 +90,6 @@ func hashUserPassword(pwd *string) error {
 	return nil
 }
 
-// GetUserIdMap() return map[string]interface{} sth like map[string]interface{}{"id":[]string{x,y,z}}
-// which uses for Get() to retrieve records by id(s)
-func GetUserIdMap(ids []string) map[string]interface{} {
-	condition := map[string]interface{}{}
-
-	cfg.LoadEnvVariables()
-	if cfg.DbConf.Driver == "mongodb" {
-		condition["_id"] = ids
-	} else {
-		condition["id"] = ids
-	}
-
-	return condition
-}
-
 func (s *Service) GetIdMap(users Users) map[string]*User {
 	userMap := map[string]*User{}
 	sanitise(users)
@@ -164,7 +149,7 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 
 	// create map by existing user from DB
 	userIdMap := map[string]User{}
-	getByUserIdsCondition := GetUserIdMap(userIds)
+	getByUserIdsCondition := helper.GetIdsMapCondition(nil, userIds)
 	existings, _ := s.repo.Get(getByUserIdsCondition)
 	for _, user := range existings {
 		userIdMap[user.GetId()] = *user
@@ -231,7 +216,7 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 func (s *Service) Delete(ids []string) ([]*User, error) {
 	fmt.Printf("user service delete\n")
 	records := []*User{}
-	getByUserIdsCondition := GetUserIdMap(ids)
+	getByUserIdsCondition := helper.GetIdsMapCondition(nil, ids)
 	records, _ = s.repo.Get(getByUserIdsCondition)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
@@ -282,7 +267,7 @@ func (s *Service) Refresh(user *User) (map[string]interface{}, *helper.HttpErr) 
 	fmt.Printf("user service refresh\n")
 
 	results := []*User{}
-	condition := GetUserIdMap([]string{user.GetId()})
+	condition := helper.GetIdsMapCondition(nil, []string{user.GetId()})
 	results, _ = s.repo.Get(condition)
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists... failed to refresh, please try login again")}
