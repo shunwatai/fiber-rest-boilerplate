@@ -18,11 +18,11 @@ func NewRepository(db database.IDatabase) *Repository {
 
 func cascadeFields(todos Todos) {
 	// cascade user
-	cfg.LoadEnvVariables()
 	var (
 		userIds []string
 		userId  string
 	)
+	// get all userIds
 	for _, todo := range todos {
 		if todo.UserId == nil {
 			continue
@@ -35,8 +35,10 @@ func cascadeFields(todos Todos) {
 	if len(userIds) > 0 {
 		users := []*user.User{}
 
-		condition := user.GetUserIdMap(userIds)
+		// get users by userIds
+		condition := helper.GetIdMap(userIds)
 		users, _ = user.Srvc.Get(condition)
+		// get the map[userId]user
 		userMap := user.Srvc.GetIdMap(users)
 
 		for _, todo := range todos {
@@ -44,6 +46,7 @@ func cascadeFields(todos Todos) {
 				continue
 			}
 			user := &user.User{}
+			// take out the user by userId in map and assign
 			user = userMap[todo.GetUserId()]
 			todo.User = user
 		}

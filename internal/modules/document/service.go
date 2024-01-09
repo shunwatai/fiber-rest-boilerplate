@@ -26,6 +26,14 @@ func NewService(r *Repository) *Service {
 	return &Service{r, nil}
 }
 
+func (s *Service) GetIdMap(documents Documents) map[string]*Document {
+	documentMap := map[string]*Document{}
+	for _, document := range documents {
+		documentMap[document.GetId()] = document
+	}
+	return documentMap
+}
+
 func (s *Service) Get(queries map[string]interface{}) ([]*Document, *helper.Pagination) {
 	fmt.Printf("document service get\n")
 	return s.repo.Get(queries)
