@@ -17,14 +17,13 @@ import (
 )
 
 type TodoDocument struct {
-	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"` // https://stackoverflow.com/a/20739427
-	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
-	TodoId    interface{}            `json:"todoId" db:"todo_id" bson:"todo_id,omitempty" validate:"omitempty,id_custom_validation"`
-	//User      *user.User             `json:"user"`
-	DocumentId    interface{}            `json:"documentId" db:"document_id" bson:"document_id,omitempty" validate:"omitempty,id_custom_validation"`
-	Document      *document.Document             `json:"document"`
-	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
-	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
+	MongoId    *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"` // https://stackoverflow.com/a/20739427
+	Id         *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
+	TodoId     interface{}            `json:"todoId" db:"todo_id" bson:"todo_id,omitempty" validate:"omitempty,id_custom_validation"`
+	DocumentId interface{}            `json:"documentId" db:"document_id" bson:"document_id,omitempty" validate:"omitempty,id_custom_validation"`
+	Document   *document.Document     `json:"document"`
+	CreatedAt  *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
+	UpdatedAt  *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 }
 
 type TodoDocuments []*TodoDocument
@@ -34,6 +33,14 @@ func (td *TodoDocument) GetId() string {
 		return *td.MongoId
 	} else {
 		return strconv.Itoa(int(*td.Id))
+	}
+}
+
+func (td *TodoDocument) GetTodoId() string {
+	if cfg.DbConf.Driver == "mongodb" {
+		return td.TodoId.(string)
+	} else {
+		return strconv.Itoa(int(td.TodoId.(int64)))
 	}
 }
 

@@ -37,10 +37,10 @@ func cascadeFields(todoDocuments TodoDocuments) {
 	if len(documentIds) > 0 {
 		documents := []*document.Document{}
 
-		// get users by userIds
-		condition := helper.GetIdMap(documentIds)
+		// get documents by documentsIds
+		condition := helper.GetIdsMapCondition(nil, documentIds)
 		documents, _ = document.Srvc.Get(condition)
-		// get the map[userId]user
+		// get the map[documentId]document
 		documentMap := document.Srvc.GetIdMap(documents)
 
 		for _, todoDocument := range todoDocuments {
@@ -48,7 +48,7 @@ func cascadeFields(todoDocuments TodoDocuments) {
 				continue
 			}
 			document := &document.Document{}
-			// take out the user by userId in map and assign
+			// take out the document by documentId in map and assign
 			document = documentMap[todoDocument.GetDocumentId()]
 			todoDocument.Document = document
 		}
@@ -58,8 +58,8 @@ func cascadeFields(todoDocuments TodoDocuments) {
 func (r *Repository) Get(queries map[string]interface{}) ([]*TodoDocument, *helper.Pagination) {
 	fmt.Printf("todoDocument repo\n")
 	defaultExactMatch := map[string]bool{
-		"id":   true,
-		"_id":  true,
+		"id":  true,
+		"_id": true,
 		//"done": true, // bool match needs exact match, param can be 0(false) & 1(true)
 	}
 	if queries["exactMatch"] != nil {

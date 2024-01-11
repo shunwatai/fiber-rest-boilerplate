@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/modules/document"
+	"golang-api-starter/internal/modules/todoDocument"
 	"golang-api-starter/internal/modules/user"
+
 	"golang.org/x/exp/maps"
 )
 
@@ -32,11 +35,12 @@ func cascadeFields(todos Todos) {
 		userIds = append(userIds, userId)
 	}
 
+	// if no userIds, do nothing and return
 	if len(userIds) > 0 {
 		users := []*user.User{}
 
 		// get users by userIds
-		condition := helper.GetIdMap(userIds)
+		condition := helper.GetIdsMapCondition(nil, userIds)
 		users, _ = user.Srvc.Get(condition)
 		// get the map[userId]user
 		userMap := user.Srvc.GetIdMap(users)
@@ -52,16 +56,40 @@ func cascadeFields(todos Todos) {
 		}
 	}
 
-	// // cascade documents
-	// var pagination helper.Pagination
-	// docsByExpenseId := document.Service.GetByColumns(map[string]interface{}{"expense_id": e.Id}, &pagination)
-	// documents := make([]*models.Document, len(docsByExpenseId))
-	//
-	// for i, d := range docsByExpenseId {
-	// 	// fmt.Printf("docsByExpenseId %+v: %+v\n", *e.Id, d)
-	// 	documents[i] = d
-	// }
-	// e.Documents = documents
+	// cascade todo-documents
+	var (
+		todoIds []string
+		todoId  string
+	)
+	// get all todoId
+	for _, todo := range todos {
+		todoId = todo.GetId()
+		todoIds = append(todoIds, todoId)
+	}
+
+	todoDocuments := []*todoDocument.TodoDocument{}
+	// get users by userIds
+	condition := helper.GetIdsMapCondition(helper.ToPtr("todo_id"), todoIds)
+	todoDocuments, _ = todoDocument.Srvc.Get(condition)
+
+	// get the map[userId]user
+	todoDocumentsMap := todoDocument.Srvc.GetTodoIdMap(todoDocuments)
+
+	for _, todo := range todos {
+		tds := []*todoDocument.TodoDocument{}
+		// take out the user by userId in map and assign
+		tds, haveDocuments := todoDocumentsMap[todo.GetId()]
+
+		// if no documents assign empty slice for response json "documents": [] instead of "documents": null
+		if !haveDocuments {
+			todo.Documents = []*document.Document{}
+		} else {
+			todo.TodoDocuments = tds
+			for _, td := range tds {
+				todo.Documents = append(todo.Documents, td.Document)
+			}
+		}
+	}
 }
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {

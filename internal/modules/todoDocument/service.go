@@ -15,6 +15,22 @@ func NewService(r *Repository) *Service {
 	return &Service{r, nil}
 }
 
+// func (s *Service) GetIdMap(tds []*TodoDocument) map[string][]*TodoDocument {
+// 	todoDocumentsMap := map[string][]*TodoDocument{}
+// 	for _, td := range tds {
+// 		todoDocumentsMap[td.GetId()] = append(todoDocumentsMap[td.GetId()], td)
+// 	}
+// 	return todoDocumentsMap
+// }
+
+func (s *Service) GetTodoIdMap(tds []*TodoDocument) map[string][]*TodoDocument {
+	todoDocumentsMap := map[string][]*TodoDocument{}
+	for _, td := range tds {
+		todoDocumentsMap[td.GetTodoId()] = append(todoDocumentsMap[td.GetTodoId()], td)
+	}
+	return todoDocumentsMap
+}
+
 func (s *Service) Get(queries map[string]interface{}) ([]*TodoDocument, *helper.Pagination) {
 	fmt.Printf("todoDocument service get\n")
 	return s.repo.Get(queries)
