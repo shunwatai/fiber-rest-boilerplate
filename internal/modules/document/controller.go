@@ -3,10 +3,12 @@ package document
 import (
 	"errors"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
+
+	"github.com/gofiber/fiber/v2"
+	"golang.org/x/exp/maps"
 )
 
 type Controller struct {
@@ -220,4 +222,28 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 		respCode,
 		map[string]interface{}{"data": results},
 	)
+}
+
+func (c *Controller) GetDocument(ctx *fiber.Ctx) error {
+	fmt.Printf("GetDocument ctrl\n")
+	fctx := &helper.FiberCtx{Fctx: ctx}
+	reqCtx := &helper.ReqContext{Payload: fctx}
+	id := fctx.Fctx.Params("id")
+	paramsMap := reqCtx.Payload.GetQueryString()
+	maps.Copy(paramsMap, map[string]interface{}{"id": id})
+	fileBuffer, fileType, fileName, err := c.service.GetDocument(paramsMap)
+
+	if err != nil {
+		respCode = fiber.StatusNotFound
+		return fctx.JsonResponse(
+			respCode,
+			map[string]interface{}{"message": err.Error()},
+		)
+	}
+
+	respCode = fiber.StatusOK
+	fctx.Fctx.Response().Header.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	fctx.Fctx.Response().Header.Set("Content-Type", fileType)
+	_, err = fctx.Fctx.Write(fileBuffer)
+	return err
 }

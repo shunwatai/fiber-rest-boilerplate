@@ -21,6 +21,7 @@ func GetRoutes(router fiber.Router) {
 
 	rById := r.Group("/:id")
 	rById.Get("/", GetById)
+	rById.Get("/download", GetDocument)
 }
 
 // DocumentGetAll godoc
@@ -98,4 +99,19 @@ func Update(c *fiber.Ctx) error {
 //	@Router			/documents [delete]
 func Delete(c *fiber.Ctx) error {
 	return ctrl.Delete(c)
+}
+
+// DownloadDocument godoc
+//
+//	@Summary		Download Document by ID
+//	@Description	download document by ID
+//	@Tags			documents
+//	@Accept			json
+//	@Produce		json
+//	@Param			documentId	path	int	true	"document ID"	example(123)
+//	@Success		200			{file}	file
+//	@Security		ApiKeyAuth
+//	@Router			/documents/{documentId}/download [get]
+func GetDocument(c *fiber.Ctx) error {
+	return ctrl.GetDocument(c)
 }
