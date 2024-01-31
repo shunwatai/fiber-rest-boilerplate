@@ -48,10 +48,13 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 			return "", err
 		}
 		width := img.Bounds().Dx()
-		// height := img.Bounds().Dy()
-		// img = imaging.Sharpen(img, 0.7)
-		img = imaging.AdjustContrast(img, 40)
-		img = imaging.Fill(img, 600, 600, imaging.TopRight, imaging.Lanczos)
+		height := img.Bounds().Dy()
+		// img = imaging.Sharpen(img, 0.8)
+		img = imaging.AdjustContrast(img, 80)
+		if width >= 2480 { // if A4 size, crop top right area
+			img = imaging.Crop(img, image.Rectangle{image.Point{width / 2, 0}, image.Point{width, height / 2}})
+		}
+		img = imaging.Fill(img, 400, 400, imaging.TopRight, imaging.Lanczos)
 		img = imaging.Resize(img, width/2, 0, imaging.Lanczos)
 
 		err = os.MkdirAll("qrcodes/", 0755)
