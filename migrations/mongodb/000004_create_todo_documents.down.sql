@@ -1,0 +1,5 @@
+[
+  {
+    "drop": "todo_documents"
+  }
+]
