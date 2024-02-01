@@ -31,7 +31,7 @@ func ValidateStruct(strct interface{}) error {
 		return true
 	})
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("RegisterValidation err: %+v\n", err)
 		return err
 	}
 
@@ -39,7 +39,7 @@ func ValidateStruct(strct interface{}) error {
 		// fmt.Printf("validate err: %+v\n", err)
 		validationErrors := err.(validator.ValidationErrors)
 		for _, validationError := range validationErrors {
-			fmt.Println(validationError.Error())
+			fmt.Printf("validate.Struct err: %+v\n", err)
 			invalidErrs = append(invalidErrs, validationError)
 		}
 

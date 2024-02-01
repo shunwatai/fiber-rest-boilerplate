@@ -192,7 +192,7 @@ func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, s
 		return nil, "", "", fmt.Errorf("not found")
 	}
 
-	// fmt.Printf("filePath: %+v\n", *repoData.DocumentRequest.FilePath)
+	fmt.Printf("filePath: %+v\n", repoData[0].FilePath)
 	f, err := os.Open(repoData[0].FilePath)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("failed to open file, %+v", err.Error())

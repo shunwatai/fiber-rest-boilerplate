@@ -71,10 +71,10 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 
 	results, httpErr := c.service.Create(form)
 	if httpErr.Err != nil {
-		fmt.Printf("document upload failed err: %+v\n", err.Error())
+		fmt.Printf("document upload failed err: %+v\n", httpErr.Err)
 		return fctx.JsonResponse(
 			respCode,
-			map[string]interface{}{"message": err.Error()},
+			map[string]interface{}{"message": httpErr.Error()},
 		)
 	}
 
