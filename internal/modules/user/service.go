@@ -149,8 +149,8 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 
 	// create map by existing user from DB
 	userIdMap := map[string]User{}
-	getByUserIdsCondition := helper.GetIdsMapCondition(nil, userIds)
-	existings, _ := s.repo.Get(getByUserIdsCondition)
+	getByIdsCondition := helper.GetIdsMapCondition(nil, userIds)
+	existings, _ := s.repo.Get(getByIdsCondition)
 	for _, user := range existings {
 		userIdMap[user.GetId()] = *user
 	}
@@ -216,8 +216,8 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 func (s *Service) Delete(ids []string) ([]*User, error) {
 	fmt.Printf("user service delete\n")
 	records := []*User{}
-	getByUserIdsCondition := helper.GetIdsMapCondition(nil, ids)
-	records, _ = s.repo.Get(getByUserIdsCondition)
+	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	records, _ = s.repo.Get(getByIdsCondition)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
 	}
@@ -267,8 +267,8 @@ func (s *Service) Refresh(user *User) (map[string]interface{}, *helper.HttpErr) 
 	fmt.Printf("user service refresh\n")
 
 	results := []*User{}
-	condition := helper.GetIdsMapCondition(nil, []string{user.GetId()})
-	results, _ = s.repo.Get(condition)
+	getByIdsCondition := helper.GetIdsMapCondition(nil, []string{user.GetId()})
+	results, _ = s.repo.Get(getByIdsCondition)
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists... failed to refresh, please try login again")}
 	}

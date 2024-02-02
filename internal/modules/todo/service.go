@@ -58,19 +58,9 @@ func (s *Service) Update(todos []*Todo) ([]*Todo, *helper.HttpErr) {
 
 func (s *Service) Delete(ids []string) ([]*Todo, error) {
 	fmt.Printf("todo service delete\n")
-	var (
-		records    = []*Todo{}
-		conditions = map[string]interface{}{}
-	)
 
-	cfg.LoadEnvVariables()
-	if cfg.DbConf.Driver == "mongodb" {
-		conditions["_id"] = ids
-	} else {
-		conditions["id"] = ids
-	}
-
-	records, _ = s.repo.Get(conditions)
+	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	records, _ := s.repo.Get(getByIdsCondition)
 	fmt.Printf("records: %+v\n", records)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
