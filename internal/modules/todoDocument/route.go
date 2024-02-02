@@ -1,18 +1,27 @@
 package todoDocument
 
 import (
+	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/middleware/jwtcheck"
+
 	"github.com/gofiber/fiber/v2"
 )
 
-var tableName = "todo_documents"
-var db = database.GetDatabase(tableName)
-var Repo = NewRepository(db)
-var Srvc = NewService(Repo)
-var ctrl = NewController(Srvc)
+var (
+	cfg       = config.Cfg
+	tableName = "todo_documents"
+	Repo      = &Repository{}
+	Srvc      = &Service{}
+	ctrl      = &Controller{}
+)
 
 func GetRoutes(router fiber.Router) {
+	db := database.GetDatabase(tableName)
+	Repo = NewRepository(db)
+	Srvc = NewService(Repo)
+	ctrl = NewController(Srvc)
+
 	r := router.Group("/todo-documents", jwtcheck.CheckFromHeader())
 	r.Get("/", GetAll)
 	r.Post("/", Create)

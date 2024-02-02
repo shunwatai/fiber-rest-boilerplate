@@ -1,19 +1,26 @@
 package user
 
 import (
+	"github.com/gofiber/fiber/v2"
+	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/middleware/jwtcheck"
-
-	"github.com/gofiber/fiber/v2"
 )
 
-var tableName = "users"
-var db = database.GetDatabase(tableName)
-var Repo = NewRepository(db)
-var Srvc = NewService(Repo)
-var ctrl = NewController(Srvc)
+var (
+	cfg       = config.Cfg
+	tableName = "users"
+	Repo      = &Repository{}
+	Srvc      = &Service{}
+	ctrl      = &Controller{}
+)
 
 func GetRoutes(router fiber.Router) {
+	db := database.GetDatabase(tableName)
+	Repo = NewRepository(db)
+	Srvc = NewService(Repo)
+	ctrl = NewController(Srvc)
+
 	authRoute := router.Group("/auth")
 	authRoute.Post("/login", Login)
 	authRoute.Post("/refresh", Refresh)

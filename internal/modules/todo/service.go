@@ -2,9 +2,9 @@ package todo
 
 import (
 	"fmt"
+	"golang-api-starter/internal/helper"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
-	"golang-api-starter/internal/helper"
 )
 
 type Service struct {
@@ -63,7 +63,6 @@ func (s *Service) Delete(ids []string) ([]*Todo, error) {
 		conditions = map[string]interface{}{}
 	)
 
-	cfg.LoadEnvVariables()
 	if cfg.DbConf.Driver == "mongodb" {
 		conditions["_id"] = ids
 	} else {

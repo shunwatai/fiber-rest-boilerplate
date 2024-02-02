@@ -121,7 +121,6 @@ func (tds *TodoDocuments) printValue() {
 // ref: https://stackoverflow.com/a/40865028
 func (td TodoDocument) getTags(key ...string) []string {
 	var tag string
-	cfg.LoadEnvVariables()
 	if len(key) == 1 {
 		tag = key[0]
 	} else if cfg.DbConf.Driver == "mongodb" {

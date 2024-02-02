@@ -63,7 +63,6 @@ func (s *Service) Delete(ids []string) ([]*{{.StructName}}, error) {
 		conditions = map[string]interface{}{}
 	)
 
-	cfg.LoadEnvVariables()
 	if cfg.DbConf.Driver == "mongodb" {
 		conditions["_id"] = ids
 	} else {

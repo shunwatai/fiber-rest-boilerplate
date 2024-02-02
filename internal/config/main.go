@@ -44,7 +44,7 @@ type DbConf struct {
 	SqliteConf   `mapstructure:"sqlite"`
 	MariadbConf  `mapstructure:"mariadb"`
 	PostgresConf `mapstructure:"postgres"`
-	MongodbConf `mapstructure:"mongodb"`
+	MongodbConf  `mapstructure:"mongodb"`
 }
 
 type ServerConf struct {
@@ -65,7 +65,6 @@ type Config struct {
 }
 
 func (c *Config) LoadEnvVariables() {
-	c.Vpr = viper.GetViper()
 	c.Vpr.SetConfigType("yaml")
 	c.Vpr.SetConfigName("config")
 	for _, envPath := range []string{"./", "../", "../../"} {
@@ -105,4 +104,6 @@ func (c *Config) WatchConfig() {
 	c.Vpr.WatchConfig()
 }
 
-var Cfg = Config{}
+var Cfg = &Config{
+	Vpr: viper.GetViper(),
+}
