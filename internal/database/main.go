@@ -50,21 +50,16 @@ type Records interface {
 	GetTags(string) []string
 }
 
-// func GetDbConnection(){
-// 	config := config.Cfg
-// 	config.LoadEnvVariables()
-// }
+var cfg = config.Cfg
 
 func GetDatabase(tableName string) IDatabase {
-	config := config.Cfg
-	config.LoadEnvVariables()
-	log.Printf("engin: %+v\n", config.DbConf.Driver)
+	log.Printf("engin: %+v\n", cfg.DbConf.Driver)
 
-	if config.DbConf.Driver == "sqlite" {
-		connection := config.DbConf.SqliteConf
+	if cfg.DbConf.Driver == "sqlite" {
+		connection := cfg.DbConf.SqliteConf
 		return &Sqlite{
 			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
+				Driver:   cfg.DbConf.Driver,
 				Host:     connection.Host,
 				Port:     connection.Port,
 				User:     connection.User,
@@ -75,11 +70,11 @@ func GetDatabase(tableName string) IDatabase {
 		}
 	}
 
-	if config.DbConf.Driver == "mariadb" {
-		connection := config.DbConf.MariadbConf
+	if cfg.DbConf.Driver == "mariadb" {
+		connection := cfg.DbConf.MariadbConf
 		return &MariaDb{
 			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
+				Driver:   cfg.DbConf.Driver,
 				Host:     connection.Host,
 				Port:     connection.Port,
 				User:     connection.User,
@@ -90,11 +85,11 @@ func GetDatabase(tableName string) IDatabase {
 		}
 	}
 
-	if config.DbConf.Driver == "postgres" {
-		connection := config.DbConf.PostgresConf
+	if cfg.DbConf.Driver == "postgres" {
+		connection := cfg.DbConf.PostgresConf
 		return &Postgres{
 			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
+				Driver:   cfg.DbConf.Driver,
 				Host:     connection.Host,
 				Port:     connection.Port,
 				User:     connection.User,
@@ -105,11 +100,11 @@ func GetDatabase(tableName string) IDatabase {
 		}
 	}
 
-	if config.DbConf.Driver == "mongodb" {
-		connection := config.DbConf.MongodbConf
+	if cfg.DbConf.Driver == "mongodb" {
+		connection := cfg.DbConf.MongodbConf
 		return &Mongodb{
 			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
+				Driver:   cfg.DbConf.Driver,
 				Host:     connection.Host,
 				Port:     connection.Port,
 				User:     connection.User,
@@ -119,6 +114,7 @@ func GetDatabase(tableName string) IDatabase {
 			TableName: tableName,
 		}
 	}
+
 	return nil
 }
 

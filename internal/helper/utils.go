@@ -2,11 +2,10 @@ package helper
 
 // GetIdsMapCondition() return map[string]interface{} sth like map[string]interface{}{"id":[]string{x,y,z}}
 // which can use for Get() to retrieve records by id(s)
-// param "keyId" can be nil for default "id" in db, it can be other column(foreign key) like "todo_id" 
+// param "keyId" can be nil for default "id" in db, it can be other column(foreign key) like "todo_id"
 func GetIdsMapCondition(keyId *string, ids []string) map[string]interface{} {
 	condition := map[string]interface{}{}
 
-	cfg.LoadEnvVariables()
 	if keyId == nil {
 		if cfg.DbConf.Driver == "mongodb" {
 			condition["_id"] = ids

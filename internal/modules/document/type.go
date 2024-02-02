@@ -3,7 +3,6 @@ package document
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/iancoleman/strcase"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/modules/user"
@@ -11,6 +10,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 )
 
 type Document struct {
@@ -103,7 +104,6 @@ func (docs *Documents) printValue() {
 // ref: https://stackoverflow.com/a/40865028
 func (doc Document) getTags(key ...string) []string {
 	var tag string
-	cfg.LoadEnvVariables()
 	if len(key) == 1 {
 		tag = key[0]
 	} else if cfg.DbConf.Driver == "mongodb" {

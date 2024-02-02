@@ -14,7 +14,6 @@ func ValidateStruct(strct interface{}) error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	err := validate.RegisterValidation("id_custom_validation", func(fl validator.FieldLevel) bool {
-		cfg.LoadEnvVariables()
 		// fmt.Printf("what is is? %+v, db: %+v\n", fl.Field().Interface(),cfg.DbConf.Driver)
 		if cfg.DbConf.Driver == "mongodb" {
 			_, ok := fl.Field().Interface().(string)

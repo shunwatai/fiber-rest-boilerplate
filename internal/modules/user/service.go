@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"golang-api-starter/internal/auth"
-	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
 	"strconv"
@@ -25,13 +24,10 @@ func NewService(r *Repository) *Service {
 	return &Service{r, nil}
 }
 
-var cfg = config.Cfg
-
 /* this func for generate the jwt claims like the access & refresh tokens */
 func GenerateUserToken(user User, tokenType string) *jwt.Token {
 	var expireTime = time.Now().Add(time.Minute * 10).Unix() // 10 mins for access token?
 
-	cfg.LoadEnvVariables()
 	env := cfg.ServerConf.Env
 	if env == "local" { // if local development, set expire time to 1 year
 		expireTime = time.Now().Add(time.Hour * 8760).Unix()
@@ -65,7 +61,6 @@ func GetUserTokenResponse(user *User) (map[string]interface{}, error) {
 	accessClaims := GenerateUserToken(*user, "accessToken")
 	refreshClaims := GenerateUserToken(*user, "refreshToken")
 
-	cfg.LoadEnvVariables()
 	secret := cfg.Jwt.Secret
 	accessToken, accessTokenErr := accessClaims.SignedString([]byte(secret))
 	refreshToken, refreshTokenErr := refreshClaims.SignedString([]byte(secret))

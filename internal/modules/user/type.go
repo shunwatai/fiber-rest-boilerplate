@@ -94,7 +94,6 @@ func (users *Users) printValue() {
 
 func (user User) getTags(key ...string) []string {
 	var tag string
-	cfg.LoadEnvVariables()
 	if len(key) == 1 {
 		tag = key[0]
 	} else if cfg.DbConf.Driver == "mongodb" {

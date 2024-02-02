@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
-	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
 	"strconv"
@@ -14,11 +13,10 @@ type Controller struct {
 	service *Service
 }
 
-func NewController(s *Service) Controller {
-	return Controller{s}
+func NewController(s *Service) *Controller {
+	return &Controller{s}
 }
 
-var cfg = config.Cfg
 var respCode = fiber.StatusInternalServerError
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
@@ -164,7 +162,6 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 			)
 		}
 
-		cfg.LoadEnvVariables()
 		conditions := map[string]interface{}{}
 		conditions["id"] = todoDocument.GetId()
 
@@ -226,6 +223,9 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
+	if len(delIds.Ids) == 0 && len(mongoDelIds.Ids) == 0 {
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "please check the req json like the follow: {\"ids\":[]}"})
+	}
 	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
 	var (
@@ -233,7 +233,6 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 		err     error
 	)
 
-	cfg.LoadEnvVariables()
 	if cfg.DbConf.Driver == "mongodb" {
 		results, err = c.service.Delete(mongoDelIds.Ids)
 	} else {

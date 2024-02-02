@@ -2,9 +2,9 @@ package todo
 
 import (
 	"fmt"
+	"golang-api-starter/internal/helper"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
-	"golang-api-starter/internal/helper"
 )
 
 type Service struct {
