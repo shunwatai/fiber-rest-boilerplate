@@ -270,7 +270,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl create\n")
+	fmt.Printf("user ctrl login\n")
 	user := &User{}
 	users := []*User{}
 

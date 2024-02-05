@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
-	"log"
 	"strings"
 	"time"
 
@@ -53,7 +52,7 @@ type Records interface {
 var cfg = config.Cfg
 
 func GetDatabase(tableName string) IDatabase {
-	log.Printf("engin: %+v\n", cfg.DbConf.Driver)
+	// log.Printf("engine: %+v\n", cfg.DbConf.Driver)
 
 	if cfg.DbConf.Driver == "sqlite" {
 		connection := cfg.DbConf.SqliteConf
@@ -142,7 +141,7 @@ func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
 			continue
 		}
 		splitedDates := strings.Split(v.(string), ".")
-		fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
+		// fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
 		if len(splitedDates) == 2 {
 			from, to := splitedDates[0], splitedDates[1]
 			if from != "" {
@@ -178,7 +177,7 @@ func getDateRangeBson(queries map[string]interface{}) bson.D {
 			continue
 		}
 		splitedDates := strings.Split(v.(string), ".")
-		fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
+		// fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
 		if len(splitedDates) == 2 {
 			from, to := splitedDates[0], splitedDates[1]
 			if from != "" {

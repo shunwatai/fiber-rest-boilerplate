@@ -17,7 +17,7 @@ import (
 type Log struct {
 	MongoId       *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"`
 	Id            *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
-	UserId        *int64                 `json:"userId" db:"user_id" bson:"user_id" example:"1"`
+	UserId        interface{}            `json:"userId" db:"user_id" bson:"user_id" example:"1"`
 	IpAddress     string                 `json:"ipAddress" db:"ip_address" bson:"ip_address" example:"29.23.43.23"`
 	HttpMethod    string                 `json:"httpMethod" db:"http_method" bson:"http_method" example:"GET"`
 	Route         string                 `json:"route" db:"route" bson:"route" example:"/api/users"`

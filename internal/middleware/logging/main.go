@@ -29,10 +29,10 @@ func Logger() fiber.Handler {
 		reqHeader, _ := json.Marshal(c.GetReqHeaders())
 		fmt.Printf("reqHeader: %+v \n", string(reqHeader))
 
-		var userId *int64
+		var userId interface{}
 		claims, err := auth.ParseJwt(c.Get("Authorization"))
 		if err == nil {
-			userId = helper.ToPtr(int64(claims["userId"].(float64)))
+			userId = claims["userId"]
 		}
 		// fmt.Println("JWT userId:", userId)
 		// fmt.Println("created by:", claims["userId"], claims["username"])
