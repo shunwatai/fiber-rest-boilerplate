@@ -20,7 +20,7 @@ func Logger() fiber.Handler {
 		// log.Println("*********************")
 
 		bodyBytes := c.BodyRaw()
-		fmt.Printf("1reqBody: %+v, %+v \n", len(string(bodyBytes)), string(bodyBytes))
+		// fmt.Printf("1reqBody: %+v, %+v \n", len(string(bodyBytes)), string(bodyBytes))
 		var reqBodyJson, respBodyJson *string
 		if len(string(bodyBytes)) > 0 {
 			reqBodyJson = helper.ToPtr(string(bodyBytes))
