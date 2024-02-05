@@ -23,9 +23,9 @@ func GetRoutes(router fiber.Router) {
 
 	r := router.Group("/logs", jwtcheck.CheckFromHeader())
 	r.Get("/", GetAll)
-	r.Post("/", Create)
-	r.Patch("/", Update)
-	r.Delete("/", Delete)
+	// r.Post("/", Create)
+	// r.Patch("/", Update)
+	// r.Delete("/", Delete)
 
 	rById := r.Group("/:id")
 	rById.Get("/", GetById)
