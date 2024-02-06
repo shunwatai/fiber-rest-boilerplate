@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gen2brain/go-fitz"
 	"github.com/gofiber/fiber/v2"
-	"github.com/karmdip-mi/go-fitz"
 
 	"github.com/disintegration/imaging"
 	"github.com/makiuchi-d/gozxing"
