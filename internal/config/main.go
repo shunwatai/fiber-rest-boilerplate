@@ -1,10 +1,11 @@
 package config
 
 import (
-	"log"
-
+	"errors"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+	"log"
+	"os"
 )
 
 type SqliteConf struct {
@@ -44,7 +45,7 @@ type DbConf struct {
 	SqliteConf   `mapstructure:"sqlite"`
 	MariadbConf  `mapstructure:"mariadb"`
 	PostgresConf `mapstructure:"postgres"`
-	MongodbConf `mapstructure:"mongodb"`
+	MongodbConf  `mapstructure:"mongodb"`
 }
 
 type ServerConf struct {
@@ -67,8 +68,24 @@ type Config struct {
 func (c *Config) LoadEnvVariables() {
 	c.Vpr = viper.GetViper()
 	c.Vpr.SetConfigType("yaml")
-	c.Vpr.SetConfigName("config")
-	for _, envPath := range []string{"./", "../", "../../"} {
+
+	// determine the /.dockerenv file for checking running inside docker or not for using the corresponding config
+	// ref: https://stackoverflow.com/a/12518877
+	if _, err := os.Stat("/.dockerenv"); err == nil { // running in docker
+		// path/to/whatever exists
+		// log.Printf("Running inside docker\n")
+		c.Vpr.SetConfigName("config-docker")
+	} else if errors.Is(err, os.ErrNotExist) { // running in localhost w/o docker
+		// path/to/whatever does *not* exist
+		// log.Printf("Running in localhost\n")
+		c.Vpr.SetConfigName("config-localhost")
+	} else {
+		// Schrodinger: file may or may not exist. See err for details.
+		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
+		log.Printf("env check for config err: %+v\n", err)
+	}
+
+	for _, envPath := range []string{"./configs"} {
 		c.Vpr.AddConfigPath(envPath)
 	}
 

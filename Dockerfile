@@ -9,7 +9,7 @@
 ARG GO_VERSION=1.21
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
 WORKDIR /app
-COPY ./config.yaml /app/
+COPY ./configs/ /app/configs/
 
 RUN --mount=type=cache,target=/var/cache/apk \
     apk --update add alpine-sdk musl-dev sqlite-dev
@@ -31,9 +31,10 @@ ARG TARGETARCH
 # Leverage a cache mount to /go/pkg/mod/ to speed up subsequent builds.
 # Leverage a bind mount to the current directory to avoid having to copy the
 # source code into the container.
+# CGO_ENABLED=1 -tags are required for sqlite3 & go-fitz
 RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=bind,target=. \
-    CGO_ENABLED=1 GOARCH=$TARGETARCH go build -tags "libsqlite3 linux musl" -o /bin/server .
+    CGO_ENABLED=1 GOARCH=$TARGETARCH go build -tags "libsqlite3 linux musl" -o /bin/fiber-api .
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal
@@ -57,7 +58,9 @@ RUN --mount=type=cache,target=/var/cache/apk \
         tzdata \
         sqlite-dev \
         && \
-        update-ca-certificates
+        update-ca-certificates \
+        && \
+        mkdir -p /app/bin
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
@@ -73,13 +76,11 @@ RUN adduser \
 USER appuser
 
 # Copy the executable from the "build" stage.
-# COPY --from=build /bin/server /bin/
-COPY --from=build /bin/server /app/
-# COPY --from=build /app /app/
-COPY --from=build /app/config.yaml /app/
+COPY --from=build /bin/fiber-api /app/bin/
+COPY --from=build /app/configs/ /app/configs/
 
 # Expose the port that the application listens on.
 EXPOSE 7000
 
 # What the container should run when it is started.
-ENTRYPOINT [ "/app/server" ]
+ENTRYPOINT [ "/app/bin/fiber-api" ]

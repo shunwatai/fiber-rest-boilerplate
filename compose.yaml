@@ -13,10 +13,13 @@ services:
       context: .
       target: final
     volumes:
-      - ./uploads:/app/uploads
-      - ./qrcodes:/app/qrcodes
+      - ./uploads:/app/uploads:rw
+      - ./qrcodes:/app/qrcodes:rw
+      - ./fiber-starter.db:/app/fiber-starter.db:rw
     ports:
       - 7000:7000
+    networks:
+      - api
     # command: tail -f /dev/null
 
 # The commented out section below is an example of how to define a PostgreSQL
@@ -52,3 +55,6 @@ services:
 #   db-password:
 #     file: db/password.txt
 
+networks:
+  api:
+    external: true

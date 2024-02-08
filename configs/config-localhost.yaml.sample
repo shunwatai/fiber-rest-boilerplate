@@ -1,0 +1,38 @@
+projectName: "Fiber rest starter"
+
+server:
+  env: local # local, dev, prod
+  host: "localhost"
+  port: 7000
+
+jwt:
+  secret: "1234balhblahblah"
+
+database:
+  engine: "postgres"
+  sqlite:
+    user: "user"
+    pass: "user"
+    database: "fiber-starter"
+  mariadb:
+    host: "localhost"
+    port: "3306"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+  postgres:
+    host: "localhost"
+    port: "5432"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+  mongodb:
+    host: "localhost"
+    port: "27017"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+
+redis:
+  host: "localhost"
+  port: "6379"
