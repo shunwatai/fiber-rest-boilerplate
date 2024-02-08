@@ -7,8 +7,12 @@
 ################################################################################
 # Create a stage for building the application.
 ARG GO_VERSION=1.21
-FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS build
-WORKDIR /src
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
+WORKDIR /app
+COPY ./config.yaml /app/
+
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk --update add alpine-sdk musl-dev sqlite-dev
 
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /go/pkg/mod/ to speed up subsequent builds.
@@ -29,7 +33,7 @@ ARG TARGETARCH
 # source code into the container.
 RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=bind,target=. \
-    CGO_ENABLED=1 GOARCH=$TARGETARCH go build -o /bin/server .
+    CGO_ENABLED=1 GOARCH=$TARGETARCH go build -tags "libsqlite3 linux musl" -o /bin/server .
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal
@@ -42,7 +46,7 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
 # most recent version of that image when you build your Dockerfile. If
 # reproducability is important, consider using a versioned tag
 # (e.g., alpine:3.17.2) or SHA (e.g., alpine@sha256:c41ab5c992deb4fe7e5da09f67a8804a46bd0592bfdf0b1847dde0e0889d2bff).
-FROM alpine:3.14 AS final
+FROM alpine:latest AS final
 WORKDIR /app
 
 # Install any runtime dependencies that are needed to run your application.
@@ -51,9 +55,7 @@ RUN --mount=type=cache,target=/var/cache/apk \
     apk --update add \
         ca-certificates \
         tzdata \
-        mupdf \
-        alpine-sdk \
-        libc6-compat \
+        sqlite-dev \
         && \
         update-ca-certificates
 
@@ -73,11 +75,11 @@ USER appuser
 # Copy the executable from the "build" stage.
 # COPY --from=build /bin/server /bin/
 COPY --from=build /bin/server /app/
-COPY ./config.yaml /app/
+# COPY --from=build /app /app/
+COPY --from=build /app/config.yaml /app/
 
 # Expose the port that the application listens on.
 EXPOSE 7000
 
 # What the container should run when it is started.
-# ENTRYPOINT [ "/app/server" ]
-CMD [ "tail", "-f", "/dev/null" ]
+ENTRYPOINT [ "/app/server" ]

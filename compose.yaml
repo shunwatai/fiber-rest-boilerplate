@@ -12,6 +12,9 @@ services:
     build:
       context: .
       target: final
+    volumes:
+      - ./uploads:/app/uploads
+      - ./qrcodes:/app/qrcodes
     ports:
       - 7000:7000
     # command: tail -f /dev/null
