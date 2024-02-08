@@ -8,9 +8,10 @@
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-  server:
+  fiber-api-prod:
     build:
       context: .
+      dockerfile: ./Dockerfile.prod
       target: final
     volumes:
       - ./uploads:/app/uploads:rw

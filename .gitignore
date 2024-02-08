@@ -4,3 +4,4 @@ configs/config-*.yaml
 uploads/
 db-backup/
 *.db
+.cache/
