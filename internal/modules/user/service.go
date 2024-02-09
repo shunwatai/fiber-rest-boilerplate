@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"golang-api-starter/internal/auth"
-	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"log"
 	"strconv"
@@ -25,13 +24,10 @@ func NewService(r *Repository) *Service {
 	return &Service{r, nil}
 }
 
-var cfg = config.Cfg
-
 /* this func for generate the jwt claims like the access & refresh tokens */
 func GenerateUserToken(user User, tokenType string) *jwt.Token {
 	var expireTime = time.Now().Add(time.Minute * 10).Unix() // 10 mins for access token?
 
-	cfg.LoadEnvVariables()
 	env := cfg.ServerConf.Env
 	if env == "local" { // if local development, set expire time to 1 year
 		expireTime = time.Now().Add(time.Hour * 8760).Unix()
@@ -65,7 +61,6 @@ func GetUserTokenResponse(user *User) (map[string]interface{}, error) {
 	accessClaims := GenerateUserToken(*user, "accessToken")
 	refreshClaims := GenerateUserToken(*user, "refreshToken")
 
-	cfg.LoadEnvVariables()
 	secret := cfg.Jwt.Secret
 	accessToken, accessTokenErr := accessClaims.SignedString([]byte(secret))
 	refreshToken, refreshTokenErr := refreshClaims.SignedString([]byte(secret))
@@ -88,21 +83,6 @@ func hashUserPassword(pwd *string) error {
 
 	*pwd = string(hash)
 	return nil
-}
-
-// GetUserIdMap() return map[string]interface{} sth like map[string]interface{}{"id":[]string{x,y,z}}
-// which uses for Get() to retrieve records by id(s)
-func GetUserIdMap(ids []string) map[string]interface{} {
-	condition := map[string]interface{}{}
-
-	cfg.LoadEnvVariables()
-	if cfg.DbConf.Driver == "mongodb" {
-		condition["_id"] = ids
-	} else {
-		condition["id"] = ids
-	}
-
-	return condition
 }
 
 func (s *Service) GetIdMap(users Users) map[string]*User {
@@ -164,8 +144,8 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 
 	// create map by existing user from DB
 	userIdMap := map[string]User{}
-	getByUserIdsCondition := GetUserIdMap(userIds)
-	existings, _ := s.repo.Get(getByUserIdsCondition)
+	getByIdsCondition := helper.GetIdsMapCondition(nil, userIds)
+	existings, _ := s.repo.Get(getByIdsCondition)
 	for _, user := range existings {
 		userIdMap[user.GetId()] = *user
 	}
@@ -231,8 +211,8 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 func (s *Service) Delete(ids []string) ([]*User, error) {
 	fmt.Printf("user service delete\n")
 	records := []*User{}
-	getByUserIdsCondition := GetUserIdMap(ids)
-	records, _ = s.repo.Get(getByUserIdsCondition)
+	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	records, _ = s.repo.Get(getByIdsCondition)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
 	}
@@ -282,8 +262,8 @@ func (s *Service) Refresh(user *User) (map[string]interface{}, *helper.HttpErr) 
 	fmt.Printf("user service refresh\n")
 
 	results := []*User{}
-	condition := GetUserIdMap([]string{user.GetId()})
-	results, _ = s.repo.Get(condition)
+	getByIdsCondition := helper.GetIdsMapCondition(nil, []string{user.GetId()})
+	results, _ = s.repo.Get(getByIdsCondition)
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists... failed to refresh, please try login again")}
 	}

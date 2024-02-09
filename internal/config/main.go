@@ -66,7 +66,6 @@ type Config struct {
 }
 
 func (c *Config) LoadEnvVariables() {
-	c.Vpr = viper.GetViper()
 	c.Vpr.SetConfigType("yaml")
 
 	// determine the /.dockerenv file for checking running inside docker or not for using the corresponding config
@@ -122,4 +121,6 @@ func (c *Config) WatchConfig() {
 	c.Vpr.WatchConfig()
 }
 
-var Cfg = Config{}
+var Cfg = &Config{
+	Vpr: viper.GetViper(),
+}

@@ -1,10 +1,9 @@
-package todo
+package log
 
 import (
 	"fmt"
-	"golang-api-starter/internal/helper"
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v4"
+	"golang-api-starter/internal/helper"
 )
 
 type Service struct {
@@ -16,13 +15,13 @@ func NewService(r *Repository) *Service {
 	return &Service{r, nil}
 }
 
-func (s *Service) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
-	fmt.Printf("todo service get\n")
+func (s *Service) Get(queries map[string]interface{}) ([]*Log, *helper.Pagination) {
+	fmt.Printf("log service get\n")
 	return s.repo.Get(queries)
 }
 
-func (s *Service) GetById(queries map[string]interface{}) ([]*Todo, error) {
-	fmt.Printf("todo service getById\n")
+func (s *Service) GetById(queries map[string]interface{}) ([]*Log, error) {
+	fmt.Printf("log service getById\n")
 
 	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
@@ -31,33 +30,34 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*Todo, error) {
 	return records, nil
 }
 
-func (s *Service) Create(todos []*Todo) ([]*Todo, *helper.HttpErr) {
-	fmt.Printf("todo service create\n")
-
+func (s *Service) Create(logs []*Log) ([]*Log, *helper.HttpErr) {
+	fmt.Printf("log service create\n")
+  /*
 	// use the claims for mark the "createdBy/updatedBy" in database
 	claims := s.ctx.Locals("claims").(jwt.MapClaims)
 	fmt.Println("req by:", claims["userId"], claims["username"])
-	for _, todo := range todos {
-		if todo.UserId == nil {
-			todo.UserId = claims["userId"]
+	for _, log := range logs {
+		if log.UserId == nil {
+			log.UserId = claims["userId"]
 		}
-		if validErr := helper.ValidateStruct(*todo); validErr != nil {
+		if validErr := helper.ValidateStruct(*log); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
 	}
+  */
 
-	results, err := s.repo.Create(todos)
+	results, err := s.repo.Create(logs)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
-func (s *Service) Update(todos []*Todo) ([]*Todo, *helper.HttpErr) {
-	fmt.Printf("todo service update\n")
-	results, err := s.repo.Update(todos)
+func (s *Service) Update(logs []*Log) ([]*Log, *helper.HttpErr) {
+	fmt.Printf("log service update\n")
+	results, err := s.repo.Update(logs)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
-func (s *Service) Delete(ids []string) ([]*Todo, error) {
-	fmt.Printf("todo service delete\n")
+func (s *Service) Delete(ids []string) ([]*Log, error) {
+	fmt.Printf("log service delete\n")
 
 	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
 	records, _ := s.repo.Get(getByIdsCondition)
