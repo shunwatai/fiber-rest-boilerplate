@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"golang-api-starter/internal/config"
+	"golang-api-starter/internal/middleware/logging"
   {{- range .Modules }}
   "golang-api-starter/internal/modules/{{ .ModuleName }}"
   {{- end }}
@@ -65,7 +66,7 @@ func (f *Fiber) LoadSwagger() {
 }
 
 func (f *Fiber) LoadAllRoutes() {
-	api := f.App.Group("/api")
+	api := f.App.Group("/api", logging.Logger())
   {{- range .Modules }}
 	{{.ModuleName}}.GetRoutes(api)
   {{- end }}

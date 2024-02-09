@@ -18,11 +18,16 @@ type MariaDb struct {
 	db        *sqlx.DB
 }
 
+func (m *MariaDb) GetConnectionString() string {
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
+	fmt.Printf("ConnString: %+v\n", connectionString)
+	return connectionString
+}
+
 func (m *MariaDb) Connect() *sqlx.DB {
 	fmt.Printf("connecting to MariaDb... \n")
 	// fmt.Printf("Table: %+v\n", m.TableName)
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
-	fmt.Printf("ConnString: %+v\n", connectionString)
+	connectionString := m.GetConnectionString()
 
 	db, err := sqlx.Open("mysql", connectionString)
 	if err != nil {

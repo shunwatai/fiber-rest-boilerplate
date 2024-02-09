@@ -18,12 +18,17 @@ type Postgres struct {
 	db        *sqlx.DB
 }
 
+func (m *Postgres) GetConnectionString() string {
+	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
+	fmt.Printf("ConnString: %+v\n", connectionString)
+	return connectionString
+}
+
 func (m *Postgres) Connect() *sqlx.DB {
 	fmt.Printf("connecting to Postgres... \n")
 	// fmt.Printf("Table: %+v\n", m.TableName)
-	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
-	fmt.Printf("ConnString: %+v\n", connectionString)
 
+	connectionString := m.GetConnectionString()
 	db, err := sqlx.Open("postgres", connectionString)
 	if err != nil {
 		log.Fatal(err)
