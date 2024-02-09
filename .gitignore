@@ -5,3 +5,4 @@ uploads/
 db-backup/
 *.db
 .cache/
+build/
