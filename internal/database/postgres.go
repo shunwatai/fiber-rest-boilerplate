@@ -18,9 +18,14 @@ type Postgres struct {
 	db        *sqlx.DB
 }
 
+func (m *Postgres) GetDbConfig() *ConnectionInfo {
+	info, _ := GetDbConnection()
+	return info
+}
+
 func (m *Postgres) GetConnectionString() string {
 	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
-	fmt.Printf("ConnString: %+v\n", connectionString)
+	// fmt.Printf("ConnString: %+v\n", connectionString)
 	return connectionString
 }
 

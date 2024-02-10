@@ -20,6 +20,9 @@ type Rows interface {
 
 type IDatabase interface {
 	/* Get ConnectionString */
+	GetDbConfig() *ConnectionInfo
+
+	/* Get ConnectionString */
 	GetConnectionString() string
 
 	/* Select by raw sql */
@@ -34,7 +37,7 @@ type IDatabase interface {
 
 	/* Delete records by ids(support batch delete) */
 	Delete([]string) error
-	// GetConnectionInfo() ConnectionInfo
+
 	constructSelectStmtFromQuerystring(queries map[string]interface{}) (string, *helper.Pagination, map[string]interface{})
 }
 

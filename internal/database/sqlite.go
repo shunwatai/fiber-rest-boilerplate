@@ -41,6 +41,11 @@ type Sqlite struct {
 // 	return cols
 // }
 
+func (m *Sqlite) GetDbConfig() *ConnectionInfo {
+	info, _ := GetDbConnection()
+	return info
+}
+
 func (m *Sqlite) GetConnectionString() string {
 	var dbFile string
 	// sqlite db get wrong path when running test, so need to ../../
@@ -53,7 +58,7 @@ func (m *Sqlite) GetConnectionString() string {
 		dbFile = fmt.Sprintf("../../%s.db", *m.Database)
 	}
 	connectionString := fmt.Sprintf("./%s?_auth&_auth_user=%s&_auth_pass=%s&_auth_crypt=sha1&parseTime=true", dbFile, *m.User, *m.Pass)
-	fmt.Printf("ConnString: %+v\n", connectionString)
+	// fmt.Printf("ConnString: %+v\n", connectionString)
 	// os.Remove(dbFile)
 
 	return connectionString

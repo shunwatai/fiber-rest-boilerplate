@@ -18,9 +18,14 @@ type MariaDb struct {
 	db        *sqlx.DB
 }
 
+func (m *MariaDb) GetDbConfig() *ConnectionInfo {
+	info, _ := GetDbConnection()
+	return info
+}
+
 func (m *MariaDb) GetConnectionString() string {
 	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
-	fmt.Printf("ConnString: %+v\n", connectionString)
+	// fmt.Printf("ConnString: %+v\n", connectionString)
 	return connectionString
 }
 

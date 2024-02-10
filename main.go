@@ -5,6 +5,7 @@ import (
 	"golang-api-starter/cmd/dbmigrate"
 	"golang-api-starter/cmd/gen"
 	"golang-api-starter/cmd/server"
+	"log"
 	"os"
 )
 
@@ -28,13 +29,16 @@ func main() {
 	}
 
 	// run db migration or generate new module if args is given
-	if os.Args[1] == "migrate-up" {
-		dbmigrate.DbMigrate("up")
-	} else if os.Args[1] == "migrate-down" {
-		dbmigrate.DbMigrate("down")
+	if os.Args[1] == "migrate-up" || os.Args[1] == "migrate-down" {
+		fmt.Printf("db migrate\n")
+		if len(os.Args) != 3 {
+			log.Println("please provide the target db name for 2nd arg.")
+			log.Fatal("e.g. go run main.go migrate-[up/down] [postgres/mariadb/sqlite/mongodb]")
+		}
+		dbmigrate.DbMigrate(os.Args[1], os.Args[2])
 	} else if os.Args[1] == "generate" {
 		gen.GenerateNewModule()
+	} else {
+		fmt.Printf("do nothing...\n")
 	}
-
-	fmt.Printf("do nothing...\n")
 }
