@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"golang-api-starter/internal/config"
-	"golang-api-starter/internal/database"
+	db "golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"log"
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/mongodb"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -31,8 +32,9 @@ func runMigration(action string, m *migrate.Migrate) error {
 
 func DbMigrate(action, dbDriver string) error {
 	var (
-		err error
-		m   *migrate.Migrate
+		err    error
+		m      *migrate.Migrate
+		driver database.Driver
 	)
 	basepath := helper.RootDir()
 	cfg.LoadEnvVariables()
@@ -43,7 +45,7 @@ func DbMigrate(action, dbDriver string) error {
 	log.Printf("db driver: %+v\n", cfg.DbConf.Driver)
 	log.Println(strings.Repeat("*", 50))
 
-	dbConn := database.GetDatabase("")
+	dbConn := db.GetDatabase("")
 	dbConf := dbConn.GetDbConfig()
 	connectionString := dbConn.GetConnectionString()
 
@@ -53,79 +55,54 @@ func DbMigrate(action, dbDriver string) error {
 			log.Fatalf("sql.Open error: %+v\n", err)
 		}
 
-		driver, err := postgres.WithInstance(db, &postgres.Config{DatabaseName: *dbConf.Database})
+		driver, err = postgres.WithInstance(db, &postgres.Config{DatabaseName: *dbConf.Database})
 		if err != nil {
 			log.Fatalf("postgres.WithInstance error: %+v\n", err)
 		}
 
-		m, err = migrate.NewWithDatabaseInstance(
-			fmt.Sprintf("file:///%s/migrations/postgres", basepath),
-			*dbConf.Database, driver)
-		if err != nil {
-			log.Fatalf("migrate.NewWithDatabaseInstance error: %+v\n", err)
-		}
-
-		err = runMigration(action, m)
 	} else if cfg.DbConf.Driver == "mariadb" {
 		db, err := sql.Open("mysql", connectionString)
 		if err != nil {
 			log.Fatalf("sql.Open error: %+v\n", err)
 		}
 
-		driver, err := mysql.WithInstance(db, &mysql.Config{DatabaseName: *dbConf.Database})
+		driver, err = mysql.WithInstance(db, &mysql.Config{DatabaseName: *dbConf.Database})
 		if err != nil {
 			log.Fatalf("mysql.WithInstance error: %+v\n", err)
 		}
 
-		m, err = migrate.NewWithDatabaseInstance(
-			fmt.Sprintf("file:///%s/migrations/mariadb", basepath),
-			*dbConf.Database, driver)
-		if err != nil {
-			log.Fatalf("migrate.NewWithDatabaseInstance error: %+v\n", err)
-		}
-
-		err = runMigration(action, m)
 	} else if cfg.DbConf.Driver == "sqlite" {
 		db, err := sql.Open("sqlite3", connectionString)
 		if err != nil {
 			log.Fatalf("sql.Open error: %+v\n", err)
 		}
 
-		driver, err := sqlite3.WithInstance(db, &sqlite3.Config{DatabaseName: *dbConf.Database})
+		driver, err = sqlite3.WithInstance(db, &sqlite3.Config{DatabaseName: *dbConf.Database})
 		if err != nil {
 			log.Fatalf("sqlite.WithInstance error: %+v\n", err)
 		}
 
-		m, err = migrate.NewWithDatabaseInstance(
-			fmt.Sprintf("file:///%s/migrations/sqlite", basepath),
-			*dbConf.Database, driver)
-		if err != nil {
-			log.Fatalf("migrate.NewWithDatabaseInstance error: %+v\n", err)
-		}
-
-		err = runMigration(action, m)
 	} else if cfg.DbConf.Driver == "mongodb" {
-		mongoConf := database.Mongodb{ConnectionInfo: dbConf}
+		mongoConf := db.Mongodb{ConnectionInfo: dbConf}
 		db := mongoConf.Connect()
 		if err != nil {
 			log.Fatalf("sql.Open error: %+v\n", err)
 		}
 
-		driver, err := mongodb.WithInstance(db, &mongodb.Config{DatabaseName: *dbConf.Database})
+		driver, err = mongodb.WithInstance(db, &mongodb.Config{DatabaseName: *dbConf.Database})
 		if err != nil {
 			log.Fatalf("mongodb.WithInstance error: %+v\n", err)
 		}
-
-		m, err = migrate.NewWithDatabaseInstance(
-			fmt.Sprintf("file:///%s/migrations/mongodb", basepath),
-			*dbConf.Database, driver)
-		if err != nil {
-			log.Fatalf("migrate.NewWithDatabaseInstance error: %+v\n", err)
-		}
-
-		err = runMigration(action, m)
 	}
 
+	m, err = migrate.NewWithDatabaseInstance(
+		fmt.Sprintf("file:///%s/migrations/%s", basepath, dbDriver),
+		*dbConf.Database, driver)
+	if err != nil {
+		log.Fatalf("migrate.NewWithDatabaseInstance error: %+v\n", err)
+	}
+
+	err = runMigration(action, m)
 	ver, dir, err := m.Version()
 	log.Println(strings.Repeat("*", 50))
 	log.Printf("migrated success, version: %+v, \n", ver)
