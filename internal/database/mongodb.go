@@ -43,11 +43,21 @@ func (mr *MongoRows) Close() error {
 	return mr.cur.Close(mr.ctx)
 }
 
+func (m *Mongodb) GetDbConfig() *ConnectionInfo {
+	info, _ := GetDbConnection()
+	return info
+}
+
+func (m *Mongodb) GetConnectionString() string {
+	connectionString := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin&sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
+	// fmt.Printf("ConnString: %+v\n", connectionString)
+	return connectionString
+}
+
 func (m *Mongodb) Connect() *mongo.Client {
 	fmt.Printf("connecting to Mongodb... \n")
 	// fmt.Printf("Table: %+v\n", m.TableName)
-	connectionString := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin&sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
-	fmt.Printf("ConnString: %+v\n", connectionString)
+	connectionString := m.GetConnectionString()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -19,6 +19,12 @@ type Rows interface {
 }
 
 type IDatabase interface {
+	/* Get ConnectionString */
+	GetDbConfig() *ConnectionInfo
+
+	/* Get ConnectionString */
+	GetConnectionString() string
+
 	/* Select by raw sql */
 	RawQuery(string) *sqlx.Rows
 
@@ -31,7 +37,7 @@ type IDatabase interface {
 
 	/* Delete records by ids(support batch delete) */
 	Delete([]string) error
-	// GetConnectionInfo() ConnectionInfo
+
 	constructSelectStmtFromQuerystring(queries map[string]interface{}) (string, *helper.Pagination, map[string]interface{})
 }
 
@@ -51,66 +57,86 @@ type Records interface {
 
 var cfg = config.Cfg
 
+func GetDbConnection() (*ConnectionInfo, error) {
+	if cfg.DbConf.Driver == "sqlite" {
+		connection := cfg.DbConf.SqliteConf
+		return &ConnectionInfo{
+			Driver:   cfg.DbConf.Driver,
+			Host:     connection.Host,
+			Port:     connection.Port,
+			User:     connection.User,
+			Pass:     connection.Pass,
+			Database: connection.Database,
+		}, nil
+	}
+	if cfg.DbConf.Driver == "postgres" {
+		connection := cfg.DbConf.PostgresConf
+		return &ConnectionInfo{
+			Driver:   cfg.DbConf.Driver,
+			Host:     connection.Host,
+			Port:     connection.Port,
+			User:     connection.User,
+			Pass:     connection.Pass,
+			Database: connection.Database,
+		}, nil
+	}
+	if cfg.DbConf.Driver == "mariadb" {
+		connection := cfg.DbConf.MariadbConf
+		return &ConnectionInfo{
+			Driver:   cfg.DbConf.Driver,
+			Host:     connection.Host,
+			Port:     connection.Port,
+			User:     connection.User,
+			Pass:     connection.Pass,
+			Database: connection.Database,
+		}, nil
+	}
+	if cfg.DbConf.Driver == "mongodb" {
+		connection := cfg.DbConf.MongodbConf
+		return &ConnectionInfo{
+			Driver:   cfg.DbConf.Driver,
+			Host:     connection.Host,
+			Port:     connection.Port,
+			User:     connection.User,
+			Pass:     connection.Pass,
+			Database: connection.Database,
+		}, nil
+	}
+	return nil, fmt.Errorf("GetDbConnection() error, please check the cfg.DbConf.Driver")
+}
+
 func GetDatabase(tableName string) IDatabase {
 	// log.Printf("engine: %+v\n", cfg.DbConf.Driver)
 
 	if cfg.DbConf.Driver == "sqlite" {
-		connection := cfg.DbConf.SqliteConf
+		dbConn, _ := GetDbConnection()
 		return &Sqlite{
-			ConnectionInfo: &ConnectionInfo{
-				Driver:   cfg.DbConf.Driver,
-				Host:     connection.Host,
-				Port:     connection.Port,
-				User:     connection.User,
-				Pass:     connection.Pass,
-				Database: connection.Database,
-			},
-			TableName: tableName,
+			ConnectionInfo: dbConn,
+			TableName:      tableName,
 		}
 	}
 
 	if cfg.DbConf.Driver == "mariadb" {
-		connection := cfg.DbConf.MariadbConf
+		dbConn, _ := GetDbConnection()
 		return &MariaDb{
-			ConnectionInfo: &ConnectionInfo{
-				Driver:   cfg.DbConf.Driver,
-				Host:     connection.Host,
-				Port:     connection.Port,
-				User:     connection.User,
-				Pass:     connection.Pass,
-				Database: connection.Database,
-			},
-			TableName: tableName,
+			ConnectionInfo: dbConn,
+			TableName:      tableName,
 		}
 	}
 
 	if cfg.DbConf.Driver == "postgres" {
-		connection := cfg.DbConf.PostgresConf
+		dbConn, _ := GetDbConnection()
 		return &Postgres{
-			ConnectionInfo: &ConnectionInfo{
-				Driver:   cfg.DbConf.Driver,
-				Host:     connection.Host,
-				Port:     connection.Port,
-				User:     connection.User,
-				Pass:     connection.Pass,
-				Database: connection.Database,
-			},
-			TableName: tableName,
+			ConnectionInfo: dbConn,
+			TableName:      tableName,
 		}
 	}
 
 	if cfg.DbConf.Driver == "mongodb" {
-		connection := cfg.DbConf.MongodbConf
+		dbConn, _ := GetDbConnection()
 		return &Mongodb{
-			ConnectionInfo: &ConnectionInfo{
-				Driver:   cfg.DbConf.Driver,
-				Host:     connection.Host,
-				Port:     connection.Port,
-				User:     connection.User,
-				Pass:     connection.Pass,
-				Database: connection.Database,
-			},
-			TableName: tableName,
+			ConnectionInfo: dbConn,
+			TableName:      tableName,
 		}
 	}
 

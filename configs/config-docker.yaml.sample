@@ -9,25 +9,25 @@ jwt:
   secret: "1234balhblahblah"
 
 database:
-  engine: "sqlite"
+  engine: "postgres"
   sqlite:
     user: "user"
     pass: "user"
     database: "fiber-starter"
   mariadb:
-    host: "localhsot"
+    host: "mariadb"
     port: "3306"
     user: "user"
     pass: "password"
     database: "fiber-starter"
-  postgre:
-    host: "localhsot"
+  postgres:
+    host: "postgres-dev"
     port: "5432"
     user: "user"
     pass: "password"
     database: "fiber-starter"
   mongodb:
-    host: "localhost"
+    host: "mongodb"
     port: "27017"
     user: "user"
     pass: "password"
