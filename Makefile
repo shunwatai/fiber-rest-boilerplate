@@ -1,6 +1,7 @@
 .PHONY: dev build clean \
 	docker-dev docker-dev-build docker-dev-up docker-dev-down docker-dev-log \
-	docker-prod docker-prod-build docker-prod-up docker-prod-down docker-prod-log
+	docker-prod docker-prod-build docker-prod-up docker-prod-down docker-prod-log \
+	migrate-up migrate-down
 
 dev:
 	air -c .air.toml
@@ -38,3 +39,12 @@ docker-dev-log:
 
 docker-prod-log: 
 	docker-compose -f compose-prod.yaml logs -f
+
+migrate-up: 
+	go run main.go migrate-up $(filter-out $@,$(MAKECMDGOALS))
+
+migrate-down: 
+	go run main.go migrate-down $(filter-out $@,$(MAKECMDGOALS))
+
+%:
+	@:
