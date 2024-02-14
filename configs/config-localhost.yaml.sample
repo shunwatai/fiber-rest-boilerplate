@@ -33,6 +33,16 @@ database:
     pass: "password"
     database: "fiber-starter"
 
+logging:
+  type:
+    # - "database"
+    - "zap"
+  zap:
+    output:
+      # - "console"
+      - "file"
+    filename: "requests.log"
+
 redis:
   host: "localhost"
   port: "6379"

@@ -6,3 +6,4 @@ db-backup/
 *.db
 .cache/
 build/
+log/*.log

@@ -48,6 +48,14 @@ type DbConf struct {
 	MongodbConf  `mapstructure:"mongodb"`
 }
 
+type Logging struct {
+	Type []string
+	Zap  struct {
+		Output   []string
+		Filename string
+	}
+}
+
 type ServerConf struct {
 	Env  string
 	Host string
@@ -62,6 +70,7 @@ type Config struct {
 	*DbConf     `mapstructure:"database"`
 	*ServerConf `mapstructure:"server"`
 	*Jwt        `mapstructure:"jwt"`
+	*Logging    `mapstructure:"logging"`
 	Vpr         *viper.Viper
 }
 
