@@ -97,8 +97,9 @@ func (lgs *Logs) printValue() {
 	for _, v := range *lgs {
 		if v.Id != nil {
 			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+		} else {
+			fmt.Printf("new --> v: %+v\n", *v)
 		}
-		fmt.Printf("new --> v: %+v\n", *v)
 	}
 }
 
