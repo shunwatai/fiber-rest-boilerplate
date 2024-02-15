@@ -49,8 +49,9 @@ type DbConf struct {
 }
 
 type Logging struct {
-	Type []string
-	Zap  struct {
+	Level int
+	Type  []string
+	Zap   struct {
 		Output   []string
 		Filename string
 	}

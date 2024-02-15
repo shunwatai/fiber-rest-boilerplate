@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger"
 	"log"
 	"time"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -270,7 +272,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl login\n")
+	logger.Debugf("user ctrl login")
 	user := &User{}
 	users := []*User{}
 

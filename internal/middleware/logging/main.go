@@ -2,6 +2,7 @@ package logging
 
 import (
 	"encoding/json"
+	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
@@ -10,12 +11,9 @@ import (
 	"log"
 	"slices"
 	"time"
-
-	"github.com/gofiber/fiber/v2"
 )
 
 var cfg = config.Cfg
-var zlog = logger.Zlog
 
 /*
  * Logger() is a middleware for showing the http req & resp info
@@ -75,21 +73,18 @@ func Logger() fiber.Handler {
 
 			// create log to files
 			if slices.Contains(cfg.Logging.Type, "zap") {
-				if !zlog.Output.Console && !zlog.Output.File {
-					return
-				}
-				zlog.SysLog("FIBER REQ LOG",
-					zlog.GetField("UserId", userId, ""),
-					zlog.GetField("IpAddress", ip, ""),
-					zlog.GetField("HttpMethod", c.Method(), ""),
-					zlog.GetField("Route", c.Request().URI().String(), ""),
-					zlog.GetField("UserAgent", (c.Request().Header.UserAgent()), ""),
-					zlog.GetField("RequestHeader", (reqHeader), ""),
-					zlog.GetField("RequestBody", reqBodyJson, ""),
-					zlog.GetField("ResponseBody", respBodyJson, ""),
-					zlog.GetField("Status", int64(c.Response().StatusCode()), ""),
-					zlog.GetField("Duration", time.Since(start).Milliseconds(), ""),
-					zlog.GetField("CreatedAt", &helper.CustomDatetime{&start, helper.ToPtr(time.RFC3339)}, ""),
+				logger.SysLog("FIBER REQ LOG",
+					logger.GetField("UserId", userId),
+					logger.GetField("IpAddress", ip),
+					logger.GetField("HttpMethod", c.Method()),
+					logger.GetField("Route", c.Request().URI().String()),
+					logger.GetField("UserAgent", (c.Request().Header.UserAgent())),
+					logger.GetField("RequestHeader", (reqHeader)),
+					logger.GetField("RequestBody", reqBodyJson),
+					logger.GetField("ResponseBody", respBodyJson),
+					logger.GetField("Status", int64(c.Response().StatusCode())),
+					logger.GetField("Duration", time.Since(start).Milliseconds()),
+					logger.GetField("CreatedAt", &helper.CustomDatetime{&start, helper.ToPtr(time.RFC3339)}),
 				)
 			}
 		}()

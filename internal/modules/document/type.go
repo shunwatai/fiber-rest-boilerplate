@@ -2,9 +2,9 @@ package document
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger"
 	"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
@@ -94,9 +94,9 @@ func (docs Documents) GetTags(key string) []string {
 func (docs *Documents) printValue() {
 	for _, v := range *docs {
 		if v.Id != nil {
-			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
 		} else {
-			fmt.Printf("new --> v: %+v\n", *v)
+			logger.Debugf("new --> v: %+v\n", *v)
 		}
 	}
 }

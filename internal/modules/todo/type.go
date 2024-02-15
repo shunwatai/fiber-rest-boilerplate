@@ -95,9 +95,9 @@ func (todos Todos) GetTags(key string) []string {
 func (todos *Todos) printValue() {
 	for _, v := range *todos {
 		if v.Id != nil {
-			logger.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
 		} else {
-			logger.Printf("new --> v: %+v\n", *v)
+			logger.Debugf("new --> v: %+v\n", *v)
 		}
 	}
 }

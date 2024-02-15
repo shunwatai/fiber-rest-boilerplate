@@ -2,9 +2,10 @@ package log
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger"
+
 	//"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
@@ -96,9 +97,9 @@ func (lgs Logs) GetTags(key string) []string {
 func (lgs *Logs) printValue() {
 	for _, v := range *lgs {
 		if v.Id != nil {
-			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
 		} else {
-			fmt.Printf("new --> v: %+v\n", *v)
+			logger.Debugf("new --> v: %+v\n", *v)
 		}
 	}
 }

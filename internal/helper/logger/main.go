@@ -2,15 +2,12 @@ package logger
 
 import (
 	"fmt"
-	"golang-api-starter/internal/config"
-	"os"
-	"slices"
-	"strings"
-	"time"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang-api-starter/internal/config"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"os"
+	"slices"
 )
 
 type OutputTypes struct {
@@ -18,12 +15,19 @@ type OutputTypes struct {
 	File    bool
 }
 
+const (
+	DebugLevel = iota
+	InfoLevel
+	WarningLevel
+	ErrorLevel
+)
+
 type ZapLog struct {
-	Logger      *zap.Logger
-	Output      OutputTypes
-	Filename    *string
-	Level       string
-	DebugSymbol string
+	ConsoleLogger *zap.Logger
+	Output        OutputTypes
+	Filename      *string
+	Level         int // available level (DebugLevel,InfoLevel,WarningLevel,ErrorLevel), Debugf() in console_logger.go will be effective if DebugLevel is set
+	DebugSymbol   string
 }
 
 var cfg = config.Cfg
@@ -35,70 +39,56 @@ func NewZlog() {
 		Console: slices.Contains(cfg.Logging.Zap.Output, "console"),
 	}
 	Zlog.Filename = &cfg.Logging.Zap.Filename
-	Zlog.Level = "debug"
+	Zlog.Level = cfg.Logging.Level
 	Zlog.DebugSymbol = "*"
+	*Zlog.Filename = "requests.log" // default logfile name under logs/
 }
 
-func (zl *ZapLog) GetField(key string, value interface{}, fieldType string) zap.Field {
+func GetField(key string, value interface{}) zap.Field {
+	return Zlog.getField(key, value)
+}
+func (zl *ZapLog) getField(key string, value interface{}) zap.Field {
 	return zap.Any(key, value)
 }
 
-func (zl *ZapLog) SetLevel(lvl string) *ZapLog {
+func SetLevel(lvl int) *ZapLog {
+	return Zlog.setLevel(lvl)
+}
+func (zl *ZapLog) setLevel(lvl int) *ZapLog {
 	zl.Level = lvl
 	return zl
 }
 
-func (zl *ZapLog) SetDebugSymbol(symbol string) *ZapLog {
-	zl.DebugSymbol = symbol
-	return zl
+// SetFilename sets the custom filename under log/ directory
+func (zl *ZapLog) SetFilename(filename string) {
+	*zl.Filename = filename
 }
 
-func Printf(format string, args ...interface{}) {
-	Zlog.Printf(format, args)
+// SysLog output the message into file and console depends on config
+// SetLevel can override the default Zlog.Level before calling this func
+func SysLog(msg string, keysAndValues ...zapcore.Field) {
+	Zlog.sysLog(msg, keysAndValues...)
 }
-func (zl *ZapLog) Printf(format string, args ...interface{}) {
-	config := zap.NewProductionEncoderConfig()
-	config.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC822Z)
-	consoleEncoder := zapcore.NewConsoleEncoder(config)
-	consoleWriter := zapcore.AddSync(os.Stdout)
-	consoleCore := zapcore.NewCore(consoleEncoder, consoleWriter, zapcore.DebugLevel)
-	core := zapcore.NewTee(consoleCore)
-	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
-
-	defer logger.Sync() // Ensure logs are flushed
-
-	sugar := logger.WithOptions(zap.AddCallerSkip(2)).Sugar()
-	switch zl.Level {
-	case "info":
-		sugar.Infof(format, args...)
-	case "warn":
-		sugar.Warnf(format, args...)
-	case "error":
-		sugar.Errorf(format, args...)
-	default: // debug
-		fmt.Printf("%s DEBUG %s\n", strings.Repeat(zl.DebugSymbol, 20), strings.Repeat(zl.DebugSymbol, 20))
-		sugar.Debugf(format, args...)
-		fmt.Println(strings.Repeat(zl.DebugSymbol, 47))
+func (zl *ZapLog) sysLog(msg string, keysAndValues ...zapcore.Field) {
+	if !Zlog.Output.Console && !Zlog.Output.File {
+		return
 	}
-
-	zl.SetLevel("debug")   // reset to default level
-	zl.SetDebugSymbol("*") // reset to default symbol
-}
-
-func (zl *ZapLog) SysLog(msg string, keysAndValues ...zapcore.Field) {
-	filename := "requests.log"
-	if zl.Output.File && zl.Filename != nil {
-		filename = *zl.Filename
-	}
-
-	logger, err := fileLogger(filename, zl.Output)
+	logger, err := fileLogger(*zl.Filename, zl.Output)
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		return
 	}
 	defer logger.Sync() // Ensure logs are flushed
 
-	logger.Info(msg, keysAndValues...)
+	if zl.Level <= InfoLevel {
+		logger.Info(msg, keysAndValues...)
+	} else if zl.Level <= WarningLevel {
+		logger.Warn(msg, keysAndValues...)
+	} else if zl.Level <= ErrorLevel {
+		logger.Error(msg, keysAndValues...)
+	}
+
+	zl.setLevel(cfg.Logging.Level) // reset to config's defined level
 }
 
 // fileLogger initializes a zap.Logger that writes to both the console and a specified file.
@@ -152,7 +142,7 @@ func fileLogger(filename string, outputTypes OutputTypes) (*zap.Logger, error) {
 
 	// Create the logger with additional context information (caller, stack trace)
 	// logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
-	logger := zap.New(core, zap.AddStacktrace(zapcore.ErrorLevel))
+	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(2))
 
 	return logger, nil
 }

@@ -2,9 +2,9 @@ package todoDocument
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger"
 	"golang-api-starter/internal/modules/document"
 
 	//"golang-api-starter/internal/modules/user"
@@ -111,9 +111,9 @@ func (tds TodoDocuments) GetTags(key string) []string {
 func (tds *TodoDocuments) printValue() {
 	for _, v := range *tds {
 		if v.Id != nil {
-			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
 		} else {
-			fmt.Printf("new --> v: %+v\n", *v)
+			logger.Debugf("new --> v: %+v\n", *v)
 		}
 	}
 }
