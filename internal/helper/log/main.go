@@ -6,6 +6,7 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type OutputTypes struct {
@@ -47,11 +48,21 @@ func fileLogger(filename string, outputTypes OutputTypes) (*zap.Logger, error) {
 	consoleEncoder := zapcore.NewConsoleEncoder(config)
 
 	// Open the log file
-	logFilePath := fmt.Sprintf("./log/%s", filename)
-	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %v", err)
+	// Set up lumberjack as a logger:
+	logFile := &lumberjack.Logger{
+		Filename:   fmt.Sprintf("./log/%s", filename), // Or any other path
+		MaxSize:    500,                               // MB; after this size, a new log file is created
+		MaxBackups: 10,                                // Number of backups to keep
+		MaxAge:     28,                                // Days
+		Compress:   true,                              // Compress the backups using gzip
 	}
+
+	// Default logFile without log rotate
+	// logFilePath := fmt.Sprintf("./log/%s", filename)
+	// logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to open log file: %v", err)
+	// }
 
 	// Create writers for file and console
 	fileWriter := zapcore.AddSync(logFile)
