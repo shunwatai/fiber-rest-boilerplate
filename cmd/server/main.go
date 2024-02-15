@@ -20,6 +20,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger" // swagger handler
+	zlog "golang-api-starter/internal/helper/log"
 )
 
 type Fiber struct {
@@ -30,6 +31,7 @@ var cfg = config.Cfg
 
 func (f *Fiber) GetApp() {
 	cfg.LoadEnvVariables()
+	zlog.NewZlog()
 	f.App = fiber.New(fiber.Config{
 		// Prefork:       true,
 		CaseSensitive: true,

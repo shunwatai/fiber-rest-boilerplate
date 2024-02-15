@@ -2,7 +2,11 @@ package log
 
 import (
 	"fmt"
+	"golang-api-starter/internal/config"
 	"os"
+	"slices"
+	"strings"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -15,8 +19,80 @@ type OutputTypes struct {
 }
 
 type ZapLog struct {
-	Output   OutputTypes
-	Filename *string
+	Logger      *zap.Logger
+	Output      OutputTypes
+	Filename    *string
+	Level       string
+	DebugSymbol string
+}
+
+var cfg = config.Cfg
+var Zlog = &ZapLog{}
+
+func NewZlog() {
+	Zlog.Output = OutputTypes{
+		File:    slices.Contains(cfg.Logging.Zap.Output, "file"),
+		Console: slices.Contains(cfg.Logging.Zap.Output, "console"),
+	}
+	Zlog.Filename = &cfg.Logging.Zap.Filename
+	Zlog.Level = "debug"
+	Zlog.DebugSymbol = "*"
+}
+
+func (zl *ZapLog) GetField(key string, value interface{}, fieldType *string) zap.Field {
+	var zapField zap.Field
+	switch *fieldType {
+	case "int64":
+		zapField = zap.Int64(key, value.(int64))
+	case "duration":
+		zapField = zap.Duration(key, value.(time.Duration))
+	case "date":
+		zapField = zap.Time(key, value.(time.Time))
+	case "bool":
+		zapField = zap.Bool(key, value.(bool))
+	default:
+		zapField = zap.String(key, value.(string))
+	}
+	return zapField
+}
+
+func (zl *ZapLog) SetLevel(lvl string) *ZapLog {
+	zl.Level = lvl
+	return zl
+}
+
+func (zl *ZapLog) SetDebugSymbol(symbol string) *ZapLog {
+	zl.DebugSymbol = symbol
+	return zl
+}
+
+func (zl *ZapLog) Printf(format string, args ...interface{}) {
+	config := zap.NewProductionEncoderConfig()
+	config.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC822Z)
+	consoleEncoder := zapcore.NewConsoleEncoder(config)
+	consoleWriter := zapcore.AddSync(os.Stdout)
+	consoleCore := zapcore.NewCore(consoleEncoder, consoleWriter, zapcore.DebugLevel)
+	core := zapcore.NewTee(consoleCore)
+	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+
+	defer logger.Sync() // Ensure logs are flushed
+
+	sugar := logger.Sugar()
+	switch zl.Level {
+	case "info":
+		sugar.Infof(format, args...)
+	case "warn":
+		sugar.Warnf(format, args...)
+	case "error":
+		sugar.Errorf(format, args...)
+	default: // debug
+		fmt.Printf("%s DEBUG %s\n", strings.Repeat(zl.DebugSymbol, 20), strings.Repeat(zl.DebugSymbol, 20))
+		sugar.Debugf(format, args...)
+		fmt.Println(strings.Repeat(zl.DebugSymbol, 47))
+	}
+
+	zl.SetLevel("debug")   // reset to default level
+	zl.SetDebugSymbol("*") // reset to default symbol
 }
 
 func (zl *ZapLog) RequestLog(msg string, keysAndValues ...interface{}) {
@@ -41,7 +117,7 @@ func (zl *ZapLog) RequestLog(msg string, keysAndValues ...interface{}) {
 func fileLogger(filename string, outputTypes OutputTypes) (*zap.Logger, error) {
 	// Configure the time format
 	config := zap.NewProductionEncoderConfig()
-	config.EncodeTime = zapcore.ISO8601TimeEncoder
+	config.EncodeTime = zapcore.RFC3339TimeEncoder
 
 	// Create file and console encoders
 	fileEncoder := zapcore.NewJSONEncoder(config)

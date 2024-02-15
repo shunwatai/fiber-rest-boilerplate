@@ -2,29 +2,26 @@ package logging
 
 import (
 	"encoding/json"
+	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/log"
+	customLog "golang-api-starter/internal/modules/log"
 	"log"
 	"slices"
-
-	"github.com/gofiber/fiber/v2"
-
-	customLog "golang-api-starter/internal/modules/log"
 	"time"
 )
 
 var cfg = config.Cfg
+var zlog = logger.Zlog
 
 /*
  * Logger() is a middleware for showing the http req & resp info
  */
 func Logger() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// log.Println("*********************")
-		// log.Printf("I AM LOGGER....\n")
-		// log.Println("*********************")
+		// zlog.Printf("I AM LOGGER....")
 
 		bodyBytes := c.BodyRaw()
 		// log.Printf("1reqBody: %+v, %+v \n", len(string(bodyBytes)), string(bodyBytes))
@@ -77,17 +74,10 @@ func Logger() fiber.Handler {
 
 			// create log to files
 			if slices.Contains(cfg.Logging.Type, "zap") {
-				zl := logger.ZapLog{
-					Output: logger.OutputTypes{
-						File:    slices.Contains(cfg.Logging.Zap.Output, "file"),
-						Console: slices.Contains(cfg.Logging.Zap.Output, "console"),
-					},
-					Filename: &cfg.Logging.Zap.Filename,
-				}
-				if !zl.Output.Console && !zl.Output.File {
+				if !zlog.Output.Console && !zlog.Output.File {
 					return
 				}
-				zl.RequestLog("FIBER REQ LOG",
+				zlog.RequestLog("FIBER REQ LOG",
 					"UserId", userId,
 					"IpAddress", ip,
 					"HttpMethod", c.Method(),
