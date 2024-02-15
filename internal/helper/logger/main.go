@@ -39,21 +39,8 @@ func NewZlog() {
 	Zlog.DebugSymbol = "*"
 }
 
-func (zl *ZapLog) GetField(key string, value interface{}, fieldType *string) zap.Field {
-	var zapField zap.Field
-	switch *fieldType {
-	case "int64":
-		zapField = zap.Int64(key, value.(int64))
-	case "duration":
-		zapField = zap.Duration(key, value.(time.Duration))
-	case "date":
-		zapField = zap.Time(key, value.(time.Time))
-	case "bool":
-		zapField = zap.Bool(key, value.(bool))
-	default:
-		zapField = zap.String(key, value.(string))
-	}
-	return zapField
+func (zl *ZapLog) GetField(key string, value interface{}, fieldType string) zap.Field {
+	return zap.Any(key, value)
 }
 
 func (zl *ZapLog) SetLevel(lvl string) *ZapLog {
@@ -98,7 +85,7 @@ func (zl *ZapLog) Printf(format string, args ...interface{}) {
 	zl.SetDebugSymbol("*") // reset to default symbol
 }
 
-func (zl *ZapLog) RequestLog(msg string, keysAndValues ...interface{}) {
+func (zl *ZapLog) SysLog(msg string, keysAndValues ...zapcore.Field) {
 	filename := "requests.log"
 	if zl.Output.File && zl.Filename != nil {
 		filename = *zl.Filename
@@ -111,8 +98,7 @@ func (zl *ZapLog) RequestLog(msg string, keysAndValues ...interface{}) {
 	}
 	defer logger.Sync() // Ensure logs are flushed
 
-	sugar := logger.Sugar()
-	sugar.Infow(msg, keysAndValues...)
+	logger.Info(msg, keysAndValues...)
 }
 
 // fileLogger initializes a zap.Logger that writes to both the console and a specified file.
@@ -165,7 +151,8 @@ func fileLogger(filename string, outputTypes OutputTypes) (*zap.Logger, error) {
 	}
 
 	// Create the logger with additional context information (caller, stack trace)
-	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	// logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	logger := zap.New(core, zap.AddStacktrace(zapcore.ErrorLevel))
 
 	return logger, nil
 }

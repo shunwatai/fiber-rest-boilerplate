@@ -78,18 +78,18 @@ func Logger() fiber.Handler {
 				if !zlog.Output.Console && !zlog.Output.File {
 					return
 				}
-				zlog.RequestLog("FIBER REQ LOG",
-					"UserId", userId,
-					"IpAddress", ip,
-					"HttpMethod", c.Method(),
-					"Route", c.Request().URI().String(),
-					"UserAgent", string(c.Request().Header.UserAgent()),
-					"RequestHeader", string(reqHeader),
-					"RequestBody", reqBodyJson,
-					"ResponseBody", respBodyJson,
-					"Status", int64(c.Response().StatusCode()),
-					"Duration", time.Since(start).Milliseconds(),
-					"CreatedAt", &helper.CustomDatetime{&start, helper.ToPtr(time.RFC3339)},
+				zlog.SysLog("FIBER REQ LOG",
+					zlog.GetField("UserId", userId, ""),
+					zlog.GetField("IpAddress", ip, ""),
+					zlog.GetField("HttpMethod", c.Method(), ""),
+					zlog.GetField("Route", c.Request().URI().String(), ""),
+					zlog.GetField("UserAgent", (c.Request().Header.UserAgent()), ""),
+					zlog.GetField("RequestHeader", (reqHeader), ""),
+					zlog.GetField("RequestBody", reqBodyJson, ""),
+					zlog.GetField("ResponseBody", respBodyJson, ""),
+					zlog.GetField("Status", int64(c.Response().StatusCode()), ""),
+					zlog.GetField("Duration", time.Since(start).Milliseconds(), ""),
+					zlog.GetField("CreatedAt", &helper.CustomDatetime{&start, helper.ToPtr(time.RFC3339)}, ""),
 				)
 			}
 		}()
