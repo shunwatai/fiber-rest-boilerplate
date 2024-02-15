@@ -2,9 +2,9 @@ package user
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger"
 	"log"
 	"reflect"
 	"strconv"
@@ -86,15 +86,15 @@ func (users Users) GetTags(key string) []string {
 func (users *Users) printValue() {
 	for _, v := range *users {
 		if v.Id != nil {
-			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+		} else {
+			logger.Debugf("new --> v: %+v\n", *v)
 		}
-		fmt.Printf("new --> v: %+v\n", *v)
 	}
 }
 
 func (user User) getTags(key ...string) []string {
 	var tag string
-	cfg.LoadEnvVariables()
 	if len(key) == 1 {
 		tag = key[0]
 	} else if cfg.DbConf.Driver == "mongodb" {

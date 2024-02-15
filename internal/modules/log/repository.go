@@ -1,4 +1,4 @@
-package {{.ModuleName}}
+package log
 
 import (
 	"fmt"
@@ -16,13 +16,13 @@ func NewRepository(db database.IDatabase) *Repository {
 	return &Repository{db}
 }
 
-// cascadeFields for joining other module, see the example in internal/modules/{{.ModuleName}}/repository.go
-func cascadeFields({{.ModuleName}}s {{.StructName}}s) {
+// cascadeFields for joining other module, see the example in internal/modules/todo/repository.go
+func cascadeFields(logs Logs) {
 	// cascade user
 }
 
-func (r *Repository) Get(queries map[string]interface{}) ([]*{{.StructName}}, *helper.Pagination) {
-	fmt.Printf("{{.ModuleName}} repo\n")
+func (r *Repository) Get(queries map[string]interface{}) ([]*Log, *helper.Pagination) {
+	fmt.Printf("log repo\n")
 	defaultExactMatch := map[string]bool{
 		"id":   true,
 		"_id":  true,
@@ -32,10 +32,10 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*{{.StructName}}, *h
 		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
 	}
 
-	queries["columns"] = {{.StructName}}{}.getTags()
+	queries["columns"] = Log{}.getTags()
 	rows, pagination := r.db.Select(queries)
 
-	var records {{.StructName}}s
+	var records Logs
 	if rows != nil {
 		records = records.rowsToStruct(rows)
 	}
@@ -46,13 +46,13 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*{{.StructName}}, *h
 	return records, pagination
 }
 
-func (r *Repository) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, error) {
-	for _, {{.ModuleName}} := range {{.ModuleName}}s {
-		fmt.Printf("{{.ModuleName}} repo add: %+v\n", {{.ModuleName}})
+func (r *Repository) Create(logs []*Log) ([]*Log, error) {
+	for _, log := range logs {
+		fmt.Printf("log repo add: %+v\n", log)
 	}
-	rows, err := r.db.Save({{.StructName}}s({{.ModuleName}}s))
+	rows, err := r.db.Save(Logs(logs))
 
-	var records {{.StructName}}s
+	var records Logs
 	if rows != nil {
 		records = records.rowsToStruct(rows)
 	}
@@ -61,11 +61,11 @@ func (r *Repository) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructNa
 	return records, err
 }
 
-func (r *Repository) Update({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, error) {
-	fmt.Printf("{{.ModuleName}} repo update\n")
-	rows, err := r.db.Save({{.StructName}}s({{.ModuleName}}s))
+func (r *Repository) Update(logs []*Log) ([]*Log, error) {
+	fmt.Printf("log repo update\n")
+	rows, err := r.db.Save(Logs(logs))
 
-	var records {{.StructName}}s
+	var records Logs
 	if rows != nil {
 		records = records.rowsToStruct(rows)
 	}
@@ -75,7 +75,7 @@ func (r *Repository) Update({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructNa
 }
 
 func (r *Repository) Delete(ids []string) error {
-	fmt.Printf("{{.ModuleName}} repo delete\n")
+	fmt.Printf("log repo delete\n")
 	err := r.db.Delete(ids)
 	if err != nil {
 		return err

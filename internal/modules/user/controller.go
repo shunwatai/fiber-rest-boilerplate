@@ -3,11 +3,13 @@ package user
 import (
 	"errors"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger"
 	"log"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type Controller struct {
@@ -20,15 +22,14 @@ func sanitise(users Users) {
 	}
 }
 
-func NewController(s *Service) Controller {
-	return Controller{s}
+func NewController(s *Service) *Controller {
+	return &Controller{s}
 }
 
 var respCode = fiber.StatusInternalServerError
 
 /* helper func for Login & Refresh funcs below */
 func SetRefreshTokenInCookie(result map[string]interface{}, c *fiber.Ctx) {
-	cfg.LoadEnvVariables()
 	env := cfg.ServerConf.Env
 	refreshToken := result["refreshToken"].(string)
 	cookie := &fiber.Cookie{
@@ -184,7 +185,6 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 			)
 		}
 
-		cfg.LoadEnvVariables()
 		conditions := map[string]interface{}{}
 		conditions["id"] = user.GetId()
 
@@ -243,6 +243,9 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
+	if len(delIds.Ids) == 0 && len(mongoDelIds.Ids) == 0 {
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "please check the req json like the follow: {\"ids\":[]}"})
+	}
 	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
 	var (
@@ -250,7 +253,6 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 		err     error
 	)
 
-	cfg.LoadEnvVariables()
 	if cfg.DbConf.Driver == "mongodb" {
 		results, err = c.service.Delete(mongoDelIds.Ids)
 	} else {
@@ -270,7 +272,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl create\n")
+	logger.Debugf("user ctrl login")
 	user := &User{}
 	users := []*User{}
 
@@ -312,7 +314,7 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 		result     = map[string]interface{}{}
 		refreshErr *helper.HttpErr
 	)
-	cfg.LoadEnvVariables()
+
 	if cfg.DbConf.Driver == "mongodb" {
 		userId := claims["userId"].(string)
 		result, refreshErr = c.service.Refresh(&User{MongoId: &userId})

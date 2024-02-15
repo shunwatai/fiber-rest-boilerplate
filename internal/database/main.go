@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
-	"log"
 	"strings"
 	"time"
 
@@ -20,6 +19,12 @@ type Rows interface {
 }
 
 type IDatabase interface {
+	/* Get ConnectionString */
+	GetDbConfig() *ConnectionInfo
+
+	/* Get ConnectionString */
+	GetConnectionString() string
+
 	/* Select by raw sql */
 	RawQuery(string) *sqlx.Rows
 
@@ -32,7 +37,7 @@ type IDatabase interface {
 
 	/* Delete records by ids(support batch delete) */
 	Delete([]string) error
-	// GetConnectionInfo() ConnectionInfo
+
 	constructSelectStmtFromQuerystring(queries map[string]interface{}) (string, *helper.Pagination, map[string]interface{})
 }
 
@@ -50,75 +55,91 @@ type Records interface {
 	GetTags(string) []string
 }
 
-// func GetDbConnection(){
-// 	config := config.Cfg
-// 	config.LoadEnvVariables()
-// }
+var cfg = config.Cfg
+
+func GetDbConnection() (*ConnectionInfo, error) {
+	if cfg.DbConf.Driver == "sqlite" {
+		connection := cfg.DbConf.SqliteConf
+		return &ConnectionInfo{
+			Driver:   cfg.DbConf.Driver,
+			Host:     connection.Host,
+			Port:     connection.Port,
+			User:     connection.User,
+			Pass:     connection.Pass,
+			Database: connection.Database,
+		}, nil
+	}
+	if cfg.DbConf.Driver == "postgres" {
+		connection := cfg.DbConf.PostgresConf
+		return &ConnectionInfo{
+			Driver:   cfg.DbConf.Driver,
+			Host:     connection.Host,
+			Port:     connection.Port,
+			User:     connection.User,
+			Pass:     connection.Pass,
+			Database: connection.Database,
+		}, nil
+	}
+	if cfg.DbConf.Driver == "mariadb" {
+		connection := cfg.DbConf.MariadbConf
+		return &ConnectionInfo{
+			Driver:   cfg.DbConf.Driver,
+			Host:     connection.Host,
+			Port:     connection.Port,
+			User:     connection.User,
+			Pass:     connection.Pass,
+			Database: connection.Database,
+		}, nil
+	}
+	if cfg.DbConf.Driver == "mongodb" {
+		connection := cfg.DbConf.MongodbConf
+		return &ConnectionInfo{
+			Driver:   cfg.DbConf.Driver,
+			Host:     connection.Host,
+			Port:     connection.Port,
+			User:     connection.User,
+			Pass:     connection.Pass,
+			Database: connection.Database,
+		}, nil
+	}
+	return nil, fmt.Errorf("GetDbConnection() error, please check the cfg.DbConf.Driver")
+}
 
 func GetDatabase(tableName string) IDatabase {
-	config := config.Cfg
-	config.LoadEnvVariables()
-	log.Printf("engin: %+v\n", config.DbConf.Driver)
+	// log.Printf("engine: %+v\n", cfg.DbConf.Driver)
 
-	if config.DbConf.Driver == "sqlite" {
-		connection := config.DbConf.SqliteConf
+	if cfg.DbConf.Driver == "sqlite" {
+		dbConn, _ := GetDbConnection()
 		return &Sqlite{
-			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
-				Host:     connection.Host,
-				Port:     connection.Port,
-				User:     connection.User,
-				Pass:     connection.Pass,
-				Database: connection.Database,
-			},
-			TableName: tableName,
+			ConnectionInfo: dbConn,
+			TableName:      tableName,
 		}
 	}
 
-	if config.DbConf.Driver == "mariadb" {
-		connection := config.DbConf.MariadbConf
+	if cfg.DbConf.Driver == "mariadb" {
+		dbConn, _ := GetDbConnection()
 		return &MariaDb{
-			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
-				Host:     connection.Host,
-				Port:     connection.Port,
-				User:     connection.User,
-				Pass:     connection.Pass,
-				Database: connection.Database,
-			},
-			TableName: tableName,
+			ConnectionInfo: dbConn,
+			TableName:      tableName,
 		}
 	}
 
-	if config.DbConf.Driver == "postgres" {
-		connection := config.DbConf.PostgresConf
+	if cfg.DbConf.Driver == "postgres" {
+		dbConn, _ := GetDbConnection()
 		return &Postgres{
-			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
-				Host:     connection.Host,
-				Port:     connection.Port,
-				User:     connection.User,
-				Pass:     connection.Pass,
-				Database: connection.Database,
-			},
-			TableName: tableName,
+			ConnectionInfo: dbConn,
+			TableName:      tableName,
 		}
 	}
 
-	if config.DbConf.Driver == "mongodb" {
-		connection := config.DbConf.MongodbConf
+	if cfg.DbConf.Driver == "mongodb" {
+		dbConn, _ := GetDbConnection()
 		return &Mongodb{
-			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
-				Host:     connection.Host,
-				Port:     connection.Port,
-				User:     connection.User,
-				Pass:     connection.Pass,
-				Database: connection.Database,
-			},
-			TableName: tableName,
+			ConnectionInfo: dbConn,
+			TableName:      tableName,
 		}
 	}
+
 	return nil
 }
 
@@ -146,7 +167,7 @@ func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
 			continue
 		}
 		splitedDates := strings.Split(v.(string), ".")
-		fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
+		// fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
 		if len(splitedDates) == 2 {
 			from, to := splitedDates[0], splitedDates[1]
 			if from != "" {
@@ -182,7 +203,7 @@ func getDateRangeBson(queries map[string]interface{}) bson.D {
 			continue
 		}
 		splitedDates := strings.Split(v.(string), ".")
-		fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
+		// fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
 		if len(splitedDates) == 2 {
 			from, to := splitedDates[0], splitedDates[1]
 			if from != "" {

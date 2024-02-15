@@ -2,9 +2,9 @@ package {{.ModuleName}}
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger"
 	//"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
@@ -90,9 +90,10 @@ func ({{.Initial}}s {{.StructName}}s) GetTags(key string) []string {
 func ({{.Initial}}s *{{.StructName}}s) printValue() {
 	for _, v := range *{{.Initial}}s {
 		if v.Id != nil {
-			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
-		}
-		fmt.Printf("new --> v: %+v\n", *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+		}else{
+      logger.Debugf("new --> v: %+v\n", *v)
+    }
 	}
 }
 
@@ -100,7 +101,6 @@ func ({{.Initial}}s *{{.StructName}}s) printValue() {
 // ref: https://stackoverflow.com/a/40865028
 func ({{.Initial}} {{.StructName}}) getTags(key ...string) []string {
 	var tag string
-	cfg.LoadEnvVariables()
 	if len(key) == 1 {
 		tag = key[0]
 	} else if cfg.DbConf.Driver == "mongodb" {

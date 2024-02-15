@@ -1,6 +1,10 @@
 tmp/
 .env
-config.yaml
+configs/config-*.yaml
 uploads/
 db-backup/
 *.db
+.cache/
+build/
+log/*.log
+log/*.gz

@@ -1,19 +1,18 @@
-// The following directive is necessary to make the package coherent:
-//go:build ignore
-
-// This script generates new module in internal/modules/. It can be invoked by running go run gen.go
-package main
+// This script generates new module in internal/modules/. It can be invoked by running go run main.go <moduleName> <moduleInitial>
+package gen
 
 import (
 	_ "embed"
-	"io/ioutil"
-	"os/exec"
 	"fmt"
+	"golang-api-starter/internal/helper"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"text/template"
+
 	// "golang.org/x/text/cases"
 	// "golang.org/x/text/language"
 	"github.com/iancoleman/strcase"
@@ -31,18 +30,20 @@ type entity struct {
 
 var wg sync.WaitGroup
 
-func main() {
-	if len(os.Args) <= 1 {
-		fmt.Println("error: missing arg[1] arg[2], try go run gen.go document doc")
+var basepath = helper.RootDir()
+
+func GenerateNewModule() {
+	if len(os.Args) <= 2 {
+		fmt.Println("error: missing arg[2] arg[3], try go run gen.go userDocument ud")
 		return
 	}
-	if len(os.Args) == 2 {
+	if len(os.Args) == 3 {
 		fmt.Println("error: missing new module name")
-		fmt.Println("try: go run gen.go <module-name-in-singular-lower-case> <initial e.g: u (for User)>")
+		fmt.Println("try: go run gen.go <module-name-in-singular-lower-case e.g: userDocument> <initial e.g: u (for ud)>")
 		return
 	}
 
-	newModule := getNewModuleStruct(os.Args[1])
+	newModule := getNewModuleStruct(os.Args[2])
 
 	fmt.Printf("newModule %+v,\n initial: %s,\n route: %s,\n tableName: %s\n", newModule, *newModule.Initial, *newModule.RouteName, *newModule.TableName)
 
@@ -68,13 +69,13 @@ func main() {
 
 func getNewModuleStruct(inputName string) *entity {
 	var (
-		// inputName string = os.Args[1]
+		// inputName string = os.Args[2]
 		// structName string = fmt.Sprintf("%s", cases.Title(language.English, cases.Compact).String(inputName))
 		structName string = strcase.ToCamel(inputName)
 		plural     string = Pluralfy(structName)
 		routeName  string = strcase.ToKebab(plural)
 		tableName  string = strings.ToLower(Pluralfy(strcase.ToSnake(inputName)))
-		initial    string = os.Args[2]
+		initial    string = os.Args[3]
 	)
 
 	newDirectory := fmt.Sprintf("internal/modules/%s", inputName)
@@ -176,7 +177,7 @@ func (ent *entity) generateMigration() {
 		},
 	}
 	for dbEngine, migrations := range dbEngines {
-		argstr := []string{"create", "-ext", "sql", "-dir", fmt.Sprintf("migrations/%s", dbEngine), "-seq", migrationName}
+		argstr := []string{"create", "-ext", "sql", "-dir", fmt.Sprintf("%s/migrations/%s", basepath, dbEngine), "-seq", migrationName}
 		out, err := exec.Command(migrateBinPath[0], argstr...).CombinedOutput()
 		migrationOut := strings.Split(strings.ReplaceAll(string(out), "\r\n", "\n"), "\n")
 
@@ -202,7 +203,7 @@ func (ent *entity) generateMigration() {
 
 func reGenerateServerFile() {
 	var allModules []entity
-	moduleDirs, err := ioutil.ReadDir("internal/modules/")
+	moduleDirs, err := ioutil.ReadDir(fmt.Sprintf("%s/internal/modules/", basepath))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -220,7 +221,7 @@ func reGenerateServerFile() {
 	}
 
 	// fmt.Println(allModules)
-	filePath := fmt.Sprintf("cmd/server/main.go")
+	filePath := fmt.Sprintf("%s/cmd/server/main.go",basepath)
 	tmplData := map[string][]entity{"Modules": allModules}
 
 	file, err := os.Create(filePath)
@@ -250,21 +251,25 @@ var typeTemplate string
 
 //go:embed skel/migrate-pg-up.tmpl
 var migratePgUpTemplate string
+
 //go:embed skel/migrate-pg-down.tmpl
 var migratePgDownTemplate string
 
 //go:embed skel/migrate-mariadb-up.tmpl
 var migrateMariaUpTemplate string
+
 //go:embed skel/migrate-mariadb-down.tmpl
 var migrateMariaDownTemplate string
 
 //go:embed skel/migrate-sqlite-up.tmpl
 var migrateSqliteUpTemplate string
+
 //go:embed skel/migrate-sqlite-down.tmpl
 var migrateSqliteDownTemplate string
 
 //go:embed skel/migrate-mongo-up.tmpl
 var migrateMongoUpTemplate string
+
 //go:embed skel/migrate-mongo-down.tmpl
 var migrateMongoDownTemplate string
 

@@ -41,10 +41,12 @@ type Sqlite struct {
 // 	return cols
 // }
 
-func (m *Sqlite) Connect() *sqlx.DB {
-	fmt.Printf("connecting to Sqlite... \n")
-	fmt.Printf("Table: %+v\n", m.TableName)
+func (m *Sqlite) GetDbConfig() *ConnectionInfo {
+	info, _ := GetDbConnection()
+	return info
+}
 
+func (m *Sqlite) GetConnectionString() string {
 	var dbFile string
 	// sqlite db get wrong path when running test, so need to ../../
 	// ref: https://stackoverflow.com/a/36666114
@@ -56,9 +58,17 @@ func (m *Sqlite) Connect() *sqlx.DB {
 		dbFile = fmt.Sprintf("../../%s.db", *m.Database)
 	}
 	connectionString := fmt.Sprintf("./%s?_auth&_auth_user=%s&_auth_pass=%s&_auth_crypt=sha1&parseTime=true", dbFile, *m.User, *m.Pass)
-	fmt.Printf("ConnString: %+v\n", connectionString)
+	// fmt.Printf("ConnString: %+v\n", connectionString)
 	// os.Remove(dbFile)
 
+	return connectionString
+}
+
+func (m *Sqlite) Connect() *sqlx.DB {
+	fmt.Printf("connecting to Sqlite... \n")
+	fmt.Printf("Table: %+v\n", m.TableName)
+
+	connectionString := m.GetConnectionString()
 	db, err := sqlx.Open("sqlite3", connectionString)
 	if err != nil {
 		log.Fatal(err)
