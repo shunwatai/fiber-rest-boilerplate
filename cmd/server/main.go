@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"golang-api-starter/internal/config"
+	zlog "golang-api-starter/internal/helper/logger"
 	"golang-api-starter/internal/middleware/logging"
 	"golang-api-starter/internal/modules/document"
 	"golang-api-starter/internal/modules/log"
@@ -20,7 +21,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger" // swagger handler
-	zlog "golang-api-starter/internal/helper/log"
 )
 
 type Fiber struct {

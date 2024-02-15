@@ -2,15 +2,16 @@ package logging
 
 import (
 	"encoding/json"
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
-	logger "golang-api-starter/internal/helper/log"
+	"golang-api-starter/internal/helper/logger"
 	customLog "golang-api-starter/internal/modules/log"
 	"log"
 	"slices"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 var cfg = config.Cfg

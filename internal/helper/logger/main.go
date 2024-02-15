@@ -1,4 +1,4 @@
-package log
+package logger
 
 import (
 	"fmt"
@@ -66,6 +66,9 @@ func (zl *ZapLog) SetDebugSymbol(symbol string) *ZapLog {
 	return zl
 }
 
+func Printf(format string, args ...interface{}) {
+	Zlog.Printf(format, args)
+}
 func (zl *ZapLog) Printf(format string, args ...interface{}) {
 	config := zap.NewProductionEncoderConfig()
 	config.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC822Z)
@@ -77,7 +80,7 @@ func (zl *ZapLog) Printf(format string, args ...interface{}) {
 
 	defer logger.Sync() // Ensure logs are flushed
 
-	sugar := logger.Sugar()
+	sugar := logger.WithOptions(zap.AddCallerSkip(2)).Sugar()
 	switch zl.Level {
 	case "info":
 		sugar.Infof(format, args...)

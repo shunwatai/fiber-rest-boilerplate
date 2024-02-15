@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"golang-api-starter/internal/config"
+	zlog "golang-api-starter/internal/helper/logger"
 	"golang-api-starter/internal/middleware/logging"
   {{- range .Modules }}
   "golang-api-starter/internal/modules/{{ .ModuleName }}"
@@ -27,6 +28,7 @@ var cfg = config.Cfg
 
 func (f *Fiber) GetApp() {
 	cfg.LoadEnvVariables()
+	zlog.NewZlog()
 	f.App = fiber.New(fiber.Config{
 		// Prefork:       true,
 		CaseSensitive: true,
