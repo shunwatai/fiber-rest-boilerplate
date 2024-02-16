@@ -20,6 +20,7 @@ const (
 	InfoLevel
 	WarningLevel
 	ErrorLevel
+	FatalLevel
 )
 
 type ZapLog struct {
@@ -86,6 +87,8 @@ func (zl *ZapLog) sysLog(msg string, keysAndValues ...zapcore.Field) {
 		logger.Warn(msg, keysAndValues...)
 	} else if zl.Level <= ErrorLevel {
 		logger.Error(msg, keysAndValues...)
+	} else if zl.Level <= FatalLevel {
+		logger.Fatal(msg, keysAndValues...)
 	}
 
 	zl.setLevel(cfg.Logging.Level) // reset to config's defined level
