@@ -2,10 +2,9 @@ package {{.ModuleName}}
 
 import (
 	"errors"
-	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/helper"
-	"log"
+	"golang-api-starter/internal/helper/logger"
 	"strconv"
 )
 
@@ -20,7 +19,7 @@ func NewController(s *Service) *Controller {
 var respCode = fiber.StatusInternalServerError
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
-	fmt.Printf("{{.ModuleName}} ctrl\n")
+	logger.Debugf("{{.ModuleName}} ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
@@ -34,7 +33,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
-	fmt.Printf("{{.ModuleName}} ctrl\n")
+	logger.Debugf("{{.ModuleName}} ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
@@ -53,7 +52,7 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Create(ctx *fiber.Ctx) error {
-	fmt.Printf("{{.ModuleName}} ctrl create\n")
+	logger.Debugf("{{.ModuleName}} ctrl create\n")
 	c.service.ctx = ctx
 	{{.ModuleName}} := &{{.StructName}}{}
 	{{.ModuleName}}s := []*{{.StructName}}{}
@@ -77,9 +76,9 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	if {{.ModuleName}}Err == nil {
 		{{.ModuleName}}s = append({{.ModuleName}}s, {{.ModuleName}})
 	}
-	// log.Printf("{{.ModuleName}}Err: %+v, {{.ModuleName}}sErr: %+v\n", {{.ModuleName}}Err, {{.ModuleName}}sErr)
+	// logger.Debugf("{{.ModuleName}}Err: %+v, {{.ModuleName}}sErr: %+v\n", {{.ModuleName}}Err, {{.ModuleName}}sErr)
 	// for _, t := range {{.ModuleName}}s {
-	// 	log.Printf("{{.ModuleName}}s: %+v\n", t)
+	// 	logger.Debugf("{{.ModuleName}}s: %+v\n", t)
 	// }
 
 	for _, {{.ModuleName}} := range {{.ModuleName}}s {
@@ -97,7 +96,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		}); err == nil && {{.ModuleName}}.CreatedAt == nil {
 			{{.ModuleName}}.CreatedAt = existing[0].CreatedAt
 		}
-		// fmt.Printf("{{.ModuleName}}? %+v\n", {{.ModuleName}})
+		// logger.Debugf("{{.ModuleName}}? %+v\n", {{.ModuleName}})
 	}
 
 	// return []*{{.StructName}}{}
@@ -123,7 +122,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Update(ctx *fiber.Ctx) error {
-	fmt.Printf("{{.ModuleName}} ctrl update\n")
+	logger.Debugf("{{.ModuleName}} ctrl update\n")
 
 	{{.ModuleName}} := &{{.StructName}}{}
 	{{.ModuleName}}s := []*{{.StructName}}{}
@@ -204,10 +203,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
-	fmt.Printf("{{.ModuleName}} ctrl delete\n")
+	logger.Debugf("{{.ModuleName}} ctrl delete\n")
 	// body := map[string]interface{}{}
 	// json.Unmarshal(c.BodyRaw(), &body)
-	// fmt.Printf("req body: %+v\n", body)
+	// logger.Debugf("req body: %+v\n", body)
 	delIds := struct {
 		Ids []int64 `json:"ids" validate:"required,unique"`
 	}{}
@@ -220,13 +219,13 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
 	if intIdsErr != nil && strIdsErr != nil {
-		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
+		logger.Errorf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
 	if len(delIds.Ids) == 0 && len(mongoDelIds.Ids) == 0 {
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "please check the req json like the follow: {\"ids\":[]}"})
 	}
-	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
+	logger.Debugf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
 	var (
 		results []*{{.StructName}}
@@ -241,7 +240,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		log.Printf("failed to delete, err: %+v\n", err.Error())
+		logger.Errorf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
 		return fctx.JsonResponse(
 			respCode,

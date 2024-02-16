@@ -2,11 +2,11 @@ package log
 
 import (
 	"errors"
-	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/helper"
-	"log"
+	"golang-api-starter/internal/helper/logger"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type Controller struct {
@@ -20,7 +20,7 @@ func NewController(s *Service) *Controller {
 var respCode = fiber.StatusInternalServerError
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
-	fmt.Printf("log ctrl\n")
+	logger.Debugf("log ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
@@ -34,7 +34,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
-	fmt.Printf("log ctrl\n")
+	logger.Debugf("log ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
@@ -53,7 +53,7 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Create(ctx *fiber.Ctx) error {
-	fmt.Printf("log ctrl create\n")
+	logger.Debugf("log ctrl create\n")
 	c.service.ctx = ctx
 	log := &Log{}
 	logs := []*Log{}
@@ -77,9 +77,9 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	if logErr == nil {
 		logs = append(logs, log)
 	}
-	// log.Printf("logErr: %+v, logsErr: %+v\n", logErr, logsErr)
+	// logger.Debugf("logErr: %+v, logsErr: %+v\n", logErr, logsErr)
 	// for _, t := range logs {
-	// 	log.Printf("logs: %+v\n", t)
+	// 	logger.Debugf("logs: %+v\n", t)
 	// }
 
 	for _, log := range logs {
@@ -97,7 +97,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		}); err == nil && log.CreatedAt == nil {
 			log.CreatedAt = existing[0].CreatedAt
 		}
-		// fmt.Printf("log? %+v\n", log)
+		// logger.Debugf("log? %+v\n", log)
 	}
 
 	// return []*Log{}
@@ -123,7 +123,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Update(ctx *fiber.Ctx) error {
-	fmt.Printf("log ctrl update\n")
+	logger.Debugf("log ctrl update\n")
 
 	log := &Log{}
 	logs := []*Log{}
@@ -204,10 +204,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
-	fmt.Printf("log ctrl delete\n")
+	logger.Debugf("log ctrl delete\n")
 	// body := map[string]interface{}{}
 	// json.Unmarshal(c.BodyRaw(), &body)
-	// fmt.Printf("req body: %+v\n", body)
+	// logger.Debugf("req body: %+v\n", body)
 	delIds := struct {
 		Ids []int64 `json:"ids" validate:"required,unique"`
 	}{}
@@ -220,13 +220,13 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
 	if intIdsErr != nil && strIdsErr != nil {
-		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
+		logger.Errorf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
 	if len(delIds.Ids) == 0 && len(mongoDelIds.Ids) == 0 {
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "please check the req json like the follow: {\"ids\":[]}"})
 	}
-	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
+	logger.Debugf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
 	var (
 		results []*Log
@@ -241,7 +241,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		log.Printf("failed to delete, err: %+v\n", err.Error())
+		logger.Errorf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
 		return fctx.JsonResponse(
 			respCode,

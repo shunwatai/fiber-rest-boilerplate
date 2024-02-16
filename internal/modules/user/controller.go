@@ -2,11 +2,9 @@ package user
 
 import (
 	"errors"
-	"fmt"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger"
-	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -49,7 +47,7 @@ func SetRefreshTokenInCookie(result map[string]interface{}, c *fiber.Ctx) {
 }
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl\n")
+	logger.Debugf("user ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
@@ -64,7 +62,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl\n")
+	logger.Debugf("user ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
@@ -82,7 +80,7 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Create(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl create\n")
+	logger.Debugf("user ctrl create\n")
 	c.service.ctx = ctx
 	user := &User{}
 	users := []*User{}
@@ -146,7 +144,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Update(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl update\n")
+	logger.Debugf("user ctrl update\n")
 
 	user := &User{}
 	users := []*User{}
@@ -240,13 +238,13 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
 	if intIdsErr != nil && strIdsErr != nil {
-		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
+		logger.Errorf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
 	if len(delIds.Ids) == 0 && len(mongoDelIds.Ids) == 0 {
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "please check the req json like the follow: {\"ids\":[]}"})
 	}
-	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
+	logger.Debugf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
 	var (
 		results []*User
@@ -262,7 +260,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	sanitise(results)
 
 	if err != nil {
-		log.Printf("failed to delete, err: %+v\n", err.Error())
+		logger.Errorf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": err.Error()})
 	}
@@ -279,9 +277,9 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	if userErr, _ := reqCtx.Payload.ParseJsonToStruct(user, &users); userErr != nil {
-		log.Printf("userErr: %+v\n", userErr)
+		logger.Errorf("userErr: %+v\n", userErr)
 	}
-	// log.Printf("login req: %+v\n", user)
+	// logger.Debugf("login req: %+v\n", user)
 
 	result, httpErr := c.service.Login(user)
 	if httpErr != nil {
@@ -299,7 +297,7 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 	cookie := ctx.Cookies("refreshToken")
 
 	refreshToken := "Bearer " + cookie
-	fmt.Printf("%s\n", refreshToken)
+	logger.Debugf("%s\n", refreshToken)
 
 	claims, err := auth.ParseJwt(refreshToken)
 	if claims["tokenType"] != "refreshToken" || err != nil {

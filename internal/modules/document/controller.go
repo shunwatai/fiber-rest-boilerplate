@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"golang-api-starter/internal/helper"
-	"log"
+	"golang-api-starter/internal/helper/logger"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/exp/maps"
@@ -21,7 +21,7 @@ func NewController(s *Service) *Controller {
 var respCode = fiber.StatusInternalServerError
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
-	fmt.Printf("document ctrl\n")
+	logger.Debugf("document ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	paramsMap := reqCtx.Payload.GetQueryString()
@@ -35,7 +35,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
-	fmt.Printf("document ctrl\n")
+	logger.Debugf("document ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
@@ -54,13 +54,13 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Create(ctx *fiber.Ctx) error {
-	fmt.Printf("document ctrl create\n")
+	logger.Debugf("document ctrl create\n")
 	c.service.ctx = ctx
 	fctx := &helper.FiberCtx{Fctx: ctx}
 
 	form, err := fctx.Fctx.MultipartForm()
 	if err != nil { /* handle error */
-		fmt.Printf("failed to get multipartForm, err: %+v\n", err.Error())
+		logger.Debugf("failed to get multipartForm, err: %+v\n", err.Error())
 		return fctx.JsonResponse(
 			respCode,
 			map[string]interface{}{"message": err.Error()},
@@ -69,7 +69,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 
 	results, httpErr := c.service.Create(form)
 	if httpErr.Err != nil {
-		fmt.Printf("document upload failed err: %+v\n", httpErr.Err)
+		logger.Debugf("document upload failed err: %+v\n", httpErr.Err)
 		return fctx.JsonResponse(
 			respCode,
 			map[string]interface{}{"message": httpErr.Error()},
@@ -90,7 +90,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Update(ctx *fiber.Ctx) error {
-	fmt.Printf("document ctrl update\n")
+	logger.Debugf("document ctrl update\n")
 
 	document := &Document{}
 	documents := []*Document{}
@@ -171,10 +171,10 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Delete(ctx *fiber.Ctx) error {
-	fmt.Printf("document ctrl delete\n")
+	logger.Debugf("document ctrl delete\n")
 	// body := map[string]interface{}{}
 	// json.Unmarshal(c.BodyRaw(), &body)
-	// fmt.Printf("req body: %+v\n", body)
+	// logger.Debugf("req body: %+v\n", body)
 	delIds := struct {
 		Ids []int64 `json:"ids" validate:"required,unique"`
 	}{}
@@ -187,13 +187,13 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
 	if intIdsErr != nil && strIdsErr != nil {
-		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
+		logger.Errorf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
 	if len(delIds.Ids) == 0 && len(mongoDelIds.Ids) == 0 {
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "please check the req json like the follow: {\"ids\":[]}"})
 	}
-	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
+	logger.Debugf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
 	var (
 		results []*Document
@@ -208,7 +208,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	}
 
 	if err != nil {
-		log.Printf("failed to delete, err: %+v\n", err.Error())
+		logger.Errorf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
 		return fctx.JsonResponse(
 			respCode,
@@ -224,7 +224,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) GetDocument(ctx *fiber.Ctx) error {
-	fmt.Printf("GetDocument ctrl\n")
+	logger.Debugf("GetDocument ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	id := fctx.Fctx.Params("id")
