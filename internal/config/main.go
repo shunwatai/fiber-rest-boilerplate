@@ -55,6 +55,7 @@ type Logging struct {
 		Output   []string
 		Filename string
 	}
+	DebugSymbol *string
 }
 
 type ServerConf struct {

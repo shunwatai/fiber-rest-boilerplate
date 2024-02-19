@@ -43,6 +43,7 @@ logging:
       # - "console"
       - "file"
     filename: "requests.log"
+  debugSymbol: 
 
 redis:
   host: "localhost"

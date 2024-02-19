@@ -19,11 +19,6 @@ func newConsoleLogger() *zap.Logger {
 	return zap.New(core, zap.AddCaller(), zap.AddCallerSkip(2))
 }
 
-func (zl *ZapLog) SetDebugSymbol(symbol string) *ZapLog {
-	zl.DebugSymbol = symbol
-	return zl
-}
-
 func Debugf(format string, args ...interface{}) {
 	Zlog.Debugf(format, args...)
 }
@@ -46,16 +41,17 @@ func (zl *ZapLog) Debugf(format string, args ...interface{}) {
 
 	sugar := Zlog.ConsoleLogger.Sugar()
 
-	if len(zl.DebugSymbol) == 0 {
-		zl.SetDebugSymbol("*")
-	}
 	if zl.Level <= DebugLevel {
-		fmt.Printf("%s DEBUG %s\n", strings.Repeat(zl.DebugSymbol, 20), strings.Repeat(zl.DebugSymbol, 20))
-		sugar.Debugf(format, args...)
-		fmt.Println(strings.Repeat(zl.DebugSymbol, 47))
+		if zl.DebugSymbol != nil {
+			fmt.Printf("%s DEBUG %s\n", strings.Repeat(*zl.DebugSymbol, 20), strings.Repeat(*zl.DebugSymbol, 20))
+			sugar.Debugf(format, args...)
+			fmt.Println(strings.Repeat(*zl.DebugSymbol, 47))
+		} else {
+			sugar.Debugf(format, args...)
+		}
 	}
 
-	zl.SetDebugSymbol("*") // reset to default symbol
+	zl.SetDebugSymbol(cfg.Logging.DebugSymbol) // reset to default symbol
 }
 
 func (zl *ZapLog) Infof(format string, args ...interface{}) {

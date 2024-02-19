@@ -28,7 +28,7 @@ type ZapLog struct {
 	Output        OutputTypes
 	Filename      *string
 	Level         int // available level (DebugLevel,InfoLevel,WarningLevel,ErrorLevel), Debugf() in console_logger.go will be effective if DebugLevel is set
-	DebugSymbol   string
+	DebugSymbol   *string
 }
 
 var cfg = config.Cfg
@@ -41,8 +41,13 @@ func NewZlog() {
 	}
 	Zlog.Filename = &cfg.Logging.Zap.Filename
 	Zlog.Level = cfg.Logging.Level
-	Zlog.DebugSymbol = "*"
+	Zlog.DebugSymbol = cfg.Logging.DebugSymbol
 	*Zlog.Filename = "requests.log" // default logfile name under logs/
+}
+
+func (zl *ZapLog) SetDebugSymbol(symbol *string) *ZapLog {
+	zl.DebugSymbol = symbol
+	return zl
 }
 
 func GetField(key string, value interface{}) zap.Field {
