@@ -3,7 +3,7 @@ package log
 import (
 	"errors"
 	"golang-api-starter/internal/helper"
-	"golang-api-starter/internal/helper/logger"
+	"golang-api-starter/internal/helper/logger/zap_log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"

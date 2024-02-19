@@ -3,7 +3,7 @@ package qrcode
 import (
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
-	"golang-api-starter/internal/helper/logger"
+	"golang-api-starter/internal/helper/logger/zap_log"
 
 	"github.com/gofiber/fiber/v2"
 )

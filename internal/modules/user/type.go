@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
-	"golang-api-starter/internal/helper/logger"
+	"golang-api-starter/internal/helper/logger/zap_log"
 	"log"
 	"reflect"
 	"strconv"

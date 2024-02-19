@@ -6,7 +6,7 @@ import (
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
-	"golang-api-starter/internal/helper/logger"
+	"golang-api-starter/internal/helper/logger/zap_log"
 	customLog "golang-api-starter/internal/modules/log"
 	"log"
 	"slices"

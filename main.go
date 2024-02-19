@@ -5,7 +5,7 @@ import (
 	"golang-api-starter/cmd/dbmigrate"
 	"golang-api-starter/cmd/gen"
 	"golang-api-starter/cmd/server"
-	"golang-api-starter/internal/helper/logger"
+	"golang-api-starter/internal/helper/logger/zap_log"
 	"os"
 )
 

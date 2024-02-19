@@ -4,7 +4,7 @@ import (
 	"errors"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
-	"golang-api-starter/internal/helper/logger"
+	"golang-api-starter/internal/helper/logger/zap_log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
