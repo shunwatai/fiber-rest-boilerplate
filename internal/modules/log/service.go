@@ -2,8 +2,11 @@ package log
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type Service struct {
@@ -16,12 +19,12 @@ func NewService(r *Repository) *Service {
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*Log, *helper.Pagination) {
-	fmt.Printf("log service get\n")
+	logger.Debugf("log service get\n")
 	return s.repo.Get(queries)
 }
 
 func (s *Service) GetById(queries map[string]interface{}) ([]*Log, error) {
-	fmt.Printf("log service getById\n")
+	logger.Debugf("log service getById\n")
 
 	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
@@ -31,7 +34,7 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*Log, error) {
 }
 
 func (s *Service) Create(logs []*Log) ([]*Log, *helper.HttpErr) {
-	fmt.Printf("log service create\n")
+	logger.Debugf("log service create\n")
   /*
 	// use the claims for mark the "createdBy/updatedBy" in database
 	claims := s.ctx.Locals("claims").(jwt.MapClaims)
@@ -51,17 +54,17 @@ func (s *Service) Create(logs []*Log) ([]*Log, *helper.HttpErr) {
 }
 
 func (s *Service) Update(logs []*Log) ([]*Log, *helper.HttpErr) {
-	fmt.Printf("log service update\n")
+	logger.Debugf("log service update")
 	results, err := s.repo.Update(logs)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
 func (s *Service) Delete(ids []string) ([]*Log, error) {
-	fmt.Printf("log service delete\n")
+	logger.Debugf("log service delete")
 
-	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	getByIdsCondition := database.GetIdsMapCondition(nil, ids)
 	records, _ := s.repo.Get(getByIdsCondition)
-	fmt.Printf("records: %+v\n", records)
+	logger.Debugf("records: %+v", records)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
 	}

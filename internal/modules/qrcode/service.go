@@ -3,6 +3,7 @@ package qrcode
 import (
 	"fmt"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"image"
 	"image/jpeg"
 	_ "image/jpeg"
@@ -34,7 +35,7 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 	imagesPath := ""
 	doc, err := fitz.NewFromMemory(fileBytes)
 	if err != nil {
-		fmt.Printf("fitz.NewFromMemory failed, err: %+v\n", err.Error())
+		logger.Errorf("fitz.NewFromMemory failed, err: %+v\n", err.Error())
 		return "", err
 	}
 
@@ -45,7 +46,7 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 		}
 		img, err := doc.Image(n)
 		if err != nil {
-			fmt.Printf("failed to get image from pdf, err: %+v\n", err.Error())
+			logger.Errorf("failed to get image from pdf, err: %+v\n", err.Error())
 			return "", err
 		}
 		width := img.Bounds().Dx()
@@ -60,7 +61,7 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 
 		err = os.MkdirAll("qrcodes/", 0755)
 		if err != nil {
-			fmt.Printf("failed create directory qrcodes, err: %+v\n", err.Error())
+			logger.Errorf("failed create directory qrcodes, err: %+v\n", err.Error())
 			return "", err
 		}
 
@@ -68,13 +69,13 @@ func PdfToImg(fileBytes []byte, filename string) (string, error) {
 		imagesPath = filepath.Join("qrcodes/", fmt.Sprintf("%s.jpg", filename))
 		f, err := os.Create(imagesPath)
 		if err != nil {
-			fmt.Printf("failed create image, err: %+v\n", err.Error())
+			logger.Errorf("failed create image, err: %+v\n", err.Error())
 			return "", err
 		}
 
 		err = jpeg.Encode(f, img, nil)
 		if err != nil {
-			fmt.Printf("failed encode resizedImg jpeg, err: %+v\n", err.Error())
+			logger.Errorf("failed encode resizedImg jpeg, err: %+v\n", err.Error())
 			return "", err
 		}
 
@@ -88,19 +89,19 @@ func GetContentFromImg(path string) (*string, error) {
 	// open and decode image file
 	file, err := os.Open(path)
 	if err != nil {
-		fmt.Printf("os.Open failed, err: %+v\n", err.Error())
+		logger.Errorf("os.Open failed, err: %+v\n", err.Error())
 		return nil, err
 	}
 	img, _, err := image.Decode(file)
 	if err != nil {
-		fmt.Printf("image.Decode failed, err: %+v\n", err.Error())
+		logger.Errorf("image.Decode failed, err: %+v\n", err.Error())
 		return nil, err
 	}
 
 	// prepare BinaryBitmap
 	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
 	if err != nil {
-		fmt.Printf("gozxing.NewBinaryBitmapFromImage failed, err: %+v\n", err.Error())
+		logger.Errorf("gozxing.NewBinaryBitmapFromImage failed, err: %+v\n", err.Error())
 		return nil, err
 	}
 
@@ -108,7 +109,7 @@ func GetContentFromImg(path string) (*string, error) {
 	qrReader := qrcode.NewQRCodeReader()
 	result, err := qrReader.Decode(bmp, nil)
 	if err != nil {
-		fmt.Printf("qrReader.Decode failed, err: %+v\n", err.Error())
+		logger.Errorf("qrReader.Decode failed, err: %+v\n", err.Error())
 		return nil, err
 	}
 
@@ -120,7 +121,7 @@ func GetContentFromImg(path string) (*string, error) {
 }
 
 func (s *Service) GetQrcodeContentFromPdf(form *multipart.Form) (map[string]interface{}, error) {
-	fmt.Printf("qrcode service GetQrcodeContentFromPdf\n")
+	logger.Debugf("qrcode service GetQrcodeContentFromPdf")
 
 	result := map[string]interface{}{}
 	resultChan := make(chan struct {
@@ -136,18 +137,18 @@ func (s *Service) GetQrcodeContentFromPdf(form *multipart.Form) (map[string]inte
 			wg.Add(1)
 			// process uploaded file here
 			go func(head *multipart.FileHeader, wg *sync.WaitGroup) {
-				fmt.Printf("fieldName: %+v, fileName: %+v, fileType: %+v, fileSize: %+v\n", formFileName, head.Filename, head.Header["Content-Type"][0], head.Size)
+				logger.Debugf("fieldName: %+v, fileName: %+v, fileType: %+v, fileSize: %+v\n", formFileName, head.Filename, head.Header["Content-Type"][0], head.Size)
 
 				file, err := head.Open()
 				defer file.Close()
 				if err != nil {
-					fmt.Printf("failed to open file, err: %+v\n", err.Error())
+					logger.Errorf("failed to open file, err: %+v\n", err.Error())
 					// return result, err
 				}
 
 				fileBytes, err := io.ReadAll(file)
 				if err != nil {
-					fmt.Printf("failed to read file, err: %+v\n", err.Error())
+					logger.Errorf("failed to read file, err: %+v\n", err.Error())
 					// return result, err
 				}
 
@@ -155,12 +156,12 @@ func (s *Service) GetQrcodeContentFromPdf(form *multipart.Form) (map[string]inte
 				defer wg.Done()
 				imagesLocation, err := PdfToImg(fileBytes, head.Filename)
 				if err != nil {
-					fmt.Printf("PdfToImg failed, err: %+v\n", err)
+					logger.Errorf("PdfToImg failed, err: %+v\n", err)
 				}
 
 				logNumber, err := GetContentFromImg(imagesLocation)
 				if err != nil {
-					fmt.Printf("GetContentFromImg failed, err: %+v\n", err)
+					logger.Errorf("GetContentFromImg failed, err: %+v\n", err)
 				}
 
 				resultChan <- struct {
@@ -181,16 +182,16 @@ func (s *Service) GetQrcodeContentFromPdf(form *multipart.Form) (map[string]inte
 	// get the results from chan
 	for r := range resultChan {
 		if r.err != nil {
-			fmt.Printf("result err: %+v --> %+v\n", r.filename, r.err.Error())
+			logger.Errorf("result err: %+v --> %+v\n", r.filename, r.err.Error())
 			result[r.filename] = fmt.Sprintf("%s-err", r.filename)
 			continue
 		}
 		if r.logNumber == nil {
-			fmt.Printf("result: %+v --> %+v\n", r.filename, nil)
+			logger.Errorf("result: %+v --> %+v\n", r.filename, nil)
 			continue
 		}
 		result[r.filename] = r.logNumber
-		fmt.Printf("result: %+v --> %+v\n", r.filename, *r.logNumber)
+		logger.Errorf("result: %+v --> %+v\n", r.filename, *r.logNumber)
 	}
 
 	return result, nil

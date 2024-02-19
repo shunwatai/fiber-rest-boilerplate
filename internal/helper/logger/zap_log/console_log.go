@@ -28,8 +28,9 @@ func Infof(format string, args ...interface{}) {
 func Warnf(format string, args ...interface{}) {
 	Zlog.Warnf(format, args...)
 }
-func Errorf(format string, args ...interface{}) {
+func Errorf(format string, args ...interface{}) error {
 	Zlog.Errorf(format, args...)
+	return fmt.Errorf(format, args...)
 }
 func Fatalf(format string, args ...interface{}) {
 	Zlog.Fatalf(format, args...)

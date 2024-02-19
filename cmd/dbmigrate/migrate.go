@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"golang-api-starter/internal/config"
 	db "golang-api-starter/internal/database"
-	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/utils"
 	"log"
 	"strings"
 
@@ -36,7 +36,7 @@ func DbMigrate(action, dbDriver string) error {
 		m      *migrate.Migrate
 		driver database.Driver
 	)
-	basepath := helper.RootDir()
+	basepath := utils.RootDir(2)
 	cfg.LoadEnvVariables()
 	cfg.Vpr.Set("database.engine", dbDriver)
 	if err := cfg.Vpr.Unmarshal(cfg); err != nil {

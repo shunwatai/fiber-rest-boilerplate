@@ -6,7 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"image"
 	"image/jpeg"
 	"io"
@@ -42,12 +44,12 @@ func (s *Service) GetIdMap(documents Documents) map[string]*Document {
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*Document, *helper.Pagination) {
-	fmt.Printf("document service get\n")
+	logger.Debugf("document service get")
 	return s.repo.Get(queries)
 }
 
 func (s *Service) GetById(queries map[string]interface{}) ([]*Document, error) {
-	fmt.Printf("document service getById\n")
+	logger.Debugf("document service getById")
 
 	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
@@ -57,7 +59,7 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*Document, error) {
 }
 
 func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
-	fmt.Printf("document service create\n")
+	logger.Debugf("document service create")
 	timer := helper.Timer(time.Now())
 	defer timer()
 
@@ -96,7 +98,7 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 			return nil, &helper.HttpErr{fiber.StatusInternalServerError, err}
 		}
 		defer out.Close()
-		// fmt.Printf("file?: %T\n", file)
+		// logger.Debugf("file?: %T\n", file)
 
 		hash := sha1.New()
 		f := io.TeeReader(file, hash)
@@ -106,10 +108,10 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 			log.Println("failed to copy file", copyError)
 			return nil, &helper.HttpErr{fiber.StatusInternalServerError, copyError}
 		}
-		// fmt.Println("uploaded to ", uploadPath)
+		// logger.Debugf("uploaded to ", uploadPath)
 
 		sha1Sum := hex.EncodeToString(hash.Sum(nil))
-		// fmt.Println("file hash: ", sha1Sum, hash.Sum(nil))
+		// logger.Debugf("file hash: ", sha1Sum, hash.Sum(nil))
 
 		document := &Document{
 			Name:     fh.Filename,
@@ -129,7 +131,7 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 			documentsMap[sha1Sum] = uploadPath
 		}
 		recordsWithSameHash, _ := s.repo.Get(map[string]interface{}{"hash": sha1Sum})
-		// fmt.Println("sameRecord",recordsWithSameHash,len(recordsWithSameHash) )
+		// logger.Debugf("sameRecord", recordsWithSameHash, len(recordsWithSameHash))
 
 		if document.UserId == nil {
 			document.UserId = claims["userId"]
@@ -152,17 +154,17 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 }
 
 func (s *Service) Update(documents []*Document) ([]*Document, *helper.HttpErr) {
-	fmt.Printf("document service update\n")
+	logger.Debugf("document service update")
 	results, err := s.repo.Update(documents)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
 func (s *Service) Delete(ids []string) ([]*Document, error) {
-	fmt.Printf("document service delete\n")
+	logger.Debugf("document service delete")
 
-	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	getByIdsCondition := database.GetIdsMapCondition(nil, ids)
 	records, _ := s.repo.Get(getByIdsCondition)
-	fmt.Printf("records: %+v\n", records)
+	logger.Debugf("records: %+v\n", records)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
 	}
@@ -171,7 +173,7 @@ func (s *Service) Delete(ids []string) ([]*Document, error) {
 }
 
 func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, string, error) {
-	fmt.Printf("GetDocument service\n")
+	logger.Debugf("GetDocument service")
 	var size int64 = 0
 	if queries["size"] != nil {
 		size, _ = strconv.ParseInt(queries["size"].(string), 10, 64)
@@ -182,7 +184,7 @@ func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, s
 		return nil, "", "", fmt.Errorf("not found")
 	}
 
-	fmt.Printf("filePath: %+v\n", repoData[0].FilePath)
+	logger.Debugf("filePath: %+v\n", repoData[0].FilePath)
 	f, err := os.Open(repoData[0].FilePath)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("failed to open file, %+v", err.Error())
@@ -193,7 +195,7 @@ func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, s
 	if err != nil {
 		return nil, "", "", fmt.Errorf("failed to get file type, %+v", err.Error())
 	}
-	fmt.Println("fileType: ", fileType)
+	logger.Debugf("fileType: ", fileType)
 	fileBytes, fileErr := os.ReadFile(repoData[0].FilePath)
 	if fileErr != nil {
 		return nil, "", "", fmt.Errorf("failed to get file type, %+v", fileErr.Error())

@@ -6,6 +6,7 @@ import (
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/utils"
 	"golang-api-starter/internal/helper/logger/zap_log"
 	customLog "golang-api-starter/internal/modules/log"
 	"log"
@@ -26,7 +27,7 @@ func Logger() fiber.Handler {
 		// log.Printf("1reqBody: %+v, %+v \n", len(string(bodyBytes)), string(bodyBytes))
 		var reqBodyJson, respBodyJson *string
 		if len(string(bodyBytes)) > 0 {
-			reqBodyJson = helper.ToPtr(string(bodyBytes))
+			reqBodyJson = utils.ToPtr(string(bodyBytes))
 		}
 
 		reqHeader, _ := json.Marshal(c.GetReqHeaders())
@@ -46,7 +47,7 @@ func Logger() fiber.Handler {
 			ip := c.IP()
 			// log.Println("from IP:", ip)
 			if len(string(c.Response().Body())) > 0 {
-				respBodyJson = helper.ToPtr(string(c.Response().Body()))
+				respBodyJson = utils.ToPtr(string(c.Response().Body()))
 			}
 
 			/* insert into logs table */
@@ -62,7 +63,7 @@ func Logger() fiber.Handler {
 					ResponseBody:  respBodyJson,
 					Status:        int64(c.Response().StatusCode()),
 					Duration:      time.Since(start).Milliseconds(),
-					CreatedAt:     &helper.CustomDatetime{&start, helper.ToPtr(time.RFC3339)},
+					CreatedAt:     &helper.CustomDatetime{&start, utils.ToPtr(time.RFC3339)},
 				}}
 				log.Printf("%+v\n", logData)
 
@@ -84,7 +85,7 @@ func Logger() fiber.Handler {
 					logger.GetField("ResponseBody", respBodyJson),
 					logger.GetField("Status", int64(c.Response().StatusCode())),
 					logger.GetField("Duration", time.Since(start).Milliseconds()),
-					logger.GetField("CreatedAt", &helper.CustomDatetime{&start, helper.ToPtr(time.RFC3339)}),
+					logger.GetField("CreatedAt", &helper.CustomDatetime{&start, utils.ToPtr(time.RFC3339)}),
 				)
 			}
 		}()

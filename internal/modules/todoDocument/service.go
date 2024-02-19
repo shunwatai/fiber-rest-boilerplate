@@ -2,7 +2,10 @@ package todoDocument
 
 import (
 	"fmt"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -32,12 +35,12 @@ func (s *Service) GetTodoIdMap(tds []*TodoDocument) map[string][]*TodoDocument {
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*TodoDocument, *helper.Pagination) {
-	fmt.Printf("todoDocument service get\n")
+	logger.Debugf("todoDocument service get")
 	return s.repo.Get(queries)
 }
 
 func (s *Service) GetById(queries map[string]interface{}) ([]*TodoDocument, error) {
-	fmt.Printf("todoDocument service getById\n")
+	logger.Debugf("todoDocument service getById")
 
 	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
@@ -47,7 +50,7 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*TodoDocument, erro
 }
 
 func (s *Service) Create(todoDocuments []*TodoDocument) ([]*TodoDocument, *helper.HttpErr) {
-	fmt.Printf("todoDocument service create\n")
+	logger.Debugf("todoDocument service create")
   /*
 	// use the claims for mark the "createdBy/updatedBy" in database
 	claims := s.ctx.Locals("claims").(jwt.MapClaims)
@@ -67,17 +70,17 @@ func (s *Service) Create(todoDocuments []*TodoDocument) ([]*TodoDocument, *helpe
 }
 
 func (s *Service) Update(todoDocuments []*TodoDocument) ([]*TodoDocument, *helper.HttpErr) {
-	fmt.Printf("todoDocument service update\n")
+	logger.Debugf("todoDocument service update")
 	results, err := s.repo.Update(todoDocuments)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
 func (s *Service) Delete(ids []string) ([]*TodoDocument, error) {
-	fmt.Printf("todoDocument service delete\n")
+	logger.Debugf("todoDocument service delete")
 
-	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	getByIdsCondition := database.GetIdsMapCondition(nil, ids)
 	records, _ := s.repo.Get(getByIdsCondition)
-	fmt.Printf("records: %+v\n", records)
+	logger.Debugf("records: %+v", records)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
 	}

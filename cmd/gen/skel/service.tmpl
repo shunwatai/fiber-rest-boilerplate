@@ -2,8 +2,10 @@ package {{.ModuleName}}
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger/zap_log"
+	"github.com/gofiber/fiber/v2"
 )
 
 type Service struct {
@@ -16,12 +18,12 @@ func NewService(r *Repository) *Service {
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*{{.StructName}}, *helper.Pagination) {
-	fmt.Printf("{{.ModuleName}} service get\n")
+	logger.Debugf("{{.ModuleName}} service get")
 	return s.repo.Get(queries)
 }
 
 func (s *Service) GetById(queries map[string]interface{}) ([]*{{.StructName}}, error) {
-	fmt.Printf("{{.ModuleName}} service getById\n")
+	logger.Debugf("{{.ModuleName}} service getById")
 
 	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
@@ -31,11 +33,11 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*{{.StructName}}, e
 }
 
 func (s *Service) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, *helper.HttpErr) {
-	fmt.Printf("{{.ModuleName}} service create\n")
+	logger.Debugf("{{.ModuleName}} service create")
   /*
 	// use the claims for mark the "createdBy/updatedBy" in database
 	claims := s.ctx.Locals("claims").(jwt.MapClaims)
-	fmt.Println("req by:", claims["userId"], claims["username"])
+	logger.Debugf("req by userId: %+v, username: %+v", claims["userId"], claims["username"])
 	for _, {{.ModuleName}} := range {{.ModuleName}}s {
 		if {{.ModuleName}}.UserId == nil {
 			{{.ModuleName}}.UserId = claims["userId"]
@@ -51,17 +53,17 @@ func (s *Service) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}
 }
 
 func (s *Service) Update({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, *helper.HttpErr) {
-	fmt.Printf("{{.ModuleName}} service update\n")
+	logger.Debugf("{{.ModuleName}} service update")
 	results, err := s.repo.Update({{.ModuleName}}s)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
 func (s *Service) Delete(ids []string) ([]*{{.StructName}}, error) {
-	fmt.Printf("{{.ModuleName}} service delete\n")
+	logger.Debugf("{{.ModuleName}} service delete")
 
-	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	getByIdsCondition := database.GetIdsMapCondition(nil, ids)
 	records, _ := s.repo.Get(getByIdsCondition)
-	fmt.Printf("records: %+v\n", records)
+	logger.Debugf("records: %+v", records)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
 	}

@@ -4,7 +4,7 @@ package gen
 import (
 	_ "embed"
 	"fmt"
-	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/utils"
 	"io/ioutil"
 	"log"
 	"os"
@@ -30,7 +30,7 @@ type entity struct {
 
 var wg sync.WaitGroup
 
-var basepath = helper.RootDir()
+var basepath = utils.RootDir(2)
 
 func GenerateNewModule() {
 	if len(os.Args) <= 2 {

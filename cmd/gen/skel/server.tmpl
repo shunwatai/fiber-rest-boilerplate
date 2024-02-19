@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 	"golang-api-starter/internal/config"
-	zlog "golang-api-starter/internal/helper/logger"
+	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/middleware/logging"
   {{- range .Modules }}
   "golang-api-starter/internal/modules/{{ .ModuleName }}"

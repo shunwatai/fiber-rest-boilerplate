@@ -1,9 +1,9 @@
 package {{.ModuleName}}
 
 import (
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	//"golang-api-starter/internal/modules/user"
 	"golang.org/x/exp/maps"
 )
@@ -22,7 +22,7 @@ func cascadeFields({{.ModuleName}}s {{.StructName}}s) {
 }
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*{{.StructName}}, *helper.Pagination) {
-	fmt.Printf("{{.ModuleName}} repo\n")
+	logger.Debugf("{{.ModuleName}} repo get")
 	defaultExactMatch := map[string]bool{
 		"id":   true,
 		"_id":  true,
@@ -48,7 +48,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*{{.StructName}}, *h
 
 func (r *Repository) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, error) {
 	for _, {{.ModuleName}} := range {{.ModuleName}}s {
-		fmt.Printf("{{.ModuleName}} repo add: %+v\n", {{.ModuleName}})
+		logger.Debugf("{{.ModuleName}} repo add: %+v", {{.ModuleName}})
 	}
 	rows, err := r.db.Save({{.StructName}}s({{.ModuleName}}s))
 
@@ -62,7 +62,7 @@ func (r *Repository) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructNa
 }
 
 func (r *Repository) Update({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, error) {
-	fmt.Printf("{{.ModuleName}} repo update\n")
+	logger.Debugf("{{.ModuleName}} repo update")
 	rows, err := r.db.Save({{.StructName}}s({{.ModuleName}}s))
 
 	var records {{.StructName}}s
@@ -75,7 +75,7 @@ func (r *Repository) Update({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructNa
 }
 
 func (r *Repository) Delete(ids []string) error {
-	fmt.Printf("{{.ModuleName}} repo delete\n")
+	logger.Debugf("{{.ModuleName}} repo delete")
 	err := r.db.Delete(ids)
 	if err != nil {
 		return err

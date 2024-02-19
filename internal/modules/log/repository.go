@@ -1,9 +1,10 @@
 package log
 
 import (
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
+
 	//"golang-api-starter/internal/modules/user"
 	"golang.org/x/exp/maps"
 )
@@ -22,10 +23,10 @@ func cascadeFields(logs Logs) {
 }
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*Log, *helper.Pagination) {
-	fmt.Printf("log repo\n")
+	logger.Debugf("log repo")
 	defaultExactMatch := map[string]bool{
-		"id":   true,
-		"_id":  true,
+		"id":  true,
+		"_id": true,
 		//"done": true, // bool match needs exact match, param can be 0(false) & 1(true)
 	}
 	if queries["exactMatch"] != nil {
@@ -48,7 +49,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Log, *helper.Pagina
 
 func (r *Repository) Create(logs []*Log) ([]*Log, error) {
 	for _, log := range logs {
-		fmt.Printf("log repo add: %+v\n", log)
+		logger.Debugf("log repo add: %+v", log)
 	}
 	rows, err := r.db.Save(Logs(logs))
 
@@ -62,7 +63,7 @@ func (r *Repository) Create(logs []*Log) ([]*Log, error) {
 }
 
 func (r *Repository) Update(logs []*Log) ([]*Log, error) {
-	fmt.Printf("log repo update\n")
+	logger.Debugf("log repo update")
 	rows, err := r.db.Save(Logs(logs))
 
 	var records Logs
@@ -75,7 +76,7 @@ func (r *Repository) Update(logs []*Log) ([]*Log, error) {
 }
 
 func (r *Repository) Delete(ids []string) error {
-	fmt.Printf("log repo delete\n")
+	logger.Debugf("log repo delete\n")
 	err := r.db.Delete(ids)
 	if err != nil {
 		return err

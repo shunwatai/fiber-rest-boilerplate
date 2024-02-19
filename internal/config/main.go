@@ -2,10 +2,13 @@ package config
 
 import (
 	"errors"
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/viper"
+	"fmt"
+	"golang-api-starter/internal/helper/utils"
 	"log"
 	"os"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
 )
 
 type SqliteConf struct {
@@ -95,7 +98,10 @@ func (c *Config) LoadEnvVariables() {
 		log.Printf("env check for config err: %+v\n", err)
 	}
 
-	for _, envPath := range []string{"./configs"} {
+	basepath := utils.RootDir(2)
+	configsDir := fmt.Sprintf("%s/configs", basepath)
+	log.Printf("configsDir: %+v\n\n", configsDir)
+	for _, envPath := range []string{configsDir} {
 		c.Vpr.AddConfigPath(envPath)
 	}
 

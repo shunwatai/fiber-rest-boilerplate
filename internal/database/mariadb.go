@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"log"
 	"math"
 	"strconv"
@@ -25,13 +26,13 @@ func (m *MariaDb) GetDbConfig() *ConnectionInfo {
 
 func (m *MariaDb) GetConnectionString() string {
 	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
-	// fmt.Printf("ConnString: %+v\n", connectionString)
+	// logger.Debugf("ConnString: %+v", connectionString)
 	return connectionString
 }
 
 func (m *MariaDb) Connect() *sqlx.DB {
-	fmt.Printf("connecting to MariaDb... \n")
-	// fmt.Printf("Table: %+v\n", m.TableName)
+	logger.Debugf("connecting to MariaDb... ")
+	// logger.Debugf("Table: %+v", m.TableName)
 	connectionString := m.GetConnectionString()
 
 	db, err := sqlx.Open("mysql", connectionString)
@@ -57,17 +58,17 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 	cols := queries["columns"].([]string)
 	pagination := helper.GetPagination(queries)
 	dateRangeStmt := getDateRangeStmt(queries, bindvarMap)
-	fmt.Printf("dateRangeStmt: %+v, len: %+v\n", dateRangeStmt, len(dateRangeStmt))
+	logger.Debugf("dateRangeStmt: %+v, len: %+v", dateRangeStmt, len(dateRangeStmt))
 	helper.SanitiseQuerystring(cols, queries)
 
 	countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
 	selectStmt := fmt.Sprintf(`SELECT * FROM %s`, m.TableName)
 
-	fmt.Printf("queries: %+v, len: %+v\n", queries, len(queries))
+	logger.Debugf("queries: %+v, len: %+v", queries, len(queries))
 	if len(queries) != 0 || len(dateRangeStmt) != 0 { // add where clause
 		whereClauses := []string{}
 		for k, v := range queries {
-			fmt.Printf("%+v: %+v(%T)\n", k, v, v)
+			logger.Debugf("%+v: %+v(%T)", k, v, v)
 			switch v.(type) {
 			case []string:
 				placeholders := []string{}
@@ -112,7 +113,7 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 	}
 
 	if totalRow, err := m.db.NamedQuery(countAllStmt, bindvarMap); err != nil {
-		log.Printf("Queryx Count(*) err: %+v\n", err.Error())
+		logger.Debugf("Queryx Count(*) err: %+v", err.Error())
 	} else if totalRow.Next() {
 		defer totalRow.Close()
 		totalRow.Scan(&pagination.Count)
@@ -120,7 +121,7 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 	if pagination.Items > 0 {
 		pagination.TotalPages = int64(math.Ceil(float64(pagination.Count) / float64(pagination.Items)))
 	}
-	// fmt.Printf("pagination: %+v\n", pagination)
+	// logger.Debugf("pagination: %+v", pagination)
 
 	var limit string
 	var offset string = strconv.Itoa(int((pagination.Page - 1) * pagination.Items))
@@ -152,26 +153,26 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 //
 // 	rows, err := m.db.Queryx(selectStmt)
 // 	if err != nil {
-// 		log.Printf("%+v\n", err)
+// 		logger.Debugf("%+v", err)
 // 	}
 // 	defer rows.Close()
 //
 // 	cols, err := rows.Columns()
 // 	if err != nil {
-// 		log.Printf("%+v\n", err)
+// 		logger.Debugf("%+v", err)
 // 	}
 //
 // 	return cols
 // }
 
 func (m *MariaDb) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
-	fmt.Printf("select from MariaDB, table: %+v\n", m.TableName)
+	logger.Debugf("select from MariaDB, table: %+v", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
 
 	selectStmt, pagination, bindvarMap := m.constructSelectStmtFromQuerystring(queries)
-	fmt.Printf("bindvarMap: %+v\n", bindvarMap)
-	fmt.Printf("selectStmt: %+v\n", selectStmt)
+	logger.Debugf("bindvarMap: %+v", bindvarMap)
+	logger.Debugf("selectStmt: %+v", selectStmt)
 
 	// unlike postgres, mysql needs to use "Prepare" in order to scan the column into interface{} correctly instead of unexpected []int8
 	// ref:https://github.com/go-sql-driver/mysql/issues/407#issuecomment-172583652
@@ -179,24 +180,24 @@ func (m *MariaDb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	rows, err := stmt.Queryx(bindvarMap)
 
 	if err != nil {
-		log.Printf("Queryx err: %+v\n", err.Error())
+		logger.Errorf("Queryx err: %+v", err.Error())
 	}
 
 	if rows.Err() != nil {
-		log.Printf("rows.Err(): %+v\n", err.Error())
+		logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
 	return rows, pagination
 }
 
 func (m *MariaDb) Save(records Records) (Rows, error) {
-	fmt.Printf("save from MariaDB, table: %+v\n", m.TableName)
+	logger.Debugf("save from MariaDB, table: %+v", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
 
 	cols := records.GetTags("db")
 
-	// fmt.Printf("cols: %+v\n", cols)
+	// logger.Debugf("cols: %+v", cols)
 	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
 		// use in SQL's VALUES()
@@ -223,17 +224,17 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 		m.TableName,
 		fmt.Sprintf(strings.Join(cols[:], ",")),
 		fmt.Sprintf(strings.Join(colWithColon[:], ",")),
-		fmt.Sprintf(strings.Join(colUpdateSet[:], ",\n")),
+		fmt.Sprintf(strings.Join(colUpdateSet[:], ",")),
 	)
-	fmt.Printf("%+v \n", insertStmt)
+	logger.Debugf("%+v ", insertStmt)
 
 	insertedIds := []string{}
 	sqlResult, err := m.db.NamedQuery(insertStmt, records)
 	if err != nil {
-		log.Printf("insert error: %+v\n", err)
+		logger.Errorf("insert error: %+v", err)
 		return nil, err
 	}
-	// fmt.Printf("sqlResult: %+v\n", sqlResult)
+	// logger.Debugf("sqlResult: %+v", sqlResult)
 
 	for sqlResult.Next() {
 		var id string
@@ -248,7 +249,7 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 		return nil, fmt.Errorf("insert error...")
 	}
 
-	fmt.Printf("insertedIds: %+v\n", insertedIds)
+	logger.Debugf("insertedIds: %+v", insertedIds)
 	rows, _ := m.Select(map[string]interface{}{
 		"id":      insertedIds,
 		"columns": cols,
@@ -258,7 +259,7 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 }
 
 func (m *MariaDb) Delete(ids []string) error {
-	fmt.Printf("delete from MariaDB, table: %+v\n", m.TableName)
+	logger.Debugf("delete from MariaDB, table: %+v", m.TableName)
 	m.db = m.Connect()
 	defer m.db.Close()
 
@@ -267,15 +268,15 @@ func (m *MariaDb) Delete(ids []string) error {
 		ids,
 	)
 	if err != nil {
-		log.Printf("sqlx.In err: %+v\n", err.Error())
+		logger.Errorf("sqlx.In err: %+v", err.Error())
 		return err
 	}
 	deleteStmt = m.db.Rebind(deleteStmt)
-	fmt.Printf("stmt: %+v, args: %+v\n", deleteStmt, args)
+	logger.Debugf("stmt: %+v, args: %+v", deleteStmt, args)
 
 	_, err = m.db.Exec(deleteStmt, args...)
 	if err != nil {
-		log.Printf("Delete Query err: %+v\n", err.Error())
+		logger.Errorf("Delete Query err: %+v", err.Error())
 		return err
 	}
 
@@ -283,16 +284,16 @@ func (m *MariaDb) Delete(ids []string) error {
 }
 
 func (m *MariaDb) RawQuery(sql string) *sqlx.Rows {
-	fmt.Printf("raw query from Postgres\n")
+	logger.Debugf("raw query from Postgres")
 	m.db = m.Connect()
 	defer m.db.Close()
 
 	rows, err := m.db.Queryx(sql)
 	if err != nil {
-		log.Printf("Queryx err: %+v\n", err.Error())
+		logger.Errorf("Queryx err: %+v", err.Error())
 	}
 	if rows.Err() != nil {
-		log.Printf("rows.Err(): %+v\n", err.Error())
+		logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
 	return rows

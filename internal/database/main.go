@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"strings"
 	"time"
 
@@ -106,7 +107,7 @@ func GetDbConnection() (*ConnectionInfo, error) {
 }
 
 func GetDatabase(tableName string) IDatabase {
-	// log.Printf("engine: %+v\n", cfg.DbConf.Driver)
+	logger.Debugf("engine: %+v", cfg.DbConf.Driver)
 
 	if cfg.DbConf.Driver == "sqlite" {
 		dbConn, _ := GetDbConnection()
@@ -149,25 +150,25 @@ func GetDatabase(tableName string) IDatabase {
 // NOTE: when getting the querystring in controller, GetQueryString() will look for keys end with either "_at" or "date" in order to add the flag "withDateFilter" in queries.
 //
 // There are 3 accepted input, all indicated by .(DOT):
-// 1. records from specified date up to now --> 2023-10-1.
-//    e.g. queries --> map[string]interface{}{"created_at":"2023-10-01."} --> sql: created_at >= 2023-10-01
-// 2. records before specified date --> .2023-06-30
-//    e.g. queries --> map[string]interface{}{"created_at":".2023-06-30"} --> sql: created_at <= 2023-06-30
-// 3. records in between 2 dates --> 2023-06-30.2023-10-1
-//    e.g. queries --> map[string]interface{}{"created_at":"2023-06-30.2023-10-01"} --> sql: created_at >= 2023-06-30 AND created_at <= 2023-10-01
+//  1. records from specified date up to now --> 2023-10-1.
+//     e.g. queries --> map[string]interface{}{"created_at":"2023-10-01."} --> sql: created_at >= 2023-10-01
+//  2. records before specified date --> .2023-06-30
+//     e.g. queries --> map[string]interface{}{"created_at":".2023-06-30"} --> sql: created_at <= 2023-06-30
+//  3. records in between 2 dates --> 2023-06-30.2023-10-1
+//     e.g. queries --> map[string]interface{}{"created_at":"2023-06-30.2023-10-01"} --> sql: created_at >= 2023-06-30 AND created_at <= 2023-10-01
 func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
-	// fmt.Printf("dd query: %+v\n", queries)
+	// logger.Debugf("dd query: %+v\n", queries)
 	if queries["withDateFilter"] == nil {
 		return ""
 	}
 	dateRangeConditions := []string{}
 	for k, v := range queries {
 		if len(k) < 3 || (!strings.Contains(k[len(k)-4:], "date") && !strings.Contains(k[len(k)-3:], "_at")) {
-			// fmt.Printf("not date: %+v\n", k)
+			// logger.Debugf("not date: %+v\n", k)
 			continue
 		}
 		splitedDates := strings.Split(v.(string), ".")
-		// fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
+		// logger.Debugf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
 		if len(splitedDates) == 2 {
 			from, to := splitedDates[0], splitedDates[1]
 			if from != "" {
@@ -184,13 +185,13 @@ func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
 		delete(queries, k)
 	}
 
-	// fmt.Printf("dateConditions: %+v\n",dateConditions)
+	// logger.Debugf("dateConditions: %+v\n",dateConditions)
 	return strings.Join(dateRangeConditions, " AND ")
 }
 
 // Generate bson for mongo find's date filtering
 func getDateRangeBson(queries map[string]interface{}) bson.D {
-	// fmt.Printf("dd query: %+v\n", queries)
+	// logger.Debugf("dd query: %+v\n", queries)
 	if queries["withDateFilter"] == nil {
 		return bson.D{}
 	}
@@ -199,11 +200,11 @@ func getDateRangeBson(queries map[string]interface{}) bson.D {
 	dateRangeConditions := bson.D{}
 	for k, v := range queries {
 		if len(k) < 3 || (!strings.Contains(k[len(k)-4:], "date") && !strings.Contains(k[len(k)-3:], "_at")) {
-			// fmt.Printf("not date: %+v\n", k)
+			// logger.Debugf("not date: %+v\n", k)
 			continue
 		}
 		splitedDates := strings.Split(v.(string), ".")
-		// fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
+		// logger.Debugf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
 		if len(splitedDates) == 2 {
 			from, to := splitedDates[0], splitedDates[1]
 			if from != "" {
@@ -226,7 +227,27 @@ func getDateRangeBson(queries map[string]interface{}) bson.D {
 		delete(queries, k)
 	}
 
-	// fmt.Printf("dateConditions: %+v\n",dateConditions)
+	// logger.Debugf("dateConditions: %+v\n",dateConditions)
 	// return strings.Join(dateRangeConditions, " AND ")
 	return dateRangeConditions
 }
+
+// GetIdsMapCondition() return map[string]interface{} sth like map[string]interface{}{"id":[]string{x,y,z}}
+// which can use for Get() to retrieve records by id(s)
+// param "keyId" can be nil for default "id" in db, it can be other column(foreign key) like "todo_id"
+func GetIdsMapCondition(keyId *string, ids []string) map[string]interface{} {
+	condition := map[string]interface{}{}
+
+	if keyId == nil {
+		if cfg.DbConf.Driver == "mongodb" {
+			condition["_id"] = ids
+		} else {
+			condition["id"] = ids
+		}
+	} else {
+		condition[*keyId] = ids
+	}
+
+	return condition
+}
+
