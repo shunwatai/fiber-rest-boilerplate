@@ -5,6 +5,7 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
+	"sync"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,6 +18,8 @@ type Service struct {
 func NewService(r *Repository) *Service {
 	return &Service{r, nil}
 }
+
+var mu sync.Mutex
 
 // func (s *Service) GetIdMap(tds []*TodoDocument) map[string][]*TodoDocument {
 // 	todoDocumentsMap := map[string][]*TodoDocument{}
@@ -35,6 +38,8 @@ func (s *Service) GetTodoIdMap(tds []*TodoDocument) map[string][]*TodoDocument {
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*TodoDocument, *helper.Pagination) {
+	mu.Lock() // for avoid sqlite goroute race error
+	defer mu.Unlock()
 	logger.Debugf("todoDocument service get")
 	return s.repo.Get(queries)
 }
@@ -51,19 +56,19 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*TodoDocument, erro
 
 func (s *Service) Create(todoDocuments []*TodoDocument) ([]*TodoDocument, *helper.HttpErr) {
 	logger.Debugf("todoDocument service create")
-  /*
-	// use the claims for mark the "createdBy/updatedBy" in database
-	claims := s.ctx.Locals("claims").(jwt.MapClaims)
-	fmt.Println("req by:", claims["userId"], claims["username"])
-	for _, todoDocument := range todoDocuments {
-		if todoDocument.UserId == nil {
-			todoDocument.UserId = claims["userId"]
+	/*
+		// use the claims for mark the "createdBy/updatedBy" in database
+		claims := s.ctx.Locals("claims").(jwt.MapClaims)
+		fmt.Println("req by:", claims["userId"], claims["username"])
+		for _, todoDocument := range todoDocuments {
+			if todoDocument.UserId == nil {
+				todoDocument.UserId = claims["userId"]
+			}
+			if validErr := helper.ValidateStruct(*todoDocument); validErr != nil {
+				return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
+			}
 		}
-		if validErr := helper.ValidateStruct(*todoDocument); validErr != nil {
-			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
-		}
-	}
-  */
+	*/
 
 	results, err := s.repo.Create(todoDocuments)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}

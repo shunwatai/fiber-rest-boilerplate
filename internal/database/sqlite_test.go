@@ -1,9 +1,9 @@
-//go:build sqlite
 // +build sqlite
 
 package database
 
 import (
+	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"reflect"
 	"strings"
 	"testing"
@@ -11,7 +11,11 @@ import (
 
 func setupSqliteTestTable(t *testing.T) func(t *testing.T) {
 	t.Logf("setup sqlite test table\n")
+	cfg.LoadEnvVariables()
+	zlog.NewZlog()
 	var testDb = GetDatabase("todos_test")
+	testDb.Connect()
+
 	// create test table
 	testDb.RawQuery(`CREATE TABLE IF NOT EXISTS "todos_test" ( "id"	INTEGER NOT NULL, "task"	TEXT, "done"	NUMERIC, "created_at"	DATETIME, "updated_at"	DATETIME, PRIMARY KEY("id" AUTOINCREMENT));`)
 
@@ -45,40 +49,41 @@ func TestSqliteSelectStmtFromQuerystring(t *testing.T) {
 
 	var tableName = "todos_test"
 	var testDb = GetDatabase(tableName)
+	testDb.Connect()
 	tests := []sqliteTests{
 		{
 			name:  "get by ID",
-			input: map[string]interface{}{"id": 2},
+			input: map[string]interface{}{"id": 2, "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
 			want1: `SELECT * FROM todos_test WHERE id=:id ORDER BY id desc LIMIT 1 OFFSET 0`,
 			want2: map[string]interface{}{"id": 2},
 		},
 		{
 			name:  "get by IDs",
-			input: map[string]interface{}{"id": []string{"2", "3"}},
+			input: map[string]interface{}{"id": []string{"2", "3"}, "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
 			want1: `SELECT * FROM todos_test WHERE id IN (:id1,:id2) ORDER BY id desc LIMIT 2 OFFSET 0`,
 			want2: map[string]interface{}{"id1": "2", "id2": "3"},
 		},
 		{
 			name:  "get keyword by ILIKE",
-			input: map[string]interface{}{"task": "show"},
+			input: map[string]interface{}{"task": "show", "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
 			want1: `SELECT * FROM todos_test WHERE task like :task ORDER BY id desc LIMIT 1 OFFSET 0`,
 			want2: map[string]interface{}{"task": "%show%"},
 		},
 		{
 			name:  "get keywords by ~~ ANY(xx)",
-			input: map[string]interface{}{"task": []string{"show", "stop"}, "page": "1", "items": "5"},
+			input: map[string]interface{}{"task": []string{"show", "stop"}, "page": "1", "items": "5", "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
 			want1: `SELECT * FROM todos_test WHERE (lower(task) like :task1 or lower(task) like :task2)  ORDER BY id desc LIMIT 5 OFFSET 0`,
 			want2: map[string]interface{}{"task1": "%show%", "task2": "%stop%"},
 		},
 		{
 			name:  "get records by keyword that matches in given ids",
-			input: map[string]interface{}{"task": "wan", "id": []string{"13", "15"}, "page": "1", "items": "5"},
-			want1: `SELECT * FROM todos_test WHERE task like :task AND id IN (:id1,:id2) ORDER BY id desc LIMIT 5 OFFSET 0`,
+			input: map[string]interface{}{"task": "wan", "id": []string{"13", "15"}, "page": "1", "items": "5", "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
+			want1: `SELECT * FROM todos_test WHERE id IN (:id1,:id2) AND task like :task ORDER BY id desc LIMIT 5 OFFSET 0`,
 			want2: map[string]interface{}{"task": "%wan%", "id1": "13", "id2": "15"},
 		},
 		{
 			name:  "get records by date range",
-			input: map[string]interface{}{"withDateFilter": true, "created_at": "2023-01-01.2023-12-31", "page": "1", "items": "5"},
+			input: map[string]interface{}{"withDateFilter": true, "created_at": "2023-01-01.2023-12-31", "page": "1", "items": "5", "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
 			want1: `SELECT * FROM todos_test WHERE created_at >= :created_atFrom AND created_at <= :created_atTo ORDER BY id desc LIMIT 5 OFFSET 0`,
 			want2: map[string]interface{}{"created_atFrom": "2023-01-01", "created_atTo": "2023-12-31"},
 		},

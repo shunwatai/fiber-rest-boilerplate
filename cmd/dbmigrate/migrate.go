@@ -83,13 +83,14 @@ func DbMigrate(action, dbDriver string) error {
 		}
 
 	} else if cfg.DbConf.Driver == "mongodb" {
-		mongoConf := db.Mongodb{ConnectionInfo: dbConf}
-		db := mongoConf.Connect()
+		mongo := db.Mongodb{ConnectionInfo: dbConf}
+		mongo.Connect()
+
 		if err != nil {
 			log.Fatalf("sql.Open error: %+v\n", err)
 		}
 
-		driver, err = mongodb.WithInstance(db, &mongodb.Config{DatabaseName: *dbConf.Database})
+		driver, err = mongodb.WithInstance(mongo.Db, &mongodb.Config{DatabaseName: *dbConf.Database})
 		if err != nil {
 			log.Fatalf("mongodb.WithInstance error: %+v\n", err)
 		}

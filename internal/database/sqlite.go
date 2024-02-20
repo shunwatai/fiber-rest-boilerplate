@@ -7,8 +7,10 @@ import (
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"log"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -18,6 +20,7 @@ type Sqlite struct {
 	*ConnectionInfo
 	TableName string
 	db        *sqlx.DB
+	mu        sync.Mutex
 }
 
 // Get all columns from db by m.TableName
@@ -65,7 +68,7 @@ func (m *Sqlite) GetConnectionString() string {
 	return connectionString
 }
 
-func (m *Sqlite) Connect() *sqlx.DB {
+func (m *Sqlite) Connect() {
 	logger.Debugf("connecting to Sqlite... ")
 	logger.Debugf("Table: %+v", m.TableName)
 
@@ -75,13 +78,17 @@ func (m *Sqlite) Connect() *sqlx.DB {
 		log.Fatal(err)
 	}
 	// defer db.Close()
-	return db
+	m.db = db
 }
 
 // return select statment and *pagination by the req querystring
 func (m *Sqlite) constructSelectStmtFromQuerystring(
 	queries map[string]interface{},
 ) (string, *helper.Pagination, map[string]interface{}) {
+	if queries["columns"] == nil {
+		logger.Errorf("queries[\"columns\"] cannot be nil...")
+	}
+
 	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
@@ -144,7 +151,8 @@ func (m *Sqlite) constructSelectStmtFromQuerystring(
 		if len(dateRangeStmt) > 0 {
 			whereClauses = append(whereClauses, dateRangeStmt)
 		}
-		selectStmt = fmt.Sprintf("%s WHERE %s ", selectStmt, strings.Join(whereClauses, " AND "))
+		slices.Sort(whereClauses) // useless, just to avoid assert error in sqlite_test.go 
+		selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
 
@@ -184,8 +192,10 @@ func (m *Sqlite) constructSelectStmtFromQuerystring(
 // }
 
 func (m *Sqlite) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	logger.Debugf("select from Sqlite, table: %+v", m.TableName)
-	m.db = m.Connect()
+	m.Connect()
 	defer m.db.Close()
 
 	selectStmt, pagination, bindvarMap := m.constructSelectStmtFromQuerystring(queries)
@@ -207,7 +217,7 @@ func (m *Sqlite) Select(queries map[string]interface{}) (Rows, *helper.Paginatio
 func (m *Sqlite) Save(records Records) (Rows, error) {
 	logger.Debugf("save from Sqlite, table: %+v", m.TableName)
 	// logger.Debugf("records: %+v", records)
-	m.db = m.Connect()
+	m.Connect()
 	defer m.db.Close()
 
 	cols := records.GetTags("db")
@@ -278,8 +288,8 @@ func (m *Sqlite) Save(records Records) (Rows, error) {
 
 func (m *Sqlite) Delete(ids []string) error {
 	logger.Debugf("delete from Sqlite, table: %+v where id in (%+v)", m.TableName, ids)
-	db := m.Connect()
-	defer db.Close()
+	m.Connect()
+	defer m.db.Close()
 
 	deleteStmt, args, err := sqlx.In(
 		fmt.Sprintf("DELETE FROM %s WHERE id IN (?);", m.TableName),
@@ -289,10 +299,10 @@ func (m *Sqlite) Delete(ids []string) error {
 		logger.Errorf("sqlx.In err: %+v", err.Error())
 		return err
 	}
-	deleteStmt = db.Rebind(deleteStmt)
+	deleteStmt = m.db.Rebind(deleteStmt)
 	logger.Debugf("stmt: %+v, args: %+v", deleteStmt, args)
 
-	_, err = db.Exec(deleteStmt, args...)
+	_, err = m.db.Exec(deleteStmt, args...)
 	if err != nil {
 		logger.Errorf("Delete Query err: %+v", err.Error())
 		return err
@@ -303,7 +313,7 @@ func (m *Sqlite) Delete(ids []string) error {
 
 func (m *Sqlite) RawQuery(sql string) *sqlx.Rows {
 	logger.Debugf("raw query from Sqlite")
-	m.db = m.Connect()
+	m.Connect()
 	defer m.db.Close()
 
 	// hack: Queryx cannot run CREATE or INSERT statement for sqlite, so use Exec()

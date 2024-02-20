@@ -37,6 +37,8 @@ func Fatalf(format string, args ...interface{}) {
 }
 
 func (zl *ZapLog) Debugf(format string, args ...interface{}) {
+	zl.mu.Lock()
+	defer zl.mu.Unlock()
 	Zlog.ConsoleLogger = newConsoleLogger()
 	defer Zlog.ConsoleLogger.Sync() // Ensure logs are flushed
 
@@ -56,6 +58,8 @@ func (zl *ZapLog) Debugf(format string, args ...interface{}) {
 }
 
 func (zl *ZapLog) Infof(format string, args ...interface{}) {
+	zl.mu.Lock()
+	defer zl.mu.Unlock()
 	Zlog.ConsoleLogger = newConsoleLogger()
 	defer Zlog.ConsoleLogger.Sync() // Ensure logs are flushed
 
@@ -66,6 +70,8 @@ func (zl *ZapLog) Infof(format string, args ...interface{}) {
 }
 
 func (zl *ZapLog) Warnf(format string, args ...interface{}) {
+	zl.mu.Lock()
+	defer zl.mu.Unlock()
 	Zlog.ConsoleLogger = newConsoleLogger()
 	defer Zlog.ConsoleLogger.Sync() // Ensure logs are flushed
 
@@ -76,6 +82,8 @@ func (zl *ZapLog) Warnf(format string, args ...interface{}) {
 }
 
 func (zl *ZapLog) Errorf(format string, args ...interface{}) {
+	zl.mu.Lock()
+	defer zl.mu.Unlock()
 	Zlog.ConsoleLogger = newConsoleLogger()
 	defer Zlog.ConsoleLogger.Sync() // Ensure logs are flushed
 
@@ -86,6 +94,8 @@ func (zl *ZapLog) Errorf(format string, args ...interface{}) {
 }
 
 func (zl *ZapLog) Fatalf(format string, args ...interface{}) {
+	zl.mu.Lock()
+	defer zl.mu.Unlock()
 	Zlog.ConsoleLogger = newConsoleLogger()
 	defer Zlog.ConsoleLogger.Sync() // Ensure logs are flushed
 

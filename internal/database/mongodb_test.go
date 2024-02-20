@@ -1,4 +1,3 @@
-//go:build mongodb
 // +build mongodb
 
 package database
@@ -6,6 +5,7 @@ package database
 import (
 	"context"
 	"fmt"
+	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/config"
 	"reflect"
 	"testing"
@@ -35,6 +35,8 @@ func initTestDb() *Mongodb {
 
 func setupMongodbTestTable(t *testing.T, testRecords []map[string]interface{}) func(t *testing.T) {
 	t.Logf("setup mongodb test table\n")
+	cfg.LoadEnvVariables()
+	zlog.NewZlog()
 
 	testDb := initTestDb()
 	// create test table
@@ -81,8 +83,8 @@ func TestMongodbSelectStmtFromQuerystring(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	testDb := initTestDb()
-	testDb.db = testDb.Connect()
-	defer testDb.db.Disconnect(ctx)
+	testDb.Connect()
+	defer testDb.Db.Disconnect(ctx)
 
 	columns := []string{"_id", "task", "done"}
 
@@ -144,7 +146,7 @@ func TestMongodbSelectStmtFromQuerystring(t *testing.T) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			var countFunc = func(filter interface{}) (int64, error) {
-				collection := testDb.db.Database(fmt.Sprintf("%s", *testDb.Database)).Collection(fmt.Sprintf("%s", testDb.TableName))
+				collection := testDb.Db.Database(fmt.Sprintf("%s", *testDb.Database)).Collection(fmt.Sprintf("%s", testDb.TableName))
 				count, err := collection.CountDocuments(ctx, filter)
 				return count, err
 			}

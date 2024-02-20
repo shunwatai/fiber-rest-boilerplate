@@ -20,6 +20,8 @@ type Rows interface {
 }
 
 type IDatabase interface {
+	Connect()
+
 	/* Get ConnectionString */
 	GetDbConfig() *ConnectionInfo
 
@@ -107,6 +109,9 @@ func GetDbConnection() (*ConnectionInfo, error) {
 }
 
 func GetDatabase(tableName string) IDatabase {
+	if cfg.DbConf == nil {
+		logger.Errorf("error: DbConf is nil, maybe fail to load the config....")
+	}
 	logger.Debugf("engine: %+v", cfg.DbConf.Driver)
 
 	if cfg.DbConf.Driver == "sqlite" {
@@ -250,4 +255,3 @@ func GetIdsMapCondition(keyId *string, ids []string) map[string]interface{} {
 
 	return condition
 }
-

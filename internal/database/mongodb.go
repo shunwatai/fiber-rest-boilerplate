@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -21,8 +22,9 @@ import (
 type Mongodb struct {
 	*ConnectionInfo
 	TableName string
-	db        *mongo.Client
+	Db        *mongo.Client
 	ctx       *context.Context
+	mu        sync.Mutex
 }
 
 type MongoRows struct {
@@ -55,7 +57,7 @@ func (m *Mongodb) GetConnectionString() string {
 	return connectionString
 }
 
-func (m *Mongodb) Connect() *mongo.Client {
+func (m *Mongodb) Connect() {
 	logger.Debugf("connecting to Mongodb... ")
 	// logger.Debugf("Table: %+v", m.TableName)
 	connectionString := m.GetConnectionString()
@@ -66,7 +68,7 @@ func (m *Mongodb) Connect() *mongo.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return client
+	m.Db = client
 }
 
 // Useless for mongodb, but needed for implement the IDatabase...
@@ -82,6 +84,10 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	countFunc func(interface{}) (int64, error),
 	// ) (string, *helper.Pagination, map[string]interface{}) {
 ) (bson.D, *options.FindOptions, *helper.Pagination) {
+	if queries["columns"] == nil {
+		logger.Errorf("queries[\"columns\"] cannot be nil...")
+	}
+
 	exactMatchCols := map[string]bool{"id": true, "_id": true} // default id(PK) & _id(mongo) have to be exact match
 	// logger.Debugf("mongo query: %+v",queries)
 	if queries["exactMatch"] != nil {
@@ -191,17 +197,19 @@ func (m *Mongodb) getConditionsFromQuerystring(
 }
 
 // Get all columns []string by m.TableName
-func (m *Mongodb) GetColumns() []string {
-	return []string{}
-}
+// func (m *Mongodb) GetColumns() []string {
+// 	return []string{}
+// }
 
 func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	logger.Debugf("select from Mongodb, table: %+v", m.TableName)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	m.db = m.Connect()
-	defer m.db.Disconnect(ctx)
-	collection := m.db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+	m.Connect()
+	defer m.Db.Disconnect(ctx)
+	collection := m.Db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
 
 	var (
 		cur *mongo.Cursor
@@ -230,9 +238,9 @@ func (m *Mongodb) Save(records Records) (Rows, error) {
 	// logger.Debugf("records: %+v", records)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	m.db = m.Connect()
-	defer m.db.Disconnect(ctx)
-	collection := m.db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+	m.Connect()
+	defer m.Db.Disconnect(ctx)
+	collection := m.Db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
 
 	opts := options.Update().SetUpsert(true)
 
@@ -290,9 +298,9 @@ func (m *Mongodb) Delete(ids []string) error {
 	logger.Debugf("delete ids: %+v from Mongodb, table: %+v", ids, m.TableName)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	m.db = m.Connect()
-	defer m.db.Disconnect(ctx)
-	collection := m.db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+	m.Connect()
+	defer m.Db.Disconnect(ctx)
+	collection := m.Db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
 	objectIds := []primitive.ObjectID{}
 	for _, id := range ids {
 		if oid, err := primitive.ObjectIDFromHex(id); err != nil {
@@ -321,9 +329,9 @@ func (m *Mongodb) runCommands(cmds []bson.D) error {
 	for _, cmd := range cmds {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		m.db = m.Connect()
-		defer m.db.Disconnect(ctx)
-		db := m.db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+		m.Connect()
+		defer m.Db.Disconnect(ctx)
+		db := m.Db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
 
 		err := db.Database().RunCommand(ctx, cmd).Err()
 		if err != nil {

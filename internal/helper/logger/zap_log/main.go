@@ -2,12 +2,14 @@ package logger
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"golang-api-starter/internal/config"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
 	"slices"
+	"sync"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type OutputTypes struct {
@@ -29,6 +31,7 @@ type ZapLog struct {
 	Filename      *string
 	Level         int // available level (DebugLevel,InfoLevel,WarningLevel,ErrorLevel), Debugf() in console_logger.go will be effective if DebugLevel is set
 	DebugSymbol   *string
+	mu            sync.Mutex
 }
 
 var cfg = config.Cfg
@@ -76,6 +79,7 @@ func SysLog(msg string, keysAndValues ...zapcore.Field) {
 	Zlog.sysLog(msg, keysAndValues...)
 }
 func (zl *ZapLog) sysLog(msg string, keysAndValues ...zapcore.Field) {
+	zl.mu.Lock()
 	if !Zlog.Output.Console && !Zlog.Output.File {
 		return
 	}
@@ -97,6 +101,7 @@ func (zl *ZapLog) sysLog(msg string, keysAndValues ...zapcore.Field) {
 	}
 
 	zl.setLevel(cfg.Logging.Level) // reset to config's defined level
+	zl.mu.Unlock()
 }
 
 // fileLogger initializes a zap.Logger that writes to both the console and a specified file.

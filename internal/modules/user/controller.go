@@ -5,6 +5,7 @@ import (
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -24,6 +25,7 @@ func NewController(s *Service) *Controller {
 	return &Controller{s}
 }
 
+var mu sync.Mutex
 var respCode = fiber.StatusInternalServerError
 
 /* helper func for Login & Refresh funcs below */
@@ -270,6 +272,9 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
+	mu.Lock() // for avoid sqlite goroute race error
+	defer mu.Unlock() 
+
 	logger.Debugf("user ctrl login")
 	user := &User{}
 	users := []*User{}

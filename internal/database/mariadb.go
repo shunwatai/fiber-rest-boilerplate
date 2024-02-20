@@ -6,8 +6,10 @@ import (
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"log"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -17,6 +19,7 @@ type MariaDb struct {
 	*ConnectionInfo
 	TableName string
 	db        *sqlx.DB
+	mu        sync.Mutex
 }
 
 func (m *MariaDb) GetDbConfig() *ConnectionInfo {
@@ -30,7 +33,7 @@ func (m *MariaDb) GetConnectionString() string {
 	return connectionString
 }
 
-func (m *MariaDb) Connect() *sqlx.DB {
+func (m *MariaDb) Connect() {
 	logger.Debugf("connecting to MariaDb... ")
 	// logger.Debugf("Table: %+v", m.TableName)
 	connectionString := m.GetConnectionString()
@@ -40,13 +43,17 @@ func (m *MariaDb) Connect() *sqlx.DB {
 		log.Fatal(err)
 	}
 	// defer db.Close()
-	return db
+	m.db = db
 }
 
 // return select statment and *pagination by the req querystring
 func (m *MariaDb) constructSelectStmtFromQuerystring(
 	queries map[string]interface{},
 ) (string, *helper.Pagination, map[string]interface{}) {
+	if queries["columns"] == nil {
+		logger.Errorf("queries[\"columns\"] cannot be nil...")
+	}
+
 	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
@@ -108,6 +115,7 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 		if len(dateRangeStmt) > 0 {
 			whereClauses = append(whereClauses, dateRangeStmt)
 		}
+		slices.Sort(whereClauses) // useless, just to avoid assert error in sqlite_test.go
 		selectStmt = fmt.Sprintf("%s WHERE %s ", selectStmt, strings.Join(whereClauses, " AND "))
 		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
@@ -166,8 +174,10 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 // }
 
 func (m *MariaDb) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	logger.Debugf("select from MariaDB, table: %+v", m.TableName)
-	m.db = m.Connect()
+	m.Connect()
 	defer m.db.Close()
 
 	selectStmt, pagination, bindvarMap := m.constructSelectStmtFromQuerystring(queries)
@@ -192,7 +202,7 @@ func (m *MariaDb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 
 func (m *MariaDb) Save(records Records) (Rows, error) {
 	logger.Debugf("save from MariaDB, table: %+v", m.TableName)
-	m.db = m.Connect()
+	m.Connect()
 	defer m.db.Close()
 
 	cols := records.GetTags("db")
@@ -260,7 +270,7 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 
 func (m *MariaDb) Delete(ids []string) error {
 	logger.Debugf("delete from MariaDB, table: %+v", m.TableName)
-	m.db = m.Connect()
+	m.Connect()
 	defer m.db.Close()
 
 	deleteStmt, args, err := sqlx.In(
@@ -285,7 +295,7 @@ func (m *MariaDb) Delete(ids []string) error {
 
 func (m *MariaDb) RawQuery(sql string) *sqlx.Rows {
 	logger.Debugf("raw query from Postgres")
-	m.db = m.Connect()
+	m.Connect()
 	defer m.db.Close()
 
 	rows, err := m.db.Queryx(sql)
