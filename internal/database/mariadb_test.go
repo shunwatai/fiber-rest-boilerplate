@@ -1,10 +1,8 @@
-//go:build mariadb
-// +build mariadb
-
 package database
 
 import (
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
+	"log"
 	"reflect"
 	"strings"
 	"testing"
@@ -13,6 +11,10 @@ import (
 func setupMariadbTestTable(t *testing.T) func(t *testing.T) {
 	t.Logf("setup mariadb test table\n")
 	cfg.LoadEnvVariables()
+	cfg.Vpr.Set("database.engine", "mariadb")
+	if err := cfg.Vpr.Unmarshal(cfg); err != nil {
+		log.Printf("failed loading conf, err: %+v\n", err.Error())
+	}
 	zlog.NewZlog()
 	var testDb = GetDatabase("")
 

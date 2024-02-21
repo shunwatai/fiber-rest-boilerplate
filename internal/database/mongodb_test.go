@@ -1,12 +1,11 @@
-// +build mongodb
-
 package database
 
 import (
 	"context"
 	"fmt"
-	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/config"
+	zlog "golang-api-starter/internal/helper/logger/zap_log"
+	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -35,7 +34,10 @@ func initTestDb() *Mongodb {
 
 func setupMongodbTestTable(t *testing.T, testRecords []map[string]interface{}) func(t *testing.T) {
 	t.Logf("setup mongodb test table\n")
-	cfg.LoadEnvVariables()
+	cfg.Vpr.Set("database.engine", "mongodb")
+	if err := cfg.Vpr.Unmarshal(cfg); err != nil {
+		log.Printf("failed loading conf, err: %+v\n", err.Error())
+	}
 	zlog.NewZlog()
 
 	testDb := initTestDb()

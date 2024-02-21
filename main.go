@@ -28,7 +28,7 @@ func main() {
 		api.Start()
 	}
 
-	// run db migration or generate new module if args is given
+	// run db migration or generate new module if args are given
 	if os.Args[1] == "migrate-up" || os.Args[1] == "migrate-down" {
 		fmt.Printf("db migrate\n")
 		if len(os.Args) != 3 {

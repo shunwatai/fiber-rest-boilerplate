@@ -1,9 +1,8 @@
-// +build sqlite
-
 package database
 
 import (
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
+	"log"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,6 +11,10 @@ import (
 func setupSqliteTestTable(t *testing.T) func(t *testing.T) {
 	t.Logf("setup sqlite test table\n")
 	cfg.LoadEnvVariables()
+	cfg.Vpr.Set("database.engine", "sqlite")
+	if err := cfg.Vpr.Unmarshal(cfg); err != nil {
+		log.Printf("failed loading conf, err: %+v\n", err.Error())
+	}
 	zlog.NewZlog()
 	var testDb = GetDatabase("todos_test")
 	testDb.Connect()

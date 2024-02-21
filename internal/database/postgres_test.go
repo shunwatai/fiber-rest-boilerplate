@@ -1,10 +1,9 @@
-// +build postgres
-
 package database
 
 import (
 	"golang-api-starter/internal/helper"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
+	"log"
 	"reflect"
 	"strings"
 	"testing"
@@ -13,6 +12,10 @@ import (
 func setupPostgresTestTable(t *testing.T) func(t *testing.T) {
 	t.Logf("setup postgres test table\n")
 	cfg.LoadEnvVariables()
+	cfg.Vpr.Set("database.engine", "postgres")
+	if err := cfg.Vpr.Unmarshal(cfg); err != nil {
+		log.Printf("failed loading conf, err: %+v\n", err.Error())
+	}
 	zlog.NewZlog()
 	var testDb = GetDatabase("")
 
