@@ -85,13 +85,11 @@ func (c *Config) LoadEnvVariables() {
 	// determine the /.dockerenv file for checking running inside docker or not for using the corresponding config
 	// ref: https://stackoverflow.com/a/12518877
 	if _, err := os.Stat("/.dockerenv"); err == nil { // running in docker
-		// path/to/whatever exists
 		// log.Printf("Running inside docker\n")
-		c.Vpr.SetConfigName("config-docker")
+		c.Vpr.SetConfigName("docker")
 	} else if errors.Is(err, os.ErrNotExist) { // running in localhost w/o docker
-		// path/to/whatever does *not* exist
 		// log.Printf("Running in localhost\n")
-		c.Vpr.SetConfigName("config-localhost")
+		c.Vpr.SetConfigName("localhost")
 	} else {
 		// Schrodinger: file may or may not exist. See err for details.
 		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
