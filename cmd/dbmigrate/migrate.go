@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"golang-api-starter/internal/config"
 	db "golang-api-starter/internal/database"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/helper/utils"
 	"log"
 	"strings"
@@ -26,6 +27,8 @@ func runMigration(action string, m *migrate.Migrate) error {
 		return m.Up() // or m.Step(2) if you want to explicitly set the number of migrations to run
 	} else if action == "migrate-down" {
 		return m.Steps(-1)
+	} else if action == "down-to-zero" {
+		return m.Down() // for running the test case
 	}
 	return fmt.Errorf("failed to run migrations....")
 }
@@ -50,6 +53,7 @@ func DbMigrate(action, dbDriver string) error {
 	connectionString := dbConn.GetConnectionString()
 
 	if cfg.DbConf.Driver == "postgres" {
+		logger.Infof("connectionString: %+v", connectionString)
 		db, err := sql.Open("postgres", connectionString)
 		if err != nil {
 			log.Fatalf("sql.Open error: %+v\n", err)
@@ -103,7 +107,10 @@ func DbMigrate(action, dbDriver string) error {
 		log.Fatalf("migrate.NewWithDatabaseInstance error: %+v\n", err)
 	}
 
-	err = runMigration(action, m)
+	if err = runMigration(action, m); err != nil {
+		logger.Fatalf("runMigration err: %+v", err)
+		return err
+	}
 	ver, dir, err := m.Version()
 	log.Println(strings.Repeat("*", 50))
 	log.Printf("migrated success, version: %+v, \n", ver)
