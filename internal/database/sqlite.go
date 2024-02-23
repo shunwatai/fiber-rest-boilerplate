@@ -51,17 +51,17 @@ func (m *Sqlite) GetDbConfig() *ConnectionInfo {
 }
 
 func (m *Sqlite) GetConnectionString() string {
-	var dbFile string
+	var dbFile, connectionString string
 	// sqlite db get wrong path when running test, so need to ../../
 	// ref: https://stackoverflow.com/a/36666114
 	if flag.Lookup("test.v") == nil {
 		logger.Infof("normal run")
 		dbFile = fmt.Sprintf("%s.db", *m.Database)
+		connectionString = fmt.Sprintf("./%s?_auth&_auth_user=%s&_auth_pass=%s&_auth_crypt=sha1&parseTime=true", dbFile, *m.User, *m.Pass)
 	} else {
 		logger.Infof("run under go test")
-		dbFile = fmt.Sprintf("../../%s.db", *m.Database)
+		connectionString = *m.Database
 	}
-	connectionString := fmt.Sprintf("./%s?_auth&_auth_user=%s&_auth_pass=%s&_auth_crypt=sha1&parseTime=true", dbFile, *m.User, *m.Pass)
 	// logger.Debugf("ConnString: %+v", connectionString)
 	// os.Remove(dbFile)
 
@@ -151,7 +151,7 @@ func (m *Sqlite) constructSelectStmtFromQuerystring(
 		if len(dateRangeStmt) > 0 {
 			whereClauses = append(whereClauses, dateRangeStmt)
 		}
-		slices.Sort(whereClauses) // useless, just to avoid assert error in sqlite_test.go 
+		slices.Sort(whereClauses) // useless, just to avoid assert error in sqlite_test.go
 		selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}

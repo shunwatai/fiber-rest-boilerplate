@@ -1,8 +1,11 @@
 package database
 
 import (
+	"database/sql"
+	"fmt"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"log"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -35,7 +38,7 @@ func setupSqliteTestTable(t *testing.T) func(t *testing.T) {
 
 	return func(t *testing.T) {
 		t.Log("teardown sqlite test table")
-		testDb.RawQuery("DROP TABLE IF EXISTS `todos_test`;")
+		// testDb.RawQuery("DROP TABLE IF EXISTS `todos_test`;")
 	}
 }
 
@@ -46,7 +49,32 @@ type sqliteTests struct {
 	want2 map[string]interface{}
 }
 
-func TestSqliteSelectStmtFromQuerystring(t *testing.T) {
+func TestSqliteConstructSelectStmtFromQuerystring(t *testing.T) {
+	dir := t.TempDir()
+	sqlitedbFile := filepath.Join(dir, "test.db")
+	connStr := fmt.Sprintf("%s?_auth&_auth_user=user&_auth_pass=password&_auth_crypt=sha1&parseTime=true", sqlitedbFile)
+	log.Printf("tmp dir::: %+v\n", connStr)
+	db, err := sql.Open("sqlite3", connStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			return
+		}
+	}()
+	if err = db.Ping(); err != nil {
+		t.Fatal("failed to connect to sqlite....")
+	}
+	cfg.LoadEnvVariables()
+	cfg.Vpr.Set("database.engine", "sqlite")
+	cfg.Vpr.Set("database.sqlite.user", "user")
+	cfg.Vpr.Set("database.sqlite.pass", "password")
+	cfg.Vpr.Set("database.sqlite.database", connStr) // put the connStr as "database" when running test
+	if err := cfg.Vpr.Unmarshal(cfg); err != nil {
+		log.Printf("failed loading conf, err: %+v\n", err.Error())
+	}
+
 	teardownTest := setupSqliteTestTable(t)
 	defer teardownTest(t)
 

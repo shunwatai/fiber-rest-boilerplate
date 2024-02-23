@@ -15,10 +15,40 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var (
+	opts = dktest.Options{
+		PortRequired: true,
+		ReadyFunc:    pgReady,
+		Env:          map[string]string{"POSTGRES_PASSWORD": "password"},
+	}
+
+	pgReady = func(ctx context.Context, c dktest.ContainerInfo) bool {
+		ip, port, err := c.FirstPort()
+		if err != nil {
+			return false
+		}
+		connStr := fmt.Sprintf("host=%s port=%s user=postgres password=password dbname=postgres sslmode=disable", ip, port)
+		db, err := sql.Open("postgres", connStr)
+		if err != nil {
+			return false
+		}
+
+		defer db.Close()
+		return db.PingContext(ctx) == nil
+	}
+)
+
 func setupPgTestTable(t *testing.T) func(t *testing.T) {
 	t.Logf("setup postgres test table\n")
 	cfg.LoadEnvVariables()
 	cfg.Vpr.Set("database.engine", "postgres")
+	t.Logf("conf??? %+v, %+v,%+v,%+v,%+v,\n", 
+	*cfg.DbConf.PostgresConf.Host,
+	*cfg.DbConf.PostgresConf.Port,
+	*cfg.DbConf.PostgresConf.User,
+	*cfg.DbConf.PostgresConf.Pass,
+	*cfg.DbConf.PostgresConf.Database,
+	)
 	if err := cfg.Vpr.Unmarshal(cfg); err != nil {
 		log.Printf("failed loading conf, err: %+v\n", err.Error())
 	}
@@ -71,29 +101,6 @@ type pgTests struct {
 	want2 map[string]interface{}
 	want3 *helper.Pagination
 }
-
-func pgReady(ctx context.Context, c dktest.ContainerInfo) bool {
-	ip, port, err := c.FirstPort()
-	if err != nil {
-		return false
-	}
-	connStr := fmt.Sprintf("host=%s port=%s user=postgres password=password dbname=postgres sslmode=disable", ip, port)
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		return false
-	}
-
-	defer db.Close()
-	return db.PingContext(ctx) == nil
-}
-
-var (
-	opts = dktest.Options{
-		PortRequired: true,
-		ReadyFunc:    pgReady,
-		Env:          map[string]string{"POSTGRES_PASSWORD": "password"},
-	}
-)
 
 func TestPgConstructSelectStmtFromQuerystring(t *testing.T) {
 	dktest.Run(t, "postgres:alpine", opts, func(t *testing.T, c dktest.ContainerInfo) {

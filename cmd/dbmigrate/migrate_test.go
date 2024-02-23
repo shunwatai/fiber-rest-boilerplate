@@ -250,7 +250,7 @@ func TestDbMigrate(t *testing.T) {
 	cfg.Vpr.Set("database.engine", "sqlite")
 	cfg.Vpr.Set("database.sqlite.user", "user")
 	cfg.Vpr.Set("database.sqlite.pass", "password")
-	cfg.Vpr.Set("database.sqlite.database", "test")
+	cfg.Vpr.Set("database.sqlite.database", connStr) // put the connStr as "database" when running test
 	if err := cfg.Vpr.Unmarshal(cfg); err != nil {
 		log.Printf("failed loading conf, err: %+v\n", err.Error())
 	}
