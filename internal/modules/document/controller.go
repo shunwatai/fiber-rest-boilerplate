@@ -23,8 +23,7 @@ var respCode = fiber.StatusInternalServerError
 func (c *Controller) Get(ctx *fiber.Ctx) error {
 	logger.Debugf("document ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
-	reqCtx := &helper.ReqContext{Payload: fctx}
-	paramsMap := reqCtx.Payload.GetQueryString()
+	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	results, pagination := c.service.Get(paramsMap)
 
 	respCode = fiber.StatusOK
@@ -226,9 +225,8 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 func (c *Controller) GetDocument(ctx *fiber.Ctx) error {
 	logger.Debugf("GetDocument ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
-	reqCtx := &helper.ReqContext{Payload: fctx}
 	id := fctx.Fctx.Params("id")
-	paramsMap := reqCtx.Payload.GetQueryString()
+	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	maps.Copy(paramsMap, map[string]interface{}{"id": id})
 	fileBuffer, fileType, fileName, err := c.service.GetDocument(paramsMap)
 

@@ -22,8 +22,7 @@ var respCode = fiber.StatusInternalServerError
 func (c *Controller) Get(ctx *fiber.Ctx) error {
 	logger.Debugf("log ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
-	reqCtx := &helper.ReqContext{Payload: fctx}
-	paramsMap := reqCtx.Payload.GetQueryString()
+	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	results, pagination := c.service.Get(paramsMap)
 
 	respCode = fiber.StatusOK

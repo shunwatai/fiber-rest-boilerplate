@@ -51,8 +51,7 @@ func SetRefreshTokenInCookie(result map[string]interface{}, c *fiber.Ctx) {
 func (c *Controller) Get(ctx *fiber.Ctx) error {
 	logger.Debugf("user ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
-	reqCtx := &helper.ReqContext{Payload: fctx}
-	paramsMap := reqCtx.Payload.GetQueryString()
+	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	results, pagination := c.service.Get(paramsMap)
 	sanitise(results)
 
