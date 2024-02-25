@@ -27,7 +27,7 @@ func (m *MariaDb) GetDbConfig() *ConnectionInfo {
 }
 
 func (m *MariaDb) GetConnectionString() string {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local&multiStatements=true", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
 	// logger.Debugf("ConnString: %+v", connectionString)
 	return connectionString
 }
