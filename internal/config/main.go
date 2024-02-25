@@ -98,7 +98,7 @@ func (c *Config) LoadEnvVariables() {
 
 	basepath := utils.RootDir(2)
 	configsDir := fmt.Sprintf("%s/configs", basepath)
-	log.Printf("configsDir: %+v\n\n", configsDir)
+	// log.Printf("configsDir: %+v\n\n", configsDir)
 	for _, envPath := range []string{configsDir} {
 		c.Vpr.AddConfigPath(envPath)
 	}

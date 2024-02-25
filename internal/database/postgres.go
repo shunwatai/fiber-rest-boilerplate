@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
-	"log"
 	"math"
 	"slices"
 	"strconv"
@@ -40,7 +39,7 @@ func (m *Postgres) Connect() {
 	connectionString := m.GetConnectionString()
 	db, err := sqlx.Open("postgres", connectionString)
 	if err != nil {
-		log.Fatal(err)
+		logger.Errorf("failed to conenct postgres: %+v", err)
 	}
 	// defer db.Close()
 	m.db = db
@@ -110,7 +109,7 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 		if len(dateRangeStmt) > 0 {
 			whereClauses = append(whereClauses, dateRangeStmt)
 		}
-		slices.Sort(whereClauses) // useless, just to avoid assert error in sqlite_test.go 
+		slices.Sort(whereClauses) // useless, just to avoid assert error in sqlite_test.go
 		selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
@@ -244,7 +243,7 @@ func (m *Postgres) Save(records Records) (Rows, error) {
 		var id string
 		err := sqlResult.Scan(&id)
 		if err != nil {
-			log.Fatalf("Scan: %v", err)
+			logger.Errorf("Scan: %v", err)
 			return nil, err
 		}
 		insertedIds = append(insertedIds, id)

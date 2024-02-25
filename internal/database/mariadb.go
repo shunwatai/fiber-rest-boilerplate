@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
-	"log"
 	"math"
 	"slices"
 	"strconv"
@@ -40,7 +39,7 @@ func (m *MariaDb) Connect() {
 
 	db, err := sqlx.Open("mysql", connectionString)
 	if err != nil {
-		log.Fatal(err)
+		logger.Errorf("failed to conenct mysql: %+v", err)
 	}
 	// defer db.Close()
 	m.db = db
@@ -121,7 +120,7 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 	}
 
 	if totalRow, err := m.db.NamedQuery(countAllStmt, bindvarMap); err != nil {
-		logger.Debugf("Queryx Count(*) err: %+v", err.Error())
+		logger.Errorf("Queryx Count(*) err: %+v", err.Error())
 	} else if totalRow.Next() {
 		defer totalRow.Close()
 		totalRow.Scan(&pagination.Count)
@@ -250,7 +249,7 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 		var id string
 		err := sqlResult.Scan(&id)
 		if err != nil {
-			log.Fatalf("Scan: %v", err)
+			logger.Errorf("Scan: %v", err)
 			return nil, err
 		}
 		insertedIds = append(insertedIds, id)

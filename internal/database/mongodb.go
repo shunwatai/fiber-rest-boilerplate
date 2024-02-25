@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
-	"log"
 	"math"
 	"strings"
 	"sync"
@@ -34,7 +33,7 @@ type MongoRows struct {
 
 func (mr *MongoRows) StructScan(result interface{}) error {
 	if err := mr.cur.Decode(result); err != nil {
-		logger.Debugf("mongo decode err: %+v", err.Error())
+		logger.Errorf("mongo decode err: %+v", err.Error())
 		return err
 	}
 	return nil
@@ -66,7 +65,7 @@ func (m *Mongodb) Connect() {
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionString))
 	if err != nil {
-		log.Fatal(err)
+		logger.Errorf("failed to conenct mongo: %+v", err)
 	}
 	m.Db = client
 }
@@ -162,7 +161,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	}
 
 	if count, err := countFunc(selectStmt); err != nil {
-		logger.Debugf("count error: %+v", err)
+		logger.Errorf("count error: %+v", err)
 	} else {
 		logger.Debugf("count: %+v", count)
 		pagination.Count = count
@@ -227,7 +226,7 @@ func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	cur, err = collection.Find(ctx, conditions, findOptions)
 
 	if err != nil {
-		log.Fatal(err)
+		logger.Errorf("failed to Find, err: %+v", err)
 	}
 
 	return &MongoRows{cur, ctx}, pagination
@@ -276,7 +275,7 @@ func (m *Mongodb) Save(records Records) (Rows, error) {
 			{Key: "$set", Value: record},
 		}, opts)
 		if err != nil {
-			log.Fatal(err)
+			logger.Errorf("update error: %+v",err)
 		}
 
 		/* only new created records has res.UpsertedID, existing's Ids appended in the if condition above */
@@ -304,7 +303,7 @@ func (m *Mongodb) Delete(ids []string) error {
 	objectIds := []primitive.ObjectID{}
 	for _, id := range ids {
 		if oid, err := primitive.ObjectIDFromHex(id); err != nil {
-			logger.Debugf("ObjectIDFromHex err: %+v", err)
+			logger.Errorf("ObjectIDFromHex err: %+v", err)
 		} else {
 			objectIds = append(objectIds, oid)
 		}
@@ -312,7 +311,7 @@ func (m *Mongodb) Delete(ids []string) error {
 	filter := bson.D{{"_id", bson.D{{"$in", objectIds}}}}
 	result, err := collection.DeleteMany(ctx, filter)
 	if err != nil {
-		logger.Debugf("DeleteMany err: %+v", err)
+		logger.Errorf("DeleteMany err: %+v", err)
 	}
 	logger.Debugf("result: %+v", result)
 
