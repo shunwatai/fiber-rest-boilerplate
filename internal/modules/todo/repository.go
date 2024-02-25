@@ -21,6 +21,9 @@ func NewRepository(db database.IDatabase) *Repository {
 }
 
 func cascadeFields(todos Todos) {
+	if len(todos) == 0 {
+		return
+	}
 	// cascade user
 	var (
 		userIds []string

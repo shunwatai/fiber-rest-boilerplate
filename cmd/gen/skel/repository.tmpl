@@ -18,6 +18,9 @@ func NewRepository(db database.IDatabase) *Repository {
 
 // cascadeFields for joining other module, see the example in internal/modules/todo/repository.go
 func cascadeFields({{.ModuleName}}s {{.StructName}}s) {
+  if len({{.ModuleName}}s) == 0 {
+    return
+  }
 	// cascade user
 }
 

@@ -19,6 +19,9 @@ func NewRepository(db database.IDatabase) *Repository {
 
 // cascadeFields for joining other module, see the example in internal/modules/todo/repository.go
 func cascadeFields(todoDocuments TodoDocuments) {
+	if len(todoDocuments) == 0 {
+		return
+	}
 	// cascade documents
 	var (
 		documentIds []string
