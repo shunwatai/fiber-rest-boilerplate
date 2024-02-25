@@ -25,3 +25,5 @@ CREATE TABLE "public"."users" (
 
 -- Apply trigger update_updated_at_column()
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+INSERT INTO "users" ("id", "name", "password", "first_name", "last_name", "disabled", "created_at", "updated_at") VALUES (1,	'admin',	'$2a$04$7F9KIfLOW3O9LyZSm2IQ8uXqH0B7P3wLjYTlkaerX53muN4U1.FDq',	NULL,	NULL,	'0',	'2023-11-27 10:35:53+00',	'2024-02-25 08:32:51.828793+00');
