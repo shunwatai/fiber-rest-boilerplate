@@ -23,7 +23,7 @@ type Document struct {
 	FilePath  string                 `json:"filePath" db:"file_path" bson:"file_path,omitempty" example:"upload/xx/202210041710-test.jpg"`
 	FileType  string                 `json:"fileType" db:"file_type" bson:"file_type,omitempty" default:"jpg"`
 	FileSize  int64                  `json:"fileSize" db:"file_size" bson:"file_size,omitempty" default:"342424"`
-	Hash      string                 `json:"hash" db:"hash"`
+	Hash      string                 `json:"hash" db:"hash" bson:"hash"`
 	Public    bool                   `json:"public" db:"public" bson:"public,omitempty" validate:"boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
