@@ -71,11 +71,20 @@ type Jwt struct {
 	Secret string
 }
 
+type OAuthGoogle struct {
+	Key    string
+	Secret string
+}
+type OAuth struct {
+	*OAuthGoogle `mapstructure:"google"`
+}
+
 type Config struct {
 	*DbConf     `mapstructure:"database"`
 	*ServerConf `mapstructure:"server"`
 	*Jwt        `mapstructure:"jwt"`
 	*Logging    `mapstructure:"logging"`
+	*OAuth      `mapstructure:"oauth"`
 	Vpr         *viper.Viper
 }
 

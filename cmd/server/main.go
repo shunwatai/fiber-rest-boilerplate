@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"golang-api-starter/internal/auth/oauth"
 	"golang-api-starter/internal/config"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/middleware/logging"
@@ -49,6 +50,8 @@ func (f *Fiber) LoadMiddlewares() {
 		AllowHeaders:     "Origin, Content-Type, Accept",
 		AllowCredentials: true,
 	}))
+
+	oauth.NewGoogleOAuth()
 }
 
 func (f *Fiber) LoadSwagger() {
