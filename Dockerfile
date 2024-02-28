@@ -22,15 +22,6 @@ RUN swag init
 # Placing it here allows the previous steps to be cached across architectures.
 ARG TARGETARCH
 
-# Build the application.
-# Leverage a cache mount to /go/pkg/mod/ to speed up subsequent builds.
-# Leverage a bind mount to the current directory to avoid having to copy the
-# source code into the container.
-# CGO_ENABLED=1 -tags are required for sqlite3 & go-fitz
-# RUN --mount=type=cache,target=/go/pkg/mod/ \
-#     --mount=type=bind,target=. \
-#     CGO_ENABLED=1 GOARCH=$TARGETARCH go build -tags "libsqlite3 linux musl" -o /bin/fiber-api .
-
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
 # ARG UID=1000
