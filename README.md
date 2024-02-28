@@ -1,0 +1,131 @@
+
+# Install dependencies
+## Air - hot reload
+go install github.com/cosmtrek/air@latest
+## Go-migrate - db migration
+go install -tags 'postgres mysql sqlite3 mongodb' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+## Swag - swagger doc
+go install github.com/swaggo/swag/cmd/swag@latest
+
+# Edit config
+If run by docker, then edit `configs/`
+If run without docker, then edit `configs/`
+
+# Start databases for development
+
+# Start the api server
+## For development
+### Start without docker
+```
+air
+```
+
+### Start by docker
+Run the dev container
+```
+make docker-dev
+```
+
+Check status
+```
+docker-compose -f compose-dev.yaml ps
+```
+
+Watch the log
+```
+make docker-dev-log
+```
+
+## For production
+### Start by docker
+Run the production container
+```
+make docker-prod
+```
+
+Check status
+```
+docker-compose -f compose-prod.yaml ps
+```
+
+Watch the log
+```
+make docker-prod-log
+```
+
+# DB Migration
+
+## Create new migration
+migrate create -ext sql -dir migrations/<dbEngine(postgres/mariadb/sqlite)> -seq <migrationName>
+
+## Run migration
+
+### Sqlite
+migrate -source file://migrations/sqlite -database "sqlite3://fiber-starter.db?_auth&_auth_user=user&_auth_pass=user&_auth_crypt=sha1" up
+
+migrate -source file://migrations/sqlite -database "sqlite3://fiber-starter.db?_auth&_auth_user=user&_auth_pass=user&_auth_crypt=sha1" down 1
+
+### Mariadb
+migrate -source file://migrations/mariadb -database "mysql://user:password@tcp(localhost:3306)/fiber-starter" up
+
+migrate -source file://migrations/mariadb -database "mysql://user:password@tcp(localhost:3306)/fiber-starter" down 1
+
+### Postgres
+migrate -source file://migrations/postgres -database "postgres://user:password@localhost:5432/fiber-starter?sslmode=disable" up
+
+migrate -source file://migrations/postgres -database "postgres://user:password@localhost:5432/fiber-starter?sslmode=disable" down 1
+
+### Mongodb
+migrate -source file://migrations/mongodb -database "mongodb://user:password@localhost:27017/fiber-starter?authSource=admin" up
+
+migrate -source file://migrations/mongodb -database "mongodb://user:password@localhost:27017/fiber-starter?authSource=admin" down 1
+
+# Run tests
+To disable cache when running tests, run with options: `-count=1`
+ref: https://stackoverflow.com/a/49999321
+
+## Run all tests
+```
+go test -v -race ./... -count=1
+```
+
+## Run specific database tests
+
+### Run sqlite's tests
+```
+go test -v ./internal/database -run TestSqliteConstructSelectStmtFromQuerystring -count=1
+```
+
+### Run mariadb's tests
+```
+go test -v ./internal/database -run TestMariadbConstructSelectStmtFromQuerystring -count=1
+```
+
+### Run postgres's tests
+```
+go test -v ./internal/database -run TestPgConstructSelectStmtFromQuerystring -count=1
+```
+
+### Run mongodb's tests
+```
+go test -v ./internal/database -run TestMongodbConstructSelectStmtFromQuerystring -count=1
+```
+
+# Swagger
+
+## format swagger's comments & generate the swagger docs
+
+```
+$ swag fmt
+$ swag init
+```
+
+## go to the swagger page by web browser
+
+http://localhost:5000/swagger/index.html
+
+# Send log to Signoz
+## Spin up the otel container
+```
+docker run -d --name signoz-host-otel-collector --user root -v $(pwd)/log/requests.log:/tmp/requests.log:ro -v $(pwd)/otel-collector-config.yaml:/etc/otel/config.yaml --add-host host.docker.internal:host-gateway signoz/signoz-otel-collector:0.88.11
+```
