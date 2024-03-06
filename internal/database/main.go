@@ -20,6 +20,7 @@ type Rows interface {
 }
 
 type IDatabase interface {
+	/* Initiate the DB connection to its correspond struct */
 	Connect()
 
 	/* Get ConnectionString */
