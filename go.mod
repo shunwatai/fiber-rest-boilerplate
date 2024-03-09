@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/fsnotify/fsnotify v1.7.0
+	github.com/gen2brain/go-fitz v1.23.7
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/gofiber/fiber/v2 v2.50.0
@@ -12,7 +13,6 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/karmdip-mi/go-fitz v0.0.0-20210702102225-a530a79566e9
 	github.com/lib/pq v1.10.9
 	github.com/makiuchi-d/gozxing v0.1.1
 	github.com/mattn/go-sqlite3 v1.14.17
