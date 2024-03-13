@@ -31,7 +31,7 @@ func GetRoutes(router fiber.Router) {
 	// oauth for google
 	oauthRoute := router.Group("/oauth")
 	oauthRoute.Get("/:provider/callback", OAuthGetAuth)
-	oauthRoute.Get("/:provider/get-user", OAuthGetUser)
+	oauthRoute.Get("/:provider/login", OAuthLogin)
 	oauthRoute.Get("/logout/:provider", OAuthLogout)
 	oauthRoute.Get("/sign-in", OAuthProviderPage)
 
@@ -151,8 +151,8 @@ func Refresh(c *fiber.Ctx) error {
 func OAuthGetAuth(c *fiber.Ctx) error {
 	return oauth.OAuthGetAuth(c)
 }
-func OAuthGetUser(c *fiber.Ctx) error {
-	return oauth.OAuthGetUser(c)
+func OAuthLogin(c *fiber.Ctx) error {
+	return oauth.OAuthLogin(c)
 }
 func OAuthLogout(c *fiber.Ctx) error {
 	return oauth.OAuthLogout(c)

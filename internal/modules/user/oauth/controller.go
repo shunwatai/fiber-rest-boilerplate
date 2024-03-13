@@ -1,39 +1,36 @@
 package oauth
 
 import (
-	"golang-api-starter/internal/helper"
-	"html/template"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/shareed2k/goth_fiber"
+	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
+	"html/template"
 )
 
 var respCode = fiber.StatusInternalServerError
 
 func OAuthGetAuth(ctx *fiber.Ctx) error {
+	user, err := goth_fiber.CompleteUserAuth(ctx)
+	if err != nil {
+		logger.Errorf("goth_fiber.CompleteUserAuth err: %+v", err)
+		return err
+	}
+
+	provider, _ := goth_fiber.GetProviderName(ctx)
+	goth_fiber.StoreInSession(provider, user.AccessToken, ctx)
+
+	// logger.Debugf("authed user: %+v", user)
 	respCode = fiber.StatusOK
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	return fctx.JsonResponse(
 		respCode,
-		fiber.Map{"data": "OAuthGetAuth"},
+		fiber.Map{"data": user},
 	)
 }
 
-func OAuthGetUser(ctx *fiber.Ctx) error {
-	respCode = fiber.StatusOK
-	fctx := &helper.FiberCtx{Fctx: ctx}
-	// try to get the user without re-authenticating
-	if gothUser, err := goth_fiber.CompleteUserAuth(ctx); err == nil {
-		// t, _ := template.New("foo").Parse(userTemplate)
-		// t.Execute(res, gothUser)
-		return fctx.JsonResponse(
-			respCode,
-			fiber.Map{"data": gothUser},
-		)
-	} else {
-		goth_fiber.BeginAuthHandler(ctx)
-	}
-	return nil
+func OAuthLogin(ctx *fiber.Ctx) error {
+	return goth_fiber.BeginAuthHandler(ctx)
 }
 
 func OAuthLogout(ctx *fiber.Ctx) error {
@@ -46,7 +43,7 @@ func OAuthLogout(ctx *fiber.Ctx) error {
 }
 
 func OAuthProviderPage(ctx *fiber.Ctx) error {
-	tpl := template.Must(template.ParseGlob("web/template/oauth/sign-in.tmpl"))
+	tpl := template.Must(template.ParseGlob("web/template/oauth/sign-in.gohtml"))
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	respCode = fiber.StatusOK
