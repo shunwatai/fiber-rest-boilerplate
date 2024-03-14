@@ -32,13 +32,14 @@ func NewGoogleOAuth() {
 	// load env
 	googleClientId := cfg.OAuth.OAuthGoogle.Key
 	googleClientSecret := cfg.OAuth.OAuthGoogle.Secret
+	googleCallbackUrl := cfg.OAuth.OAuthGoogle.CallbackUrl
 
 	goth_fiber.SessionStore = sessions
 
 	// logger.Debugf("googleClientId: %+v", googleClientId)
 	// logger.Debugf("googleClientSecret: %+v", googleClientSecret)
 	goth.UseProviders(
-		google.New(googleClientId, googleClientSecret, "http://localhost:7000/api/oauth/google/callback"),
+		google.New(googleClientId, googleClientSecret, googleCallbackUrl),
 	)
 	// logger.Debugf("used google provider")
 }

@@ -72,8 +72,9 @@ type Jwt struct {
 }
 
 type OAuthGoogle struct {
-	Key    string
-	Secret string
+	Key         string
+	Secret      string
+	CallbackUrl string
 }
 type OAuth struct {
 	*OAuthGoogle `mapstructure:"google"`

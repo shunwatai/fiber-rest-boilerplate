@@ -45,6 +45,12 @@ logging:
     filename: "requests.log"
   debugSymbol: 
 
+oauth:
+  google:
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+    secret: "GOCSPX-xxxxxxxxxxxxxxxxxxxxx"
+    callbackUrl: "http://xxxxxxxxxxxxxx/oauth/google/callback"
+
 redis:
   host: "localhost"
   port: "6379"
