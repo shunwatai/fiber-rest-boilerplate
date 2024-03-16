@@ -76,8 +76,14 @@ type OAuthGoogle struct {
 	Secret      string
 	CallbackUrl string
 }
+type OAuthGithub struct {
+	Key         string
+	Secret      string
+	CallbackUrl string
+}
 type OAuth struct {
 	*OAuthGoogle `mapstructure:"google"`
+	*OAuthGithub `mapstructure:"github"`
 }
 
 type Config struct {

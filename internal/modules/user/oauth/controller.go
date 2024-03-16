@@ -36,6 +36,9 @@ func OAuthLogin(ctx *fiber.Ctx) error {
 func OAuthLogout(ctx *fiber.Ctx) error {
 	respCode = fiber.StatusOK
 	fctx := &helper.FiberCtx{Fctx: ctx}
+	if err := goth_fiber.Logout(ctx); err!=nil{
+		logger.Errorf("failed to logout...")
+	}
 	return fctx.JsonResponse(
 		respCode,
 		fiber.Map{"data": "OAuthLogout"},

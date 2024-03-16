@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/google"
 	"github.com/shareed2k/goth_fiber"
 )
@@ -33,13 +34,17 @@ func NewGoogleOAuth() {
 	googleClientId := cfg.OAuth.OAuthGoogle.Key
 	googleClientSecret := cfg.OAuth.OAuthGoogle.Secret
 	googleCallbackUrl := cfg.OAuth.OAuthGoogle.CallbackUrl
+	// logger.Debugf("key: %+v, secret: %+v, callback: %+v", googleClientId, googleClientSecret, googleCallbackUrl)
+
+	githubClientId := cfg.OAuth.OAuthGithub.Key
+	githubClientSecret := cfg.OAuth.OAuthGithub.Secret
+	githubCallbackUrl := cfg.OAuth.OAuthGithub.CallbackUrl
+	// logger.Debugf("key: %+v, secret: %+v, callback: %+v", githubClientId, githubClientSecret, githubCallbackUrl)
 
 	goth_fiber.SessionStore = sessions
 
-	// logger.Debugf("googleClientId: %+v", googleClientId)
-	// logger.Debugf("googleClientSecret: %+v", googleClientSecret)
 	goth.UseProviders(
 		google.New(googleClientId, googleClientSecret, googleCallbackUrl),
+		github.New(githubClientId, githubClientSecret, githubCallbackUrl),
 	)
-	// logger.Debugf("used google provider")
 }
