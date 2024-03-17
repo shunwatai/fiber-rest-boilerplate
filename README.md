@@ -56,7 +56,10 @@ make docker-prod-log
 # DB Migration
 
 ## Create new migration
-migrate create -ext sql -dir migrations/<dbEngine(postgres/mariadb/sqlite)> -seq <migrationName>
+```migrate create -ext sql -dir migrations/<dbEngine(postgres/mariadb/sqlite)> -seq <migrationName>```
+
+e.g.
+```migrate create -ext sql -dir migrations/postgres -seq add_new_col_to_users```
 
 ## Run migration
 
