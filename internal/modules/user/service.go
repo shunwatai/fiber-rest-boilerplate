@@ -124,7 +124,7 @@ func (s *Service) Create(users []*User) ([]*User, *helper.HttpErr) {
 	}
 
 	// check if duplicated by "name"
-	existingUsers, _ := s.repo.Get(map[string]interface{}{"name": newUserNames})
+	existingUsers, _ := s.repo.Get(map[string]interface{}{"name": newUserNames, "exactMatch": map[string]bool{"name": true}})
 	if len(existingUsers) > 0 {
 		errMsg := fmt.Sprintf("user service create error: provided user name(s) %+v already exists.\n", newUserNames)
 		logger.Errorf(errMsg)
