@@ -1,4 +1,4 @@
-package oauth
+package auth
 
 import (
 	"golang-api-starter/internal/config"

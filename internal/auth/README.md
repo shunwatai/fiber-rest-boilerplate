@@ -1,5 +1,8 @@
+# jwt
+see `jwt.go` for details.
+
 # oauth
-Make use of `goth_fiber` for oauth.
+use package `goth_fiber` for oauth.
 
 ## support services
 ### google

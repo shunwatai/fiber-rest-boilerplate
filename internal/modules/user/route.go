@@ -4,7 +4,6 @@ import (
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/middleware/jwtcheck"
-	"golang-api-starter/internal/modules/user/oauth"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -27,13 +26,6 @@ func GetRoutes(router fiber.Router) {
 	authRoute := router.Group("/auth")
 	authRoute.Post("/login", Login)
 	authRoute.Post("/refresh", Refresh)
-
-	// oauth for google
-	oauthRoute := router.Group("/oauth")
-	oauthRoute.Get("/:provider/callback", OAuthGetAuth)
-	oauthRoute.Get("/:provider/login", OAuthLogin)
-	oauthRoute.Get("/logout/:provider", OAuthLogout)
-	oauthRoute.Get("/sign-in", OAuthProviderPage)
 
 	// users routes
 	r := router.Group("/users", jwtcheck.CheckFromHeader())
@@ -146,17 +138,4 @@ func Login(c *fiber.Ctx) error {
 //	@Router			/auth/refresh [post]
 func Refresh(c *fiber.Ctx) error {
 	return ctrl.Refresh(c)
-}
-
-func OAuthGetAuth(c *fiber.Ctx) error {
-	return oauth.OAuthGetAuth(c)
-}
-func OAuthLogin(c *fiber.Ctx) error {
-	return oauth.OAuthLogin(c)
-}
-func OAuthLogout(c *fiber.Ctx) error {
-	return oauth.OAuthLogout(c)
-}
-func OAuthProviderPage(c *fiber.Ctx) error {
-	return oauth.OAuthProviderPage(c)
 }

@@ -234,18 +234,20 @@ func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
 	}
 
-	var checkPassword = func(hashedPwd string, plainPwd string) bool {
-		if err := bcrypt.CompareHashAndPassword([]byte(hashedPwd), []byte(plainPwd)); err != nil {
-			return false
+	if !user.IsOauth {
+		var checkPassword = func(hashedPwd string, plainPwd string) bool {
+			if err := bcrypt.CompareHashAndPassword([]byte(hashedPwd), []byte(plainPwd)); err != nil {
+				return false
+			}
+
+			return true
 		}
 
-		return true
-	}
+		match := checkPassword(*results[0].Password, *user.Password)
 
-	match := checkPassword(*results[0].Password, *user.Password)
-
-	if !match {
-		return nil, &helper.HttpErr{fiber.StatusInternalServerError, fmt.Errorf("password not match...")}
+		if !match {
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, fmt.Errorf("password not match...")}
+		}
 	}
 
 	sanitise(results)

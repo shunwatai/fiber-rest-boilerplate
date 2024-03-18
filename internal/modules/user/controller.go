@@ -272,16 +272,18 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
 	mu.Lock() // for avoid sqlite goroute race error
-	defer mu.Unlock() 
+	defer mu.Unlock()
 
 	logger.Debugf("user ctrl login")
 	user := &User{}
-	users := []*User{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	if userErr, _ := reqCtx.Payload.ParseJsonToStruct(user, &users); userErr != nil {
+	if userErr, _ := reqCtx.Payload.ParseJsonToStruct(user, nil); userErr != nil {
 		logger.Errorf("userErr: %+v\n", userErr)
+	}
+	if user.Password == nil {
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "missing password..."})
 	}
 	// logger.Debugf("login req: %+v\n", user)
 

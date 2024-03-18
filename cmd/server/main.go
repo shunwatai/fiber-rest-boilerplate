@@ -2,12 +2,13 @@ package server
 
 import (
 	"fmt"
-	"golang-api-starter/internal/auth/oauth"
+	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/middleware/logging"
 	"golang-api-starter/internal/modules/document"
 	"golang-api-starter/internal/modules/log"
+	"golang-api-starter/internal/modules/oauth"
 	"golang-api-starter/internal/modules/qrcode"
 	"golang-api-starter/internal/modules/todo"
 	"golang-api-starter/internal/modules/todoDocument"
@@ -51,7 +52,7 @@ func (f *Fiber) LoadMiddlewares() {
 		AllowCredentials: true,
 	}))
 
-	oauth.NewGoogleOAuth()
+	auth.NewGoogleOAuth()
 }
 
 func (f *Fiber) LoadSwagger() {
@@ -75,6 +76,7 @@ func (f *Fiber) LoadSwagger() {
 
 func (f *Fiber) LoadAllRoutes() {
 	api := f.App.Group("/api", logging.Logger())
+	oauth.GetRoutes(api)
 	document.GetRoutes(api)
 	log.GetRoutes(api)
 	qrcode.GetRoutes(api)

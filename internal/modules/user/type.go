@@ -29,6 +29,7 @@ type User struct {
 	FirstName *string                `json:"firstName" db:"first_name" bson:"first_name,omitempty" example:"Emma"`
 	LastName  *string                `json:"lastName" db:"last_name" bson:"last_name,omitempty" example:"Watson"`
 	Disabled  bool                   `json:"disabled" db:"disabled" bson:"disabled,omitempty" example:"false"`
+	IsOauth   bool                   `json:"isOauth" db:"is_oauth" bson:"is_oauth,omitempty" example:"false"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at"  bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 }
