@@ -60,6 +60,7 @@ make docker-prod-log
 
 e.g.
 ```migrate create -ext sql -dir migrations/postgres -seq add_new_col_to_users```
+```migrate create -ext json -dir migrations/mongodb -seq add_xxx_index_to_users```
 
 ## Run migration
 
