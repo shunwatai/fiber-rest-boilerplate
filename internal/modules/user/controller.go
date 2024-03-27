@@ -2,11 +2,13 @@ package user
 
 import (
 	"errors"
-	"fmt"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/helper"
-	"log"
+	"golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/helper/utils"
+	"sync"
 	"time"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -24,10 +26,14 @@ func NewController(s *Service) *Controller {
 	return &Controller{s}
 }
 
+var mu sync.Mutex
 var respCode = fiber.StatusInternalServerError
 
-/* helper func for Login & Refresh funcs below */
-func SetRefreshTokenInCookie(result map[string]interface{}, c *fiber.Ctx) {
+/* SetTokensInCookie is a helper for Login & Refresh funcs for setting the cookies in response */
+func SetTokensInCookie(result map[string]interface{}, c *fiber.Ctx) error {
+	if result["refreshToken"] == nil && result["accessToken"] == nil {
+		return logger.Errorf("missing required 'accessToken' & 'refreshToken'")
+	}
 	env := cfg.ServerConf.Env
 	refreshToken := result["refreshToken"].(string)
 	cookie := &fiber.Cookie{
@@ -35,22 +41,30 @@ func SetRefreshTokenInCookie(result map[string]interface{}, c *fiber.Ctx) {
 		Value:    refreshToken,
 		Expires:  time.Now().Add(time.Hour * 720), // 30 days
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   env == "prod",
 		Path:     "/",
 	}
-	if env == "local" {
-		cookie.Secure = false
-	}
-
 	c.Cookie(cookie)
+
+	accessToken := result["accessToken"].(string)
+	cookie = &fiber.Cookie{
+		Name:     "accessToken",
+		Value:    accessToken,
+		Expires:  time.Now().Add(time.Hour * 720), // 30 days
+		HTTPOnly: true,
+		Secure:   env == "prod",
+		Path:     "/",
+	}
+	c.Cookie(cookie)
+
 	delete(result, "refreshToken")
+	return nil
 }
 
 func (c *Controller) Get(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl\n")
+	logger.Debugf("user ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
-	reqCtx := &helper.ReqContext{Payload: fctx}
-	paramsMap := reqCtx.Payload.GetQueryString()
+	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	results, pagination := c.service.Get(paramsMap)
 	sanitise(results)
 
@@ -62,7 +76,7 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) GetById(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl\n")
+	logger.Debugf("user ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
@@ -80,7 +94,7 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Create(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl create\n")
+	logger.Debugf("user ctrl create\n")
 	c.service.ctx = ctx
 	user := &User{}
 	users := []*User{}
@@ -144,7 +158,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Update(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl update\n")
+	logger.Debugf("user ctrl update\n")
 
 	user := &User{}
 	users := []*User{}
@@ -238,13 +252,13 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	intIdsErr, strIdsErr := reqCtx.Payload.ParseJsonToStruct(&delIds, &mongoDelIds)
 	if intIdsErr != nil && strIdsErr != nil {
-		log.Printf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
+		logger.Errorf("failed to parse req json, %+v\n", errors.Join(intIdsErr, strIdsErr).Error())
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": errors.Join(intIdsErr, strIdsErr).Error()})
 	}
 	if len(delIds.Ids) == 0 && len(mongoDelIds.Ids) == 0 {
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "please check the req json like the follow: {\"ids\":[]}"})
 	}
-	fmt.Printf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
+	logger.Debugf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
 	var (
 		results []*User
@@ -260,7 +274,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	sanitise(results)
 
 	if err != nil {
-		log.Printf("failed to delete, err: %+v\n", err.Error())
+		logger.Errorf("failed to delete, err: %+v\n", err.Error())
 		respCode = fiber.StatusNotFound
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": err.Error()})
 	}
@@ -270,23 +284,30 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) Login(ctx *fiber.Ctx) error {
-	fmt.Printf("user ctrl create\n")
+	mu.Lock() // for avoid sqlite goroute race error
+	defer mu.Unlock()
+
+	logger.Debugf("user ctrl login")
 	user := &User{}
-	users := []*User{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
-	if userErr, _ := reqCtx.Payload.ParseJsonToStruct(user, &users); userErr != nil {
-		log.Printf("userErr: %+v\n", userErr)
+	if userErr, _ := reqCtx.Payload.ParseJsonToStruct(user, nil); userErr != nil {
+		logger.Errorf("userErr: %+v\n", userErr)
 	}
-	// log.Printf("login req: %+v\n", user)
+	if user.Password == nil {
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": "missing password..."})
+	}
+	// logger.Debugf("login req: %+v\n", user)
 
 	result, httpErr := c.service.Login(user)
 	if httpErr != nil {
 		return fctx.JsonResponse(respCode, map[string]interface{}{"message": httpErr.Err.Error()})
 	}
 
-	SetRefreshTokenInCookie(result, ctx)
+	if err := SetTokensInCookie(result, ctx); err != nil {
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": err.Error()})
+	}
 	respCode = fiber.StatusOK
 	return fctx.JsonResponse(respCode, map[string]interface{}{"data": result})
 }
@@ -297,7 +318,7 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 	cookie := ctx.Cookies("refreshToken")
 
 	refreshToken := "Bearer " + cookie
-	fmt.Printf("%s\n", refreshToken)
+	logger.Debugf("%s\n", refreshToken)
 
 	claims, err := auth.ParseJwt(refreshToken)
 	if claims["tokenType"] != "refreshToken" || err != nil {
@@ -318,7 +339,8 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 		result, refreshErr = c.service.Refresh(&User{MongoId: &userId})
 	} else {
 		userId := int64(claims["userId"].(float64))
-		result, refreshErr = c.service.Refresh(&User{Id: &userId})
+		// result, refreshErr = c.service.Refresh(&User{Id: &userId})
+		result, refreshErr = c.service.Refresh(&User{Id: utils.ToPtr(helper.FlexInt(userId))})
 	}
 	if refreshErr != nil {
 		return fctx.JsonResponse(
@@ -327,7 +349,9 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 		)
 	}
 
-	SetRefreshTokenInCookie(result, ctx)
+	if err := SetTokensInCookie(result, ctx); err != nil {
+		return fctx.JsonResponse(respCode, map[string]interface{}{"message": err.Error()})
+	}
 	respCode = fiber.StatusOK
 	return fctx.JsonResponse(respCode, map[string]interface{}{"data": result})
 }

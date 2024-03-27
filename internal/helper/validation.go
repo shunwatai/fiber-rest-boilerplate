@@ -2,9 +2,10 @@ package helper
 
 import (
 	"errors"
-	"fmt"
-	"github.com/go-playground/validator/v10"
 	"golang-api-starter/internal/config"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
+
+	"github.com/go-playground/validator/v10"
 )
 
 var cfg = config.Cfg
@@ -23,22 +24,25 @@ func ValidateStruct(strct interface{}) error {
 		} else {
 			_, isFloat64 := fl.Field().Interface().(float64)
 			_, isInt64 := fl.Field().Interface().(int64)
-			if !isFloat64 && !isInt64 {
+			_, isFlexInt := fl.Field().Interface().(FlexInt)
+
+			if !isFloat64 && !isInt64 && !isFlexInt {
 				return false
 			}
+
 		}
 		return true
 	})
 	if err != nil {
-		fmt.Printf("RegisterValidation err: %+v\n", err)
+		logger.Errorf("RegisterValidation err: %+v\n", err)
 		return err
 	}
 
 	if err := validate.Struct(strct); err != nil {
-		// fmt.Printf("validate err: %+v\n", err)
+		// logger.Errorf("validate err: %+v\n", err)
 		validationErrors := err.(validator.ValidationErrors)
 		for _, validationError := range validationErrors {
-			fmt.Printf("validate.Struct err: %+v\n", err)
+			logger.Debugf("validate.Struct err: %+v\n", err)
 			invalidErrs = append(invalidErrs, validationError)
 		}
 

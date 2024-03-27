@@ -1,0 +1,34 @@
+<html>
+  <head>
+    <title>
+      reset password
+    </title>
+    <script src="/static/3p/htmx/htmx-1.9.11.min.js"></script>
+    <script src="/static/3p/htmx/json-enc.js"></script>
+  </head>
+  <body style="display:flex; text-align:center; flex-direction:column; gap:1rem">
+    <div>
+      reset password
+    </div>
+    <div>
+      {{if $.errMessage}}
+        ERROR: {{ $.errMessage }}
+      {{end}}
+    </div>
+    <div>
+      {{if not $.errMessage}}
+      <form 
+        hx-patch="/password-resets"
+        hx-ext="json-enc"
+      >
+        <label for="password">New password:</label>
+        <input name="password" type="password" required />
+        <input name="token" type="hidden" value="{{$.token}}" />
+        <input name="id" type="hidden" value="{{$.userId}}" />
+        <input name="name" type="hidden" value="{{$.name}}" />
+        <button type="sumit">submit</button>
+      </form>
+      {{end}}
+    </div>
+  </body>
+</html>

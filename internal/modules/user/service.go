@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"golang-api-starter/internal/auth"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
-	"log"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"strconv"
 	"time"
 
@@ -26,15 +27,14 @@ func NewService(r *Repository) *Service {
 
 /* this func for generate the jwt claims like the access & refresh tokens */
 func GenerateUserToken(user User, tokenType string) *jwt.Token {
-	var expireTime = time.Now().Add(time.Minute * 10).Unix() // 10 mins for access token?
+	var expireTime = &jwt.NumericDate{time.Now().Add(time.Minute * 10)} // 10 mins for access token?
 
 	env := cfg.ServerConf.Env
 	if env == "local" { // if local development, set expire time to 1 year
-		expireTime = time.Now().Add(time.Hour * 8760).Unix()
-		// expireTime = time.Now().Add(time.Second * 10).Unix() // 10 seconds token to test in local env
+		expireTime = &jwt.NumericDate{time.Now().Add(time.Hour * 8760)}
 	}
 	if tokenType == "refreshToken" {
-		expireTime = time.Now().Add(time.Hour * 720).Unix() // 30 days for refresh token?
+		expireTime = &jwt.NumericDate{time.Now().Add(time.Hour * 720)} // 30 days for refresh token?
 	}
 
 	claims := &UserClaims{
@@ -49,10 +49,11 @@ func GenerateUserToken(user User, tokenType string) *jwt.Token {
 		}(),
 		Username:  user.Name,
 		TokenType: tokenType,
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    user.GetId(),
 			ExpiresAt: expireTime,
-		}}
+		},
+	}
 
 	return auth.GetToken(claims)
 }
@@ -95,14 +96,14 @@ func (s *Service) GetIdMap(users Users) map[string]*User {
 }
 
 func (s *Service) Get(queries map[string]interface{}) ([]*User, *helper.Pagination) {
-	fmt.Printf("user service get\n")
+	logger.Debugf("user service get")
 	users, pagination := s.repo.Get(queries)
 
 	return users, pagination
 }
 
 func (s *Service) GetById(queries map[string]interface{}) ([]*User, error) {
-	fmt.Printf("user service getById\n")
+	logger.Debugf("user service getById\n")
 
 	records, _ := s.repo.Get(queries)
 	if len(records) == 0 {
@@ -112,7 +113,7 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*User, error) {
 }
 
 func (s *Service) Create(users []*User) ([]*User, *helper.HttpErr) {
-	fmt.Printf("user service create\n")
+	logger.Debugf("user service create")
 	newUserNames := []string{}
 	for _, user := range users {
 		newUserNames = append(newUserNames, user.Name)
@@ -123,10 +124,10 @@ func (s *Service) Create(users []*User) ([]*User, *helper.HttpErr) {
 	}
 
 	// check if duplicated by "name"
-	existingUsers, _ := s.repo.Get(map[string]interface{}{"name": newUserNames})
+	existingUsers, _ := s.repo.Get(map[string]interface{}{"name": newUserNames, "exactMatch": map[string]bool{"name": true}})
 	if len(existingUsers) > 0 {
 		errMsg := fmt.Sprintf("user service create error: provided user name(s) %+v already exists.\n", newUserNames)
-		log.Printf(errMsg)
+		logger.Errorf(errMsg)
 		return nil, &helper.HttpErr{fiber.StatusConflict, fmt.Errorf(errMsg)}
 	}
 
@@ -135,7 +136,7 @@ func (s *Service) Create(users []*User) ([]*User, *helper.HttpErr) {
 }
 
 func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
-	fmt.Printf("user service update\n")
+	logger.Debugf("user service update")
 
 	userIds := []string{}
 	for _, user := range users {
@@ -144,7 +145,7 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 
 	// create map by existing user from DB
 	userIdMap := map[string]User{}
-	getByIdsCondition := helper.GetIdsMapCondition(nil, userIds)
+	getByIdsCondition := database.GetIdsMapCondition(nil, userIds)
 	existings, _ := s.repo.Get(getByIdsCondition)
 	for _, user := range existings {
 		userIdMap[user.GetId()] = *user
@@ -209,9 +210,9 @@ func (s *Service) Update(users []*User) ([]*User, *helper.HttpErr) {
 }
 
 func (s *Service) Delete(ids []string) ([]*User, error) {
-	fmt.Printf("user service delete\n")
+	logger.Debugf("user service delete")
 	records := []*User{}
-	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	getByIdsCondition := database.GetIdsMapCondition(nil, ids)
 	records, _ = s.repo.Get(getByIdsCondition)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
@@ -221,7 +222,7 @@ func (s *Service) Delete(ids []string) ([]*User, error) {
 }
 
 func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
-	fmt.Printf("user service login\n")
+	logger.Debugf("user service login")
 
 	results, _ := s.repo.Get(map[string]interface{}{
 		"name": user.Name,
@@ -233,25 +234,27 @@ func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
 	}
 
-	var checkPassword = func(hashedPwd string, plainPwd string) bool {
-		if err := bcrypt.CompareHashAndPassword([]byte(hashedPwd), []byte(plainPwd)); err != nil {
-			return false
+	if !user.IsOauth {
+		var checkPassword = func(hashedPwd string, plainPwd string) bool {
+			if err := bcrypt.CompareHashAndPassword([]byte(hashedPwd), []byte(plainPwd)); err != nil {
+				return false
+			}
+
+			return true
 		}
 
-		return true
-	}
+		match := checkPassword(*results[0].Password, *user.Password)
 
-	match := checkPassword(*results[0].Password, *user.Password)
-
-	if !match {
-		return nil, &helper.HttpErr{fiber.StatusInternalServerError, fmt.Errorf("password not match...")}
+		if !match {
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, fmt.Errorf("password not match...")}
+		}
 	}
 
 	sanitise(results)
 
 	if userTokenResponse, err := GetUserTokenResponse(results[0]); err != nil {
 		msg := fmt.Sprintf("failed to refresh token: %+v", err)
-		fmt.Println(msg)
+		logger.Errorf(msg)
 		return nil, &helper.HttpErr{fiber.StatusInternalServerError, errors.New(msg)}
 	} else {
 		return userTokenResponse, nil
@@ -259,10 +262,10 @@ func (s *Service) Login(user *User) (map[string]interface{}, *helper.HttpErr) {
 }
 
 func (s *Service) Refresh(user *User) (map[string]interface{}, *helper.HttpErr) {
-	fmt.Printf("user service refresh\n")
+	logger.Debugf("user service refresh")
 
 	results := []*User{}
-	getByIdsCondition := helper.GetIdsMapCondition(nil, []string{user.GetId()})
+	getByIdsCondition := database.GetIdsMapCondition(nil, []string{user.GetId()})
 	results, _ = s.repo.Get(getByIdsCondition)
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists... failed to refresh, please try login again")}

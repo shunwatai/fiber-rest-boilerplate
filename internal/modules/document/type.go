@@ -2,9 +2,9 @@ package document
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
@@ -23,7 +23,7 @@ type Document struct {
 	FilePath  string                 `json:"filePath" db:"file_path" bson:"file_path,omitempty" example:"upload/xx/202210041710-test.jpg"`
 	FileType  string                 `json:"fileType" db:"file_type" bson:"file_type,omitempty" default:"jpg"`
 	FileSize  int64                  `json:"fileSize" db:"file_size" bson:"file_size,omitempty" default:"342424"`
-	Hash      string                 `json:"hash" db:"hash"`
+	Hash      string                 `json:"hash" db:"hash" bson:"hash"`
 	Public    bool                   `json:"public" db:"public" bson:"public,omitempty" validate:"boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
@@ -94,9 +94,10 @@ func (docs Documents) GetTags(key string) []string {
 func (docs *Documents) printValue() {
 	for _, v := range *docs {
 		if v.Id != nil {
-			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+		} else {
+			logger.Debugf("new --> v: %+v\n", *v)
 		}
-		fmt.Printf("new --> v: %+v\n", *v)
 	}
 }
 

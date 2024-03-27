@@ -10,7 +10,7 @@ var ctrl = NewController(Srvc)
 
 func GetRoutes(router fiber.Router) {
 	// r := router.Group("/qrcodes", jwtcheck.CheckFromHeader())
-	r := router.Group("/qrcodes")
+	r := router.Group("/api/qrcodes")
 	r.Post("/from-pdf", GetQrcodeContentFromPdf)
 }
 

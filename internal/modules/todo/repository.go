@@ -1,9 +1,10 @@
 package todo
 
 import (
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/helper/utils"
 	"golang-api-starter/internal/modules/document"
 	"golang-api-starter/internal/modules/todoDocument"
 	"golang-api-starter/internal/modules/user"
@@ -20,6 +21,9 @@ func NewRepository(db database.IDatabase) *Repository {
 }
 
 func cascadeFields(todos Todos) {
+	if len(todos) == 0 {
+		return
+	}
 	// cascade user
 	var (
 		userIds []string
@@ -40,7 +44,7 @@ func cascadeFields(todos Todos) {
 		users := []*user.User{}
 
 		// get users by userIds
-		condition := helper.GetIdsMapCondition(nil, userIds)
+		condition := database.GetIdsMapCondition(nil, userIds)
 		users, _ = user.Srvc.Get(condition)
 		// get the map[userId]user
 		userMap := user.Srvc.GetIdMap(users)
@@ -69,7 +73,7 @@ func cascadeFields(todos Todos) {
 
 	todoDocuments := []*todoDocument.TodoDocument{}
 	// get users by userIds
-	condition := helper.GetIdsMapCondition(helper.ToPtr("todo_id"), todoIds)
+	condition := database.GetIdsMapCondition(utils.ToPtr("todo_id"), todoIds)
 	todoDocuments, _ = todoDocument.Srvc.Get(condition)
 
 	// get the map[userId]user
@@ -93,7 +97,7 @@ func cascadeFields(todos Todos) {
 }
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
-	fmt.Printf("todo repo\n")
+	logger.Debugf("todo repo")
 	defaultExactMatch := map[string]bool{
 		"id":   true,
 		"_id":  true,
@@ -101,6 +105,8 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagin
 	}
 	if queries["exactMatch"] != nil {
 		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
+	} else {
+		queries["exactMatch"] = defaultExactMatch
 	}
 
 	queries["columns"] = Todo{}.getTags()
@@ -119,7 +125,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagin
 
 func (r *Repository) Create(todos []*Todo) ([]*Todo, error) {
 	for _, todo := range todos {
-		fmt.Printf("todo repo add: %+v\n", todo)
+		logger.Debugf("todo repo add: %+v", todo)
 	}
 	rows, err := r.db.Save(Todos(todos))
 
@@ -133,7 +139,7 @@ func (r *Repository) Create(todos []*Todo) ([]*Todo, error) {
 }
 
 func (r *Repository) Update(todos []*Todo) ([]*Todo, error) {
-	fmt.Printf("todo repo update\n")
+	logger.Debugf("todo repo update")
 	rows, err := r.db.Save(Todos(todos))
 
 	var records Todos
@@ -146,7 +152,7 @@ func (r *Repository) Update(todos []*Todo) ([]*Todo, error) {
 }
 
 func (r *Repository) Delete(ids []string) error {
-	fmt.Printf("todo repo delete\n")
+	logger.Debugf("todo repo delete")
 	err := r.db.Delete(ids)
 	if err != nil {
 		return err

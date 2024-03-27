@@ -1,0 +1,31 @@
+<html>
+  <head>
+    <title>
+      forgot password
+    </title>
+    <script src="/static/3p/htmx/htmx-1.9.11.min.js"></script>
+    <script src="/static/3p/htmx/json-enc.js"></script>
+  </head>
+  <body style="display:flex; text-align:center; flex-direction:column; gap:1rem">
+    <div>
+      reset password
+    </div>
+    <div>
+      {{if $.errMessage}}
+        ERROR: {{ $.errMessage }}
+      {{end}}
+    </div>
+    <div>
+      <form 
+        hx-post="/password-resets/send"
+        hx-ext="json-enc"
+        hx-target="#message"
+      >
+        <label for="password">Enter your email:</label>
+        <input name="email" required />
+        <button type="sumit">Send</button>
+      </form>
+      <div id="message"></div>
+    </div>
+  </body>
+</html>
