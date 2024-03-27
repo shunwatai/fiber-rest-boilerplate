@@ -51,6 +51,7 @@ func (c *Controller) OAuthGetAuth(ctx *fiber.Ctx) error {
 			Name:     username,
 			Password: utils.ToPtr(fiberUtils.UUIDv4()), // useless random dummy password for oauth user
 			IsOauth:  true,
+			Provider: utils.ToPtr(oauthUser.Provider),
 		})
 		user.Srvc.Create(users)
 	}

@@ -1,0 +1,17 @@
+[
+  {
+    "update": "users",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$unset": {
+            "is_oauth": "",
+            "provider": ""
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

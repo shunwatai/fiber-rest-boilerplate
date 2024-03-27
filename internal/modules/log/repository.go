@@ -31,6 +31,8 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Log, *helper.Pagina
 	}
 	if queries["exactMatch"] != nil {
 		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
+	} else {
+		queries["exactMatch"] = defaultExactMatch
 	}
 
 	queries["columns"] = Log{}.getTags()

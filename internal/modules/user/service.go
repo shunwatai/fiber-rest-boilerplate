@@ -27,15 +27,14 @@ func NewService(r *Repository) *Service {
 
 /* this func for generate the jwt claims like the access & refresh tokens */
 func GenerateUserToken(user User, tokenType string) *jwt.Token {
-	var expireTime = time.Now().Add(time.Minute * 10).Unix() // 10 mins for access token?
+	var expireTime = &jwt.NumericDate{time.Now().Add(time.Minute * 10)} // 10 mins for access token?
 
 	env := cfg.ServerConf.Env
 	if env == "local" { // if local development, set expire time to 1 year
-		expireTime = time.Now().Add(time.Hour * 8760).Unix()
-		// expireTime = time.Now().Add(time.Second * 10).Unix() // 10 seconds token to test in local env
+		expireTime = &jwt.NumericDate{time.Now().Add(time.Hour * 8760)}
 	}
 	if tokenType == "refreshToken" {
-		expireTime = time.Now().Add(time.Hour * 720).Unix() // 30 days for refresh token?
+		expireTime = &jwt.NumericDate{time.Now().Add(time.Hour * 720)} // 30 days for refresh token?
 	}
 
 	claims := &UserClaims{
@@ -50,10 +49,11 @@ func GenerateUserToken(user User, tokenType string) *jwt.Token {
 		}(),
 		Username:  user.Name,
 		TokenType: tokenType,
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    user.GetId(),
 			ExpiresAt: expireTime,
-		}}
+		},
+	}
 
 	return auth.GetToken(claims)
 }

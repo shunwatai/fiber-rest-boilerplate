@@ -86,13 +86,24 @@ type OAuth struct {
 	*OAuthGithub `mapstructure:"github"`
 }
 
+type Smtp struct {
+	Host string
+	Port int
+	User string
+	Pass string
+}
+type Notification struct {
+	Smtp *Smtp
+}
+
 type Config struct {
-	*DbConf     `mapstructure:"database"`
-	*ServerConf `mapstructure:"server"`
-	*Jwt        `mapstructure:"jwt"`
-	*Logging    `mapstructure:"logging"`
-	*OAuth      `mapstructure:"oauth"`
-	Vpr         *viper.Viper
+	*DbConf       `mapstructure:"database"`
+	*ServerConf   `mapstructure:"server"`
+	*Jwt          `mapstructure:"jwt"`
+	*Logging      `mapstructure:"logging"`
+	*OAuth        `mapstructure:"oauth"`
+	*Notification `mapstructure:"notification"`
+	Vpr           *viper.Viper
 }
 
 func (c *Config) LoadEnvVariables() {
