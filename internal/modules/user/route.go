@@ -23,12 +23,12 @@ func GetRoutes(router fiber.Router) {
 	ctrl = NewController(Srvc)
 
 	// normal auth from database's users table
-	authRoute := router.Group("/auth")
+	authRoute := router.Group("/api/auth")
 	authRoute.Post("/login", Login)
 	authRoute.Post("/refresh", Refresh)
 
 	// users routes
-	r := router.Group("/users", jwtcheck.CheckFromHeader())
+	r := router.Group("/api/users", jwtcheck.CheckJwt())
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)

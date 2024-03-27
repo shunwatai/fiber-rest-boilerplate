@@ -22,6 +22,7 @@ require (
 	github.com/shareed2k/goth_fiber v0.3.0
 	github.com/spf13/viper v1.18.2
 	github.com/swaggo/swag v1.16.3
+	github.com/wneessen/go-mail v0.4.1
 	go.mongodb.org/mongo-driver v1.13.1
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.19.0

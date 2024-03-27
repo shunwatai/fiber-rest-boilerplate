@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/iancoleman/strcase"
 )
+
+type FlexInt int64
 
 type IReqPayload interface {
 	ParseJsonToStruct(interface{}, interface{}) (error, error)
@@ -23,6 +26,23 @@ type ReqContext struct {
 
 type FiberCtx struct {
 	Fctx *fiber.Ctx
+}
+
+// ref: https://docs.bitnami.com/tutorials/dealing-with-json-with-non-homogeneous-types-in-go
+func (fi *FlexInt) UnmarshalJSON(b []byte) error {
+	if b[0] != '"' {
+		return json.Unmarshal(b, (*int64)(fi))
+	}
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return err
+	}
+	*fi = FlexInt(i)
+	return nil
 }
 
 func GetQueryString(queryString []byte) map[string]interface{} {

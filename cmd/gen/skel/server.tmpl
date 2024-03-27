@@ -2,9 +2,11 @@ package server
 
 import (
 	"fmt"
+	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/middleware/logging"
+	"golang-api-starter/internal/modules/sample"
   {{- range .Modules }}
   "golang-api-starter/internal/modules/{{ .ModuleName }}"
   {{- end }}
@@ -46,6 +48,7 @@ func (f *Fiber) LoadMiddlewares() {
 		AllowHeaders:     "Origin, Content-Type, Accept",
 		AllowCredentials: true,
 	}))
+	auth.NewOAuth()
 }
 
 func (f *Fiber) LoadSwagger() {
@@ -68,7 +71,16 @@ func (f *Fiber) LoadSwagger() {
 }
 
 func (f *Fiber) LoadAllRoutes() {
-	api := f.App.Group("/api", logging.Logger())
+	// embed static files for frontend template
+	// ref: https://docs.gofiber.io/api/middleware/filesystem/#embed
+	f.App.Use("/static", filesystem.New(filesystem.Config{
+		Root:   http.FS(static.StaticDir),
+		Browse: false,
+	}))
+
+	sample.GetRoutes(f.App) // sample routes for testing
+
+	router := f.App.Group("", logging.Logger()) // add logging to all routes
   {{- range .Modules }}
 	{{.ModuleName}}.GetRoutes(api)
   {{- end }}

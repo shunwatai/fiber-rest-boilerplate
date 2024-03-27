@@ -14,22 +14,23 @@ import (
 
 var cfg = config.Cfg
 
-var sessionCfg = session.Config{
-	Expiration:   720 * time.Hour, // 30 days
-	KeyLookup:    "cookie:_gothic_session",
-	CookieDomain: "",
-	CookiePath:   "/",
-	CookieSecure: false,
-	// CookieSecure:   os.Getenv("ENVIRONMENT") == "production",
-	CookieHTTPOnly: true, // Should always be enabled
-	CookieSameSite: "Lax",
-	KeyGenerator:   utils.UUIDv4,
+func getSessionCfg() session.Config {
+	return session.Config{
+		Expiration:     720 * time.Hour, // 30 days
+		KeyLookup:      "cookie:_gothic_session",
+		CookieDomain:   "",
+		CookiePath:     "/",
+		CookieSecure:   cfg.ServerConf.Env == "prod",
+		CookieHTTPOnly: true, // Should always be enabled
+		CookieSameSite: "Lax",
+		KeyGenerator:   utils.UUIDv4,
+	}
 }
 
-// create session handler
-var sessions = session.New(sessionCfg)
+func NewOAuth() {
+	// create session handler
+	var sessions = session.New(getSessionCfg())
 
-func NewGoogleOAuth() {
 	// load env
 	googleClientId := cfg.OAuth.OAuthGoogle.Key
 	googleClientSecret := cfg.OAuth.OAuthGoogle.Secret

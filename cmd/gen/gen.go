@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"fmt"
 	"golang-api-starter/internal/helper/utils"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -159,25 +158,29 @@ func (ent *entity) generateMigration() {
 	// fmt.Println("down", migrationOut[1])
 
 	dbEngines := map[string]map[string]string{
-		"postgres": map[string]string{
+		"postgres": {
 			"up":   migratePgUpTemplate,
 			"down": migratePgDownTemplate,
+			"ext":  "sql",
 		},
-		"mariadb": map[string]string{
+		"mariadb": {
 			"up":   migrateMariaUpTemplate,
 			"down": migrateMariaDownTemplate,
+			"ext":  "sql",
 		},
-		"sqlite": map[string]string{
+		"sqlite": {
 			"up":   migrateSqliteUpTemplate,
 			"down": migrateSqliteDownTemplate,
+			"ext":  "sql",
 		},
-		"mongodb": map[string]string{
+		"mongodb": {
 			"up":   migrateMongoUpTemplate,
 			"down": migrateMongoDownTemplate,
+			"ext":  "json",
 		},
 	}
 	for dbEngine, migrations := range dbEngines {
-		argstr := []string{"create", "-ext", "sql", "-dir", fmt.Sprintf("%s/migrations/%s", basepath, dbEngine), "-seq", migrationName}
+		argstr := []string{"create", "-ext", migrations["ext"], "-dir", fmt.Sprintf("%s/migrations/%s", basepath, dbEngine), "-seq", migrationName}
 		out, err := exec.Command(migrateBinPath[0], argstr...).CombinedOutput()
 		migrationOut := strings.Split(strings.ReplaceAll(string(out), "\r\n", "\n"), "\n")
 
@@ -203,12 +206,16 @@ func (ent *entity) generateMigration() {
 
 func reGenerateServerFile() {
 	var allModules []entity
-	moduleDirs, err := ioutil.ReadDir(fmt.Sprintf("%s/internal/modules/", basepath))
+	// moduleDirs, err := ioutil.ReadDir(fmt.Sprintf("%s/internal/modules/", basepath))
+	moduleDirs, err := os.ReadDir(fmt.Sprintf("%s/internal/modules/", basepath))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, dir := range moduleDirs {
+		if dir.Name() == "sample" {
+			continue
+		}
 		// structName := fmt.Sprintf("%s", cases.Title(language.English, cases.Compact).String(dir.Name()))
 		// structName := strcase.ToCamel(dir.Name())
 		// routeName := strcase.ToKebab(dir.Name())
@@ -221,7 +228,7 @@ func reGenerateServerFile() {
 	}
 
 	// fmt.Println(allModules)
-	filePath := fmt.Sprintf("%s/cmd/server/main.go",basepath)
+	filePath := fmt.Sprintf("%s/cmd/server/main.go", basepath)
 	tmplData := map[string][]entity{"Modules": allModules}
 
 	file, err := os.Create(filePath)

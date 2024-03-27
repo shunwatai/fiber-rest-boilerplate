@@ -67,6 +67,8 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*TodoDocument, *help
 	}
 	if queries["exactMatch"] != nil {
 		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
+	} else {
+		queries["exactMatch"] = defaultExactMatch
 	}
 
 	queries["columns"] = TodoDocument{}.getTags()

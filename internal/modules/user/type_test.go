@@ -12,7 +12,7 @@ import (
 func TestGetId(t *testing.T) {
 	user := &User{
 		MongoId: utils.ToPtr("xxxx-xxxx-xxxx-xxxx"),
-		Id:      utils.ToPtr(int64(2)),
+		Id:      utils.ToPtr(helper.FlexInt(2)),
 	}
 
 	tests := []struct {
@@ -52,7 +52,7 @@ func TestStructToMap(t *testing.T) {
 	users := Users{
 		&User{
 			MongoId:   utils.ToPtr("xxxx-xxxx-xxxx-xxxx"),
-			Id:        &id,
+			Id:        utils.ToPtr(helper.FlexInt(id)),
 			CreatedAt: customDatetime,
 			UpdatedAt: customDatetime,
 		},
@@ -64,7 +64,7 @@ func TestStructToMap(t *testing.T) {
 		want  []map[string]interface{}
 	}{
 		{name: "test StructToMap", input: users, want: []map[string]interface{}{
-			{"_id": "xxxx-xxxx-xxxx-xxxx", "id": float64(2), "created_at": timeJson, "updated_at": timeJson, "first_name": nil, "last_name": nil, "disabled": false, "name": ""},
+			{"_id": "xxxx-xxxx-xxxx-xxxx", "id": float64(2), "created_at": timeJson, "updated_at": timeJson, "first_name": nil, "last_name": nil, "disabled": false, "name": "", "is_oauth": false, "provider": nil},
 		}},
 	}
 
@@ -90,9 +90,9 @@ func TestGetTags(t *testing.T) {
 		input string
 		want  []string
 	}{
-		{name: "test get db tags", input: "db", want: []string{"id", "name", "password", "first_name", "last_name", "disabled", "created_at", "updated_at"}},
-		{name: "test get bson tags", input: "bson", want: []string{"_id", "id", "name", "password", "first_name", "last_name", "disabled", "created_at", "updated_at"}},
-		{name: "test get json tags", input: "json", want: []string{"_id", "id", "name", "password", "firstName", "lastName", "disabled", "createdAt", "updatedAt"}},
+		{name: "test get db tags", input: "db", want: []string{"id", "name", "password", "email", "first_name", "last_name", "disabled", "is_oauth", "provider", "created_at", "updated_at"}},
+		{name: "test get bson tags", input: "bson", want: []string{"_id", "id", "name", "password", "email", "first_name", "last_name", "disabled", "is_oauth", "provider", "created_at", "updated_at"}},
+		{name: "test get json tags", input: "json", want: []string{"_id", "id", "name", "password", "email", "firstName", "lastName", "disabled", "isOauth", "provider", "createdAt", "updatedAt"}},
 	}
 
 	for _, testCase := range tests {
