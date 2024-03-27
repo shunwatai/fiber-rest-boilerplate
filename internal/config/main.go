@@ -31,26 +31,40 @@ type PostgresConf struct {
 	Database *string
 }
 
+type MongodbConf struct {
+	Host     *string
+	Port     *string
+	User     *string
+	Pass     *string
+	Database *string
+}
+
 type DbConf struct {
-	Driver      string `mapstructure:"engine"`
-	SqliteConf  `mapstructure:"sqlite"`
-	MariadbConf `mapstructure:"mariadb"`
+	Driver       string `mapstructure:"engine"`
+	SqliteConf   `mapstructure:"sqlite"`
+	MariadbConf  `mapstructure:"mariadb"`
 	PostgresConf `mapstructure:"postgres"`
+	MongodbConf  `mapstructure:"mongodb"`
 }
 
 type ServerConf struct {
 	Env  string
+	Host string
 	Port string
+}
+
+type Jwt struct {
+	Secret string
 }
 
 type Config struct {
 	*DbConf     `mapstructure:"database"`
 	*ServerConf `mapstructure:"server"`
+	*Jwt        `mapstructure:"jwt"`
 	Vpr         *viper.Viper
 }
 
 func (c *Config) LoadEnvVariables() {
-	c.Vpr = viper.GetViper()
 	c.Vpr.SetConfigType("yaml")
 	c.Vpr.SetConfigName("config")
 	for _, envPath := range []string{"./", "../", "../../"} {
@@ -90,4 +104,6 @@ func (c *Config) WatchConfig() {
 	c.Vpr.WatchConfig()
 }
 
-var Cfg = Config{}
+var Cfg = &Config{
+	Vpr: viper.GetViper(),
+}

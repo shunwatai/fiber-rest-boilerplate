@@ -48,7 +48,9 @@ func getDefaultPagination() *Pagination {
 	}
 }
 
-func GetPagination(cols []string, queries map[string]interface{}) *Pagination{
+// get the pagination struct according to the req querystring 
+// key: page(page number), items(number of rows per page)
+func GetPagination(queries map[string]interface{}) *Pagination{
 	pagination := getDefaultPagination()
 
 	if queries["page"] != nil && queries["items"] != nil {
@@ -60,6 +62,12 @@ func GetPagination(cols []string, queries map[string]interface{}) *Pagination{
 		pagination.OrderBy = parseOrderBy(queries["order_by"].(string))
 	}
 
+	return pagination
+}
+
+// ensure the queries only contains the keys that match with table's columns,
+// clean the irrelevant keys from the queries
+func SanitiseQuerystring(cols []string, queries map[string]interface{}){
 	tmpColsMap := map[string]struct{}{}
 	for _, col := range cols {
 		tmpColsMap[col] = struct{}{}
@@ -70,6 +78,4 @@ func GetPagination(cols []string, queries map[string]interface{}) *Pagination{
 			delete(queries, k)
 		}
 	}
-
-	return pagination
 }

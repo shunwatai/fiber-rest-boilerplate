@@ -4,6 +4,8 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"strings"
 	"time"
 )
@@ -58,6 +60,22 @@ func (t CustomDatetime) MarshalJSON() ([]byte, error) {
 	return []byte(jsonDatetime), nil
 }
 
+func (t *CustomDatetime) UnmarshalBSONValue(bt bsontype.Type, value []byte) error {
+	// fmt.Printf("UnmarshalBSONValue type:%+v,  value:(%+v)\n",value, bt)
+	if bt != bsontype.DateTime {
+		return fmt.Errorf("invalid bson value type '%s'", t.String())
+	}
+
+	parsedTime, _, ok := bsoncore.ReadTime(value)
+	if !ok {
+		return fmt.Errorf("invalid bson datetime value")
+	}
+
+	// fmt.Printf("parsedTime: %+v\n", parsedTime)
+	t.Time = &parsedTime
+	return nil
+}
+
 // ref: https://stackoverflow.com/a/54921922
 func (t CustomDatetime) Value() (driver.Value, error) {
 	return time.Time(*t.Time), nil
@@ -71,4 +89,11 @@ func (t *CustomDatetime) Scan(src interface{}) error {
 	}
 
 	return nil
+}
+
+func Timer(start time.Time) func() {
+	return func() {
+		duration := time.Since(start)
+		fmt.Printf("duration: %+v\n", duration)
+	}
 }
