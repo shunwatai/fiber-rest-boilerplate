@@ -21,7 +21,7 @@ func GetRoutes(router fiber.Router) {
 	Srvc = NewService(Repo)
 	ctrl = NewController(Srvc)
 
-	r := router.Group("/todos", jwtcheck.CheckFromHeader())
+	r := router.Group("/api/todos", jwtcheck.CheckJwt())
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)

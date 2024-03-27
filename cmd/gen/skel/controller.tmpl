@@ -5,7 +5,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
-	"strconv"
 )
 
 type Controller struct {
@@ -91,7 +90,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		if {{.ModuleName}}.Id == nil {
 			continue
 		} else if existing, err := c.service.GetById(map[string]interface{}{
-			"id": strconv.Itoa(int(*{{.ModuleName}}.Id)),
+			"id": {{.ModuleName}}.GetId(),
 		}); err == nil && {{.ModuleName}}.CreatedAt == nil {
 			{{.ModuleName}}.CreatedAt = existing[0].CreatedAt
 		}

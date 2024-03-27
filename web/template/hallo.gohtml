@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <title>
+      hello world
+    </title>
+  </head>
+  <body style="display:flex; flex-direction:column; justify-content:center; gap:1rem;">
+    <h1 style="margin:0 auto">Hallo Welt</h1>
+    <div style="margin:0 auto">
+      date: {{$.date}}
+    </div>
+
+    <div style="margin:0 auto">
+    <div>Env variables:</div>
+    {{range $key, $value := $.envs}}
+      <div>
+        {{$key}}={{$value}} 
+      </div>
+    {{end}}
+    </div>
+  </body>
+</html>

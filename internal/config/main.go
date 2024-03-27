@@ -71,12 +71,39 @@ type Jwt struct {
 	Secret string
 }
 
+type OAuthGoogle struct {
+	Key         string
+	Secret      string
+	CallbackUrl string
+}
+type OAuthGithub struct {
+	Key         string
+	Secret      string
+	CallbackUrl string
+}
+type OAuth struct {
+	*OAuthGoogle `mapstructure:"google"`
+	*OAuthGithub `mapstructure:"github"`
+}
+
+type Smtp struct {
+	Host string
+	Port int
+	User string
+	Pass string
+}
+type Notification struct {
+	Smtp *Smtp
+}
+
 type Config struct {
-	*DbConf     `mapstructure:"database"`
-	*ServerConf `mapstructure:"server"`
-	*Jwt        `mapstructure:"jwt"`
-	*Logging    `mapstructure:"logging"`
-	Vpr         *viper.Viper
+	*DbConf       `mapstructure:"database"`
+	*ServerConf   `mapstructure:"server"`
+	*Jwt          `mapstructure:"jwt"`
+	*Logging      `mapstructure:"logging"`
+	*OAuth        `mapstructure:"oauth"`
+	*Notification `mapstructure:"notification"`
+	Vpr           *viper.Viper
 }
 
 func (c *Config) LoadEnvVariables() {

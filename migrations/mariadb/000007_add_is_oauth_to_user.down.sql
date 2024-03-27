@@ -1,0 +1,4 @@
+ALTER TABLE `users`
+DROP `is_oauth`,
+DROP `provider`,
+CHANGE `updated_at` `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`;

@@ -15,6 +15,7 @@ CREATE TABLE "public"."users" (
     "id" integer DEFAULT nextval('users_id_seq') NOT NULL,
     "name" character varying(255) NOT NULL,
     "password" character varying(255) NOT NULL,
+    "email" character varying(255) NOT NULL,
     "first_name" character varying(255) DEFAULT NULL,
     "last_name" character varying(255) DEFAULT NULL,
     "disabled" boolean DEFAULT false NOT NULL,
@@ -23,7 +24,11 @@ CREATE TABLE "public"."users" (
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 ) WITH (oids = false);
 
+ALTER TABLE "users"
+ADD CONSTRAINT "users_name" UNIQUE ("name"),
+ADD CONSTRAINT "users_email" UNIQUE ("email");
+
 -- Apply trigger update_updated_at_column()
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
-INSERT INTO "users" ("id", "name", "password", "first_name", "last_name", "disabled", "created_at", "updated_at") VALUES (1,	'admin',	'$2a$04$7F9KIfLOW3O9LyZSm2IQ8uXqH0B7P3wLjYTlkaerX53muN4U1.FDq',	NULL,	NULL,	'0',	'2023-11-27 10:35:53+00',	'2024-02-25 08:32:51.828793+00');
+INSERT INTO "users" ("name", "password", "email", "first_name", "last_name", "disabled", "created_at", "updated_at") VALUES ('admin',	'$2a$04$7F9KIfLOW3O9LyZSm2IQ8uXqH0B7P3wLjYTlkaerX53muN4U1.FDq', 'admin@example.com',	NULL,	NULL,	'0',	'2023-11-27 10:35:53+00',	'2024-02-25 08:32:51.828793+00');

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
-	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -92,7 +91,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		if log.Id == nil {
 			continue
 		} else if existing, err := c.service.GetById(map[string]interface{}{
-			"id": strconv.Itoa(int(*log.Id)),
+			"id": log.GetId(),
 		}); err == nil && log.CreatedAt == nil {
 			log.CreatedAt = existing[0].CreatedAt
 		}

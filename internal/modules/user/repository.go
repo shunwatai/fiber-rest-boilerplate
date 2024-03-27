@@ -25,6 +25,8 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*User, *helper.Pagin
 	}
 	if queries["exactMatch"] != nil {
 		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
+	} else {
+		queries["exactMatch"] = defaultExactMatch
 	}
 
 	queries["columns"] = User{}.getTags()

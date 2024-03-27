@@ -3,18 +3,20 @@ package database
 import (
 	"context"
 	"fmt"
+	"golang-api-starter/internal/config"
+	zlog "golang-api-starter/internal/helper/logger/zap_log"
+	"log"
+	"reflect"
+	"sort"
+	"testing"
+	"time"
+
 	"github.com/dhui/dktest"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"golang-api-starter/internal/config"
-	zlog "golang-api-starter/internal/helper/logger/zap_log"
-	"log"
-	"reflect"
-	"testing"
-	"time"
 )
 
 var (
@@ -94,7 +96,6 @@ type mongodbTests struct {
 	name  string
 	input map[string]interface{}
 	want1 bson.D
-	want2 map[string]interface{}
 }
 
 func TestMongodbConstructSelectStmtFromQuerystring(t *testing.T) {
@@ -202,13 +203,16 @@ func TestMongodbConstructSelectStmtFromQuerystring(t *testing.T) {
 
 				got1, _, _ := testDb.getConditionsFromQuerystring(testCase.input, countFunc)
 
+				sort.Slice(got1, func(i, j int) bool {
+					return got1[i].Key < got1[j].Key
+				})
+				sort.Slice(testCase.want1, func(i, j int) bool {
+					return testCase.want1[i].Key < testCase.want1[j].Key
+				})
+
 				if eq := reflect.DeepEqual(testCase.want1, got1); !eq {
 					t.Errorf("got %q \nwant %q", got1, testCase.want1)
 				}
-
-				// if eq := reflect.DeepEqual(testCase.want2, got2); !eq {
-				// 	t.Errorf("got %+v \nwant %+v", got2, testCase.want2)
-				// }
 			})
 		}
 	})
