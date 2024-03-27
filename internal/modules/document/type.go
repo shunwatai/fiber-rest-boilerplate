@@ -1,11 +1,11 @@
-package {{.ModuleName}}
+package document
 
 import (
 	"encoding/json"
 	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
-	//"golang-api-starter/internal/modules/user"
+	"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
 	"strconv"
@@ -14,45 +14,49 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-type {{.StructName}} struct {
-	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"` // https://stackoverflow.com/a/20739427
+type Document struct {
+	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"`
 	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
-	//UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
-	//User      *user.User             `json:"user"`
-	Col1      string                 `json:"col1" db:"col_1" bson:"col_1,omitempty" validate:"required"`
-	Col2      *bool                  `json:"col2" db:"col_2" bson:"col_2,omitempty" validate:"required,boolean"`
+	UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
+	User      *user.User             `json:"user"`
+	Name      string                 `json:"name" db:"name" bson:"name,omitempty" example:"test.jpg"`
+	FilePath  string                 `json:"filePath" db:"file_path" bson:"file_path,omitempty" example:"upload/xx/202210041710-test.jpg"`
+	FileType  string                 `json:"fileType" db:"file_type" bson:"file_type,omitempty" default:"jpg"`
+	FileSize  int64                  `json:"fileSize" db:"file_size" bson:"file_size,omitempty" default:"342424"`
+	Hash      string                 `json:"hash" db:"hash"`
+	Public    bool                   `json:"public" db:"public" bson:"public,omitempty" validate:"boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 }
 
-type {{.StructName}}s []*{{.StructName}}
+type Documents []*Document
 
-func ({{.Initial}} *{{.StructName}}) GetId() string {
+func (doc *Document) GetId() string {
 	if cfg.DbConf.Driver == "mongodb" {
-		return *{{.Initial}}.MongoId
+		return *doc.MongoId
 	} else {
-		return strconv.Itoa(int(*{{.Initial}}.Id))
+		return strconv.Itoa(int(*doc.Id))
 	}
 }
 
-//func ({{.Initial}} *{{.StructName}}) GetUserId() string {
+//func (doc *Document) GetUserId() string {
 //	if cfg.DbConf.Driver == "mongodb" {
-//		userId, ok := {{.Initial}}.UserId.(string)
+//		userId, ok := doc.UserId.(string)
 //		if !ok {
 //			return ""
 //		}
 //		return userId
 //	} else {
-//		return strconv.Itoa(int({{.Initial}}.UserId.(int64)))
+//		return strconv.Itoa(int(doc.UserId.(int64)))
 //	}
 //}
 
-func ({{.Initial}}s {{.StructName}}s) StructToMap() []map[string]interface{} {
+func (docs Documents) StructToMap() []map[string]interface{} {
 	mapsResults := []map[string]interface{}{}
-	for _, {{.Initial}} := range {{.Initial}}s {
+	for _, doc := range docs {
 		tmp := map[string]interface{}{}
 		result := map[string]interface{}{}
-		data, _ := json.Marshal({{.Initial}})
+		data, _ := json.Marshal(doc)
 		json.Unmarshal(data, &tmp)
 		for k, v := range tmp {
 			result[strcase.ToSnake(k)] = v
@@ -63,32 +67,32 @@ func ({{.Initial}}s {{.StructName}}s) StructToMap() []map[string]interface{} {
 	return mapsResults
 }
 
-func ({{.Initial}}s {{.StructName}}s) rowsToStruct(rows database.Rows) []*{{.StructName}} {
+func (docs Documents) rowsToStruct(rows database.Rows) []*Document {
 	defer rows.Close()
 
-	records := make([]*{{.StructName}}, 0)
+	records := make([]*Document, 0)
 	for rows.Next() {
-		var {{.Initial}} {{.StructName}}
-		err := rows.StructScan(&{{.Initial}})
+		var doc Document
+		err := rows.StructScan(&doc)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
-		records = append(records, &{{.Initial}})
+		records = append(records, &doc)
 	}
 
 	return records
 }
 
-func ({{.Initial}}s {{.StructName}}s) GetTags(key string) []string {
-	if len({{.Initial}}s) == 0 {
+func (docs Documents) GetTags(key string) []string {
+	if len(docs) == 0 {
 		return []string{}
 	}
 
-	return {{.Initial}}s[0].getTags(key)
+	return docs[0].getTags(key)
 }
 
-func ({{.Initial}}s *{{.StructName}}s) printValue() {
-	for _, v := range *{{.Initial}}s {
+func (docs *Documents) printValue() {
+	for _, v := range *docs {
 		if v.Id != nil {
 			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
 		}
@@ -98,7 +102,7 @@ func ({{.Initial}}s *{{.StructName}}s) printValue() {
 
 // get the tags by key(json / db / bson) name from the struct
 // ref: https://stackoverflow.com/a/40865028
-func ({{.Initial}} {{.StructName}}) getTags(key ...string) []string {
+func (doc Document) getTags(key ...string) []string {
 	var tag string
 	if len(key) == 1 {
 		tag = key[0]
@@ -109,7 +113,7 @@ func ({{.Initial}} {{.StructName}}) getTags(key ...string) []string {
 	}
 
 	cols := []string{}
-	val := reflect.ValueOf({{.Initial}})
+	val := reflect.ValueOf(doc)
 	for i := 0; i < val.Type().NumField(); i++ {
 		t := val.Type().Field(i)
 		fieldName := t.Name

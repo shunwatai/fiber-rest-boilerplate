@@ -33,12 +33,12 @@ var wg sync.WaitGroup
 
 func main() {
 	if len(os.Args) <= 1 {
-		fmt.Println("error: missing arg[1] arg[2], try go run gen.go document doc")
+		fmt.Println("error: missing arg[1] arg[2], try go run gen.go userDocument ud")
 		return
 	}
 	if len(os.Args) == 2 {
 		fmt.Println("error: missing new module name")
-		fmt.Println("try: go run gen.go <module-name-in-singular-lower-case> <initial e.g: u (for User)>")
+		fmt.Println("try: go run gen.go <module-name-in-singular-lower-case e.g: userDocument> <initial e.g: u (for ud)>")
 		return
 	}
 

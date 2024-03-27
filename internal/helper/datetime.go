@@ -4,10 +4,10 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"strings"
+	"time"
 )
 
 type CustomDatetime struct {
@@ -89,4 +89,11 @@ func (t *CustomDatetime) Scan(src interface{}) error {
 	}
 
 	return nil
+}
+
+func Timer(start time.Time) func() {
+	return func() {
+		duration := time.Since(start)
+		fmt.Printf("duration: %+v\n", duration)
+	}
 }

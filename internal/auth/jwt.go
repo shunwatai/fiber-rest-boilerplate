@@ -10,7 +10,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-var cfg = config.Cfg
 
 func ParseJwt(token string) (jwt.MapClaims, error) {
 	tokenStr := strings.Split(token, "Bearer ")
@@ -26,8 +25,7 @@ func ParseJwt(token string) (jwt.MapClaims, error) {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
-		cfg.LoadEnvVariables()
-		secret := cfg.Jwt.Secret
+		secret := config.Cfg.Jwt.Secret
 		return []byte(secret), nil
 	})
 
