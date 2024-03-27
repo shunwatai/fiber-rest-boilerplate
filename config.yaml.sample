@@ -26,6 +26,12 @@ database:
     user: "user"
     pass: "password"
     database: "fiber-starter"
+  mongodb:
+    host: "localhost"
+    port: "27017"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
 
 redis:
   host: "localhost"

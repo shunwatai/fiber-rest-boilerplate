@@ -6,8 +6,11 @@ import (
 	"golang-api-starter/internal/helper"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Rows interface {
@@ -25,7 +28,7 @@ type IDatabase interface {
 
 	// Insert new records, support upsert when id is present.
 	// And also support batch insert/upsert
-	Save(Records) Rows
+	Save(Records) (Rows, error)
 
 	/* Delete records by ids(support batch delete) */
 	Delete([]string) error
@@ -44,23 +47,19 @@ type ConnectionInfo struct {
 
 type Records interface {
 	StructToMap() []map[string]interface{}
+	GetTags(string) []string
 }
 
-// func GetDbConnection(){
-// 	config := config.Cfg
-// 	config.LoadEnvVariables()
-// }
+var cfg = config.Cfg
 
 func GetDatabase(tableName string) IDatabase {
-	config := config.Cfg
-	config.LoadEnvVariables()
-	log.Printf("engin: %+v\n", config.DbConf.Driver)
+	log.Printf("engin: %+v\n", cfg.DbConf.Driver)
 
-	if config.DbConf.Driver == "sqlite" {
-		connection := config.DbConf.SqliteConf
+	if cfg.DbConf.Driver == "sqlite" {
+		connection := cfg.DbConf.SqliteConf
 		return &Sqlite{
 			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
+				Driver:   cfg.DbConf.Driver,
 				Host:     connection.Host,
 				Port:     connection.Port,
 				User:     connection.User,
@@ -71,11 +70,11 @@ func GetDatabase(tableName string) IDatabase {
 		}
 	}
 
-	if config.DbConf.Driver == "mariadb" {
-		connection := config.DbConf.MariadbConf
+	if cfg.DbConf.Driver == "mariadb" {
+		connection := cfg.DbConf.MariadbConf
 		return &MariaDb{
 			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
+				Driver:   cfg.DbConf.Driver,
 				Host:     connection.Host,
 				Port:     connection.Port,
 				User:     connection.User,
@@ -86,11 +85,11 @@ func GetDatabase(tableName string) IDatabase {
 		}
 	}
 
-	if config.DbConf.Driver == "postgres" {
-		connection := config.DbConf.PostgresConf
+	if cfg.DbConf.Driver == "postgres" {
+		connection := cfg.DbConf.PostgresConf
 		return &Postgres{
 			ConnectionInfo: &ConnectionInfo{
-				Driver:   config.DbConf.Driver,
+				Driver:   cfg.DbConf.Driver,
 				Host:     connection.Host,
 				Port:     connection.Port,
 				User:     connection.User,
@@ -100,6 +99,22 @@ func GetDatabase(tableName string) IDatabase {
 			TableName: tableName,
 		}
 	}
+
+	if cfg.DbConf.Driver == "mongodb" {
+		connection := cfg.DbConf.MongodbConf
+		return &Mongodb{
+			ConnectionInfo: &ConnectionInfo{
+				Driver:   cfg.DbConf.Driver,
+				Host:     connection.Host,
+				Port:     connection.Port,
+				User:     connection.User,
+				Pass:     connection.Pass,
+				Database: connection.Database,
+			},
+			TableName: tableName,
+		}
+	}
+
 	return nil
 }
 
@@ -146,4 +161,47 @@ func getDateRangeStmt(queries, bindvarMap map[string]interface{}) string {
 
 	// fmt.Printf("dateConditions: %+v\n",dateConditions)
 	return strings.Join(dateRangeConditions, " AND ")
+}
+
+// Generate bson for mongo find's date filtering
+func getDateRangeBson(queries map[string]interface{}) bson.D {
+	// fmt.Printf("dd query: %+v\n", queries)
+	if queries["withDateFilter"] == nil {
+		return bson.D{}
+	}
+
+	const dateFormat = "2006-01-02"
+	dateRangeConditions := bson.D{}
+	for k, v := range queries {
+		if len(k) < 3 || (!strings.Contains(k[len(k)-4:], "date") && !strings.Contains(k[len(k)-3:], "_at")) {
+			// fmt.Printf("not date: %+v\n", k)
+			continue
+		}
+		splitedDates := strings.Split(v.(string), ".")
+		fmt.Printf("splitedDates? %+v, len: %+v\n", splitedDates, len(splitedDates))
+		if len(splitedDates) == 2 {
+			from, to := splitedDates[0], splitedDates[1]
+			if from != "" {
+				t, _ := time.Parse(dateFormat, from)
+				dateRangeConditions = append(dateRangeConditions, bson.D{{
+					k, bson.D{{
+						"$gte", primitive.NewDateTimeFromTime(t),
+					}},
+				}}...)
+			}
+			if to != "" {
+				t, _ := time.Parse(dateFormat, to)
+				dateRangeConditions = append(dateRangeConditions, bson.D{{
+					k, bson.D{{
+						"$lte", primitive.NewDateTimeFromTime(t.AddDate(0, 0, 1)),
+					}},
+				}}...)
+			}
+		}
+		delete(queries, k)
+	}
+
+	// fmt.Printf("dateConditions: %+v\n",dateConditions)
+	// return strings.Join(dateRangeConditions, " AND ")
+	return dateRangeConditions
 }
