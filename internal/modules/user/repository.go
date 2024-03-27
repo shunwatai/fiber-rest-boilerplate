@@ -1,9 +1,10 @@
 package user
 
 import (
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
+
 	"golang.org/x/exp/maps"
 )
 
@@ -16,7 +17,7 @@ func NewRepository(db database.IDatabase) *Repository {
 }
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*User, *helper.Pagination) {
-	fmt.Printf("user repo\n")
+	logger.Debugf("user repo get")
 	defaultExactMatch := map[string]bool{
 		"id":       true,
 		"_id":      true,
@@ -24,6 +25,8 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*User, *helper.Pagin
 	}
 	if queries["exactMatch"] != nil {
 		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
+	} else {
+		queries["exactMatch"] = defaultExactMatch
 	}
 
 	queries["columns"] = User{}.getTags()
@@ -40,7 +43,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*User, *helper.Pagin
 
 func (r *Repository) Create(users []*User) ([]*User, error) {
 	for _, user := range users {
-		fmt.Printf("user repo add: %+v\n", user)
+		logger.Debugf("user repo add: %+v", user)
 	}
 	rows, err := r.db.Save(Users(users))
 
@@ -54,7 +57,7 @@ func (r *Repository) Create(users []*User) ([]*User, error) {
 }
 
 func (r *Repository) Update(users []*User) ([]*User, error) {
-	fmt.Printf("user repo update\n")
+	logger.Debugf("user repo update")
 	rows, err := r.db.Save(Users(users))
 
 	var records Users
@@ -67,6 +70,7 @@ func (r *Repository) Update(users []*User) ([]*User, error) {
 }
 
 func (r *Repository) Delete(ids []string) error {
+	logger.Debugf("user repo delete")
 	err := r.db.Delete(ids)
 	if err != nil {
 		return err

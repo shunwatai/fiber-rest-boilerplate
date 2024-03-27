@@ -1,5 +1,5 @@
 -- https://stackoverflow.com/a/67344658
-CREATE TEMPORARY TABLE temp AS
+CREATE TEMPORARY TABLE temp_todos AS
 SELECT 
     id,
     task,
@@ -34,4 +34,4 @@ SELECT
     done,
     created_at,
     updated_at
-FROM temp;
+FROM temp_todos;

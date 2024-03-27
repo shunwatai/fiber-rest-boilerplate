@@ -1,24 +1,34 @@
 package user
 
 import (
+	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/middleware/jwtcheck"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-var tableName = "users"
-var db = database.GetDatabase(tableName)
-var Repo = NewRepository(db)
-var Srvc = NewService(Repo)
-var ctrl = NewController(Srvc)
+var (
+	cfg       = config.Cfg
+	tableName = "users"
+	Repo      = &Repository{}
+	Srvc      = &Service{}
+	ctrl      = &Controller{}
+)
 
 func GetRoutes(router fiber.Router) {
-	authRoute := router.Group("/auth")
+	db := database.GetDatabase(tableName)
+	Repo = NewRepository(db)
+	Srvc = NewService(Repo)
+	ctrl = NewController(Srvc)
+
+	// normal auth from database's users table
+	authRoute := router.Group("/api/auth")
 	authRoute.Post("/login", Login)
 	authRoute.Post("/refresh", Refresh)
 
-	r := router.Group("/users", jwtcheck.CheckFromHeader())
+	// users routes
+	r := router.Group("/api/users", jwtcheck.CheckJwt())
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)
@@ -35,13 +45,13 @@ func GetRoutes(router fiber.Router) {
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		query	number	false	"id"							example(2)
-//	@Param			name	query	string	false	"search by name"				example(tom)
-//	@Param			firstName	query	string	false	"search by firstName"				example(will)
-//	@Param			lastName	query	string	false	"search by lastName"				example(smith)
-//	@Param			disabled	query	boolean	false	"search by disabled"				example(0)
-//	@Param			page	query	string	false	"page number for pagination"	example(1)
-//	@Param			items	query	string	false	"items per page for pagination"	example(10)
+//	@Param			id			query	number	false	"id"							example(2)
+//	@Param			name		query	string	false	"search by name"				example(tom)
+//	@Param			firstName	query	string	false	"search by firstName"			example(will)
+//	@Param			lastName	query	string	false	"search by lastName"			example(smith)
+//	@Param			disabled	query	boolean	false	"search by disabled"			example(0)
+//	@Param			page		query	string	false	"page number for pagination"	example(1)
+//	@Param			items		query	string	false	"items per page for pagination"	example(10)
 //	@Security		ApiKeyAuth
 //	@Router			/users [get]
 func GetAll(c *fiber.Ctx) error {
@@ -115,11 +125,17 @@ func Delete(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			User	body	string	true	"Login request json"	SchemaExample({ "name": "admin", "password": "admin" })
 //	@Security		ApiKeyAuth
-//	@Router			/users [post]
+//	@Router			/auth/login [post]
 func Login(c *fiber.Ctx) error {
 	return ctrl.Login(c)
 }
 
+// UserRefresh godoc
+//
+//	@Summary		Refrese user
+//	@Description	refresh user
+//	@Tags			users
+//	@Router			/auth/refresh [post]
 func Refresh(c *fiber.Ctx) error {
 	return ctrl.Refresh(c)
 }

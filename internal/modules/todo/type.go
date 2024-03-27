@@ -2,9 +2,10 @@ package todo
 
 import (
 	"encoding/json"
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	"golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/modules/document"
 	"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
@@ -15,14 +16,16 @@ import (
 )
 
 type Todo struct {
-	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty"` // https://stackoverflow.com/a/20739427
-	Id        *int64                 `json:"id,omitempty" db:"id" bson:"id,omitempty" example:"2"`
-	UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty"`
-	User      *user.User             `json:"user"`
-	Task      string                 `json:"task" db:"task" bson:"task,omitempty"`
-	Done      bool                   `json:"done" db:"done" bson:"done,omitempty"`
-	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
-	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
+	MongoId       *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"` // https://stackoverflow.com/a/20739427
+	Id            *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
+	UserId        interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
+	User          *user.User             `json:"user"`
+	TodoDocuments interface{}            `json:"-"`
+	Documents     []*document.Document   `json:"documents"`
+	Task          string                 `json:"task" db:"task" bson:"task,omitempty" validate:"required"`
+	Done          *bool                  `json:"done" db:"done" bson:"done,omitempty" validate:"required,boolean"`
+	CreatedAt     *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
+	UpdatedAt     *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 	// CreatedAt *string `db:"created_at" json:"createdAt,omitempty"`
 	// UpdatedAt *string `db:"updated_at" json:"updatedAt,omitempty"`
 }
@@ -39,7 +42,11 @@ func (todo *Todo) GetId() string {
 
 func (todo *Todo) GetUserId() string {
 	if cfg.DbConf.Driver == "mongodb" {
-		return todo.UserId.(string)
+		userId, ok := todo.UserId.(string)
+		if !ok {
+			return ""
+		}
+		return userId
 	} else {
 		return strconv.Itoa(int(todo.UserId.(int64)))
 	}
@@ -88,9 +95,10 @@ func (todos Todos) GetTags(key string) []string {
 func (todos *Todos) printValue() {
 	for _, v := range *todos {
 		if v.Id != nil {
-			fmt.Printf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+		} else {
+			logger.Debugf("new --> v: %+v\n", *v)
 		}
-		fmt.Printf("new --> v: %+v\n", *v)
 	}
 }
 
@@ -98,7 +106,6 @@ func (todos *Todos) printValue() {
 // ref: https://stackoverflow.com/a/40865028
 func (todo Todo) getTags(key ...string) []string {
 	var tag string
-	cfg.LoadEnvVariables()
 	if len(key) == 1 {
 		tag = key[0]
 	} else if cfg.DbConf.Driver == "mongodb" {

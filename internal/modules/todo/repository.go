@@ -1,10 +1,14 @@
 package todo
 
 import (
-	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/helper/utils"
+	"golang-api-starter/internal/modules/document"
+	"golang-api-starter/internal/modules/todoDocument"
 	"golang-api-starter/internal/modules/user"
+
 	"golang.org/x/exp/maps"
 )
 
@@ -17,12 +21,15 @@ func NewRepository(db database.IDatabase) *Repository {
 }
 
 func cascadeFields(todos Todos) {
+	if len(todos) == 0 {
+		return
+	}
 	// cascade user
-	cfg.LoadEnvVariables()
 	var (
 		userIds []string
 		userId  string
 	)
+	// get all userIds
 	for _, todo := range todos {
 		if todo.UserId == nil {
 			continue
@@ -32,11 +39,14 @@ func cascadeFields(todos Todos) {
 		userIds = append(userIds, userId)
 	}
 
+	// if no userIds, do nothing and return
 	if len(userIds) > 0 {
 		users := []*user.User{}
 
-		condition := user.GetUserIdMap(userIds)
+		// get users by userIds
+		condition := database.GetIdsMapCondition(nil, userIds)
 		users, _ = user.Srvc.Get(condition)
+		// get the map[userId]user
 		userMap := user.Srvc.GetIdMap(users)
 
 		for _, todo := range todos {
@@ -44,25 +54,50 @@ func cascadeFields(todos Todos) {
 				continue
 			}
 			user := &user.User{}
+			// take out the user by userId in map and assign
 			user = userMap[todo.GetUserId()]
 			todo.User = user
 		}
 	}
 
-	// // cascade documents
-	// var pagination helper.Pagination
-	// docsByExpenseId := document.Service.GetByColumns(map[string]interface{}{"expense_id": e.Id}, &pagination)
-	// documents := make([]*models.Document, len(docsByExpenseId))
-	//
-	// for i, d := range docsByExpenseId {
-	// 	// fmt.Printf("docsByExpenseId %+v: %+v\n", *e.Id, d)
-	// 	documents[i] = d
-	// }
-	// e.Documents = documents
+	// cascade todo-documents
+	var (
+		todoIds []string
+		todoId  string
+	)
+	// get all todoId
+	for _, todo := range todos {
+		todoId = todo.GetId()
+		todoIds = append(todoIds, todoId)
+	}
+
+	todoDocuments := []*todoDocument.TodoDocument{}
+	// get users by userIds
+	condition := database.GetIdsMapCondition(utils.ToPtr("todo_id"), todoIds)
+	todoDocuments, _ = todoDocument.Srvc.Get(condition)
+
+	// get the map[userId]user
+	todoDocumentsMap := todoDocument.Srvc.GetTodoIdMap(todoDocuments)
+
+	for _, todo := range todos {
+		tds := []*todoDocument.TodoDocument{}
+		// take out the user by userId in map and assign
+		tds, haveDocuments := todoDocumentsMap[todo.GetId()]
+
+		// if no documents assign empty slice for response json "documents": [] instead of "documents": null
+		if !haveDocuments {
+			todo.Documents = []*document.Document{}
+		} else {
+			todo.TodoDocuments = tds
+			for _, td := range tds {
+				todo.Documents = append(todo.Documents, td.Document)
+			}
+		}
+	}
 }
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagination) {
-	fmt.Printf("todo repo\n")
+	logger.Debugf("todo repo")
 	defaultExactMatch := map[string]bool{
 		"id":   true,
 		"_id":  true,
@@ -70,6 +105,8 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagin
 	}
 	if queries["exactMatch"] != nil {
 		maps.Copy(queries["exactMatch"].(map[string]bool), defaultExactMatch)
+	} else {
+		queries["exactMatch"] = defaultExactMatch
 	}
 
 	queries["columns"] = Todo{}.getTags()
@@ -88,7 +125,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*Todo, *helper.Pagin
 
 func (r *Repository) Create(todos []*Todo) ([]*Todo, error) {
 	for _, todo := range todos {
-		fmt.Printf("todo repo add: %+v\n", todo)
+		logger.Debugf("todo repo add: %+v", todo)
 	}
 	rows, err := r.db.Save(Todos(todos))
 
@@ -102,7 +139,7 @@ func (r *Repository) Create(todos []*Todo) ([]*Todo, error) {
 }
 
 func (r *Repository) Update(todos []*Todo) ([]*Todo, error) {
-	fmt.Printf("todo repo update\n")
+	logger.Debugf("todo repo update")
 	rows, err := r.db.Save(Todos(todos))
 
 	var records Todos
@@ -115,7 +152,7 @@ func (r *Repository) Update(todos []*Todo) ([]*Todo, error) {
 }
 
 func (r *Repository) Delete(ids []string) error {
-	fmt.Printf("todo repo delete\n")
+	logger.Debugf("todo repo delete")
 	err := r.db.Delete(ids)
 	if err != nil {
 		return err

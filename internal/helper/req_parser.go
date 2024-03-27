@@ -1,18 +1,23 @@
 package helper
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/iancoleman/strcase"
 )
 
+type FlexInt int64
+
 type IReqPayload interface {
-	GetQueryString() map[string]interface{}
 	ParseJsonToStruct(interface{}, interface{}) (error, error)
+	ValidateJson() error
 }
 
 type ReqContext struct {
@@ -23,14 +28,28 @@ type FiberCtx struct {
 	Fctx *fiber.Ctx
 }
 
-func (c *FiberCtx) GetQueryString() map[string]interface{} {
-	queries := c.Fctx.Queries()
+// ref: https://docs.bitnami.com/tutorials/dealing-with-json-with-non-homogeneous-types-in-go
+func (fi *FlexInt) UnmarshalJSON(b []byte) error {
+	if b[0] != '"' {
+		return json.Unmarshal(b, (*int64)(fi))
+	}
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return err
+	}
+	*fi = FlexInt(i)
+	return nil
+}
 
-	params, err := url.ParseQuery(string(c.Fctx.Request().URI().QueryString()))
+func GetQueryString(queryString []byte) map[string]interface{} {
+	params, err := url.ParseQuery(string(queryString))
 	if err != nil {
 		log.Printf("ParseQuery err: %+v\n", err.Error())
 	}
-	fmt.Printf("queries: %+v\n", queries)
 
 	var paramsMap = make(map[string]interface{}, 0)
 
@@ -52,6 +71,14 @@ func (c *FiberCtx) GetQueryString() map[string]interface{} {
 	return paramsMap
 }
 
+func (c *FiberCtx) ValidateJson() error {
+	if !json.Valid(c.Fctx.BodyRaw()) {
+		return fmt.Errorf("request JSON not valid...")
+	}
+
+	return nil
+}
+
 func (c *FiberCtx) ParseJsonToStruct(single interface{}, plural interface{}) (error, error) {
 	singleErr := c.Fctx.BodyParser(single)
 	pluralErr := c.Fctx.BodyParser(plural)
@@ -64,5 +91,10 @@ func (c *FiberCtx) ParseJsonToStruct(single interface{}, plural interface{}) (er
 		log.Printf("singleErr err: %+v\n", singleErr.Error())
 	}
 
-	return singleErr, pluralErr
+	var allFailed error
+	if singleErr != nil && pluralErr != nil {
+		allFailed = errors.Join(fmt.Errorf("failed to parse given json into struct. "), singleErr, pluralErr)
+	}
+
+	return singleErr, allFailed
 }

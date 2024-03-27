@@ -1,0 +1,18 @@
+services:
+  fiber-api-dev:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - UID
+    volumes:
+      - ./:/app/
+    ports:
+      - 7000:7000
+    networks:
+      - api
+    # command: tail -f /dev/null
+
+networks:
+  api:
+    external: true

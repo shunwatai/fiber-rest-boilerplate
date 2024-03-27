@@ -3,10 +3,12 @@ package database
 import (
 	"fmt"
 	"golang-api-starter/internal/helper"
-	"log"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -16,26 +18,41 @@ type Postgres struct {
 	*ConnectionInfo
 	TableName string
 	db        *sqlx.DB
+	mu        sync.Mutex
 }
 
-func (m *Postgres) Connect() *sqlx.DB {
-	fmt.Printf("connecting to Postgres... \n")
-	// fmt.Printf("Table: %+v\n", m.TableName)
-	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
-	fmt.Printf("ConnString: %+v\n", connectionString)
+func (m *Postgres) GetDbConfig() *ConnectionInfo {
+	info, _ := GetDbConnection()
+	return info
+}
 
+func (m *Postgres) GetConnectionString() string {
+	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", *m.User, *m.Pass, *m.Host, *m.Port, *m.Database)
+	logger.Debugf("ConnString: %+v", connectionString)
+	return connectionString
+}
+
+func (m *Postgres) Connect() {
+	logger.Debugf("connecting to Postgres...")
+	// logger.Debugf("Table: %+v", m.TableName)
+
+	connectionString := m.GetConnectionString()
 	db, err := sqlx.Open("postgres", connectionString)
 	if err != nil {
-		log.Fatal(err)
+		logger.Errorf("failed to conenct postgres: %+v", err)
 	}
 	// defer db.Close()
-	return db
+	m.db = db
 }
 
 // return select statment and *pagination by the req querystring
 func (m *Postgres) constructSelectStmtFromQuerystring(
 	queries map[string]interface{},
 ) (string, *helper.Pagination, map[string]interface{}) {
+	if queries["columns"] == nil {
+		logger.Errorf("queries[\"columns\"] cannot be nil...")
+	}
+
 	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
@@ -44,20 +61,20 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 	}
 
 	bindvarMap := map[string]interface{}{}
-	cols := m.GetColumns()
+	cols := queries["columns"].([]string)
 	pagination := helper.GetPagination(queries)
 	dateRangeStmt := getDateRangeStmt(queries, bindvarMap)
-	fmt.Printf("dateRangeStmt: %+v, len: %+v\n", dateRangeStmt, len(dateRangeStmt))
+	logger.Debugf("dateRangeStmt: %+v, len: %+v", dateRangeStmt, len(dateRangeStmt))
 	helper.SanitiseQuerystring(cols, queries)
 
 	countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
 	selectStmt := fmt.Sprintf(`SELECT * FROM %s`, m.TableName)
 
-	fmt.Printf("queries: %+v, len: %+v\n", queries, len(queries))
+	logger.Debugf("queries: %+v, len: %+v", queries, len(queries))
 	if len(queries) != 0 || len(dateRangeStmt) != 0 { // add where clause
 		whereClauses := []string{}
 		for k, v := range queries {
-			fmt.Printf("%+v: %+v(%T)\n", k, v, v)
+			logger.Debugf("%+v: %+v(%T)", k, v, v)
 			switch v.(type) {
 			case []string:
 				placeholders := []string{}
@@ -92,13 +109,14 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 		if len(dateRangeStmt) > 0 {
 			whereClauses = append(whereClauses, dateRangeStmt)
 		}
+		slices.Sort(whereClauses) // useless, just to avoid assert error in sqlite_test.go
 		selectStmt = fmt.Sprintf("%s WHERE %s", selectStmt, strings.Join(whereClauses, " AND "))
 		countAllStmt = fmt.Sprintf("%s WHERE %s", countAllStmt, strings.Join(whereClauses, " AND "))
 	}
-	// fmt.Printf("countAllStmt: %+v, bindvarmap: %+v\n", countAllStmt, bindvarMap)
+	logger.Debugf("countAllStmt: %+v, bindvarmap: %+v", countAllStmt, bindvarMap)
 
 	if totalRow, err := m.db.NamedQuery(countAllStmt, bindvarMap); err != nil {
-		log.Printf("Queryx Count(*) err: %+v\n", err.Error())
+		logger.Errorf("Queryx Count(*) err: %+v", err.Error())
 	} else if totalRow.Next() {
 		defer totalRow.Close()
 		totalRow.Scan(&pagination.Count)
@@ -106,7 +124,7 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 	if pagination.Items > 0 {
 		pagination.TotalPages = int64(math.Ceil(float64(pagination.Count) / float64(pagination.Items)))
 	}
-	// fmt.Printf("pagination: %+v\n", pagination)
+	logger.Debugf("pagination: %+v", pagination)
 
 	var limit string
 	var offset string = strconv.Itoa(int((pagination.Page - 1) * pagination.Items))
@@ -128,58 +146,60 @@ func (m *Postgres) constructSelectStmtFromQuerystring(
 	return selectStmt, pagination, bindvarMap
 }
 
-// Get all columns []string by m.TableName
-func (m *Postgres) GetColumns() []string {
-	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
-
-	if m.db == nil { // for run the test case
-		m.db = m.Connect()
-	}
-
-	rows, err := m.db.Queryx(selectStmt)
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
-	defer rows.Close()
-
-	cols, err := rows.Columns()
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
-
-	return cols
-}
+// Get all columns from db by m.TableName
+// func (m *Postgres) GetColumns() []string {
+// 	selectStmt := fmt.Sprintf("select * from %s limit 1;", m.TableName)
+//
+// 	if m.db == nil { // for run the test case
+// 		m.db = m.Connect()
+// 	}
+//
+// 	rows, err := m.db.Queryx(selectStmt)
+// 	if err != nil {
+// 		logger.Errorf("%+v", err)
+// 	}
+// 	defer rows.Close()
+//
+// 	cols, err := rows.Columns()
+// 	if err != nil {
+// 		logger.Errorf("%+v", err)
+// 	}
+//
+// 	return cols
+// }
 
 func (m *Postgres) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
-	fmt.Printf("select from Postgres, table: %+v\n", m.TableName)
-	m.db = m.Connect()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	logger.Debugf("select from Postgres, table: %+v", m.TableName)
+	m.Connect()
 	defer m.db.Close()
 
 	selectStmt, pagination, bindvarMap := m.constructSelectStmtFromQuerystring(queries)
-	fmt.Printf("bindvarMap: %+v\n", bindvarMap)
-	fmt.Printf("selectStmt: %+v\n", selectStmt)
+	logger.Debugf("bindvarMap: %+v", bindvarMap)
+	logger.Debugf("selectStmt: %+v", selectStmt)
 
 	rows, err := m.db.NamedQuery(selectStmt, bindvarMap)
 	if err != nil {
-		log.Printf("Queryx err: %+v\n", err.Error())
+		logger.Errorf("Queryx err: %+v", err.Error())
 	}
 
 	if rows.Err() != nil {
-		log.Printf("rows.Err(): %+v\n", err.Error())
+		logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
 	return rows, pagination
 }
 
 func (m *Postgres) Save(records Records) (Rows, error) {
-	fmt.Printf("save from Postgres, table: %+v\n", m.TableName)
-	// fmt.Printf("records: %+v\n", records)
-	m.db = m.Connect()
+	logger.Debugf("save from Postgres, table: %+v", m.TableName)
+	// logger.Debugf("records: %+v", records)
+	m.Connect()
 	defer m.db.Close()
 
-	cols := m.GetColumns()
+	cols := records.GetTags("db")
 
-	// fmt.Printf("cols: %+v\n", cols)
+	// logger.Debugf("cols: %+v", cols)
 	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
 		// use in SQL's VALUES()
@@ -207,40 +227,40 @@ func (m *Postgres) Save(records Records) (Rows, error) {
 		m.TableName,
 		fmt.Sprintf(strings.Join(cols[:], ",")),
 		fmt.Sprintf(strings.Join(colWithColon[:], ",")),
-		fmt.Sprintf(strings.Join(colUpdateSet[:], ",\n")),
+		fmt.Sprintf(strings.Join(colUpdateSet[:], ",")),
 	)
-	fmt.Printf("%+v \n", insertStmt)
+	logger.Debugf("%+v ", insertStmt)
 
 	insertedIds := []string{}
 	sqlResult, err := m.db.NamedQuery(insertStmt, records)
 	if err != nil {
-		log.Printf("insert error: %+v\n", err)
+		logger.Errorf("insert error: %+v", err)
 		return nil, err
 	}
-	// fmt.Printf("sqlResult: %+v\n", sqlResult)
+	// logger.Debugf("sqlResult: %+v", sqlResult)
 
 	for sqlResult.Next() {
 		var id string
 		err := sqlResult.Scan(&id)
 		if err != nil {
-			log.Fatalf("Scan: %v", err)
+			logger.Errorf("Scan: %v", err)
 			return nil, err
 		}
 		insertedIds = append(insertedIds, id)
 	}
 
-	fmt.Printf("insertedIds: %+v\n", insertedIds)
-	rows, _ := m.Select(map[string]interface{}{"id": insertedIds})
+	logger.Debugf("insertedIds: %+v", insertedIds)
+	rows, _ := m.Select(map[string]interface{}{
+		"id":      insertedIds,
+		"columns": cols,
+	})
 
 	return rows.(*sqlx.Rows), nil
 }
 
-// func (m *Postgres) Update() {
-// 	fmt.Printf("update from Postgres, table: %+v\n", m.TableName)
-// }
 func (m *Postgres) Delete(ids []string) error {
-	fmt.Printf("delete from Postgres, table: %+v\n", m.TableName)
-	m.db = m.Connect()
+	logger.Debugf("delete from Postgres, table: %+v", m.TableName)
+	m.Connect()
 	defer m.db.Close()
 
 	deleteStmt, args, err := sqlx.In(
@@ -248,15 +268,15 @@ func (m *Postgres) Delete(ids []string) error {
 		ids,
 	)
 	if err != nil {
-		log.Printf("sqlx.In err: %+v\n", err.Error())
+		logger.Errorf("sqlx.In err: %+v", err.Error())
 		return err
 	}
 	deleteStmt = m.db.Rebind(deleteStmt)
-	fmt.Printf("stmt: %+v, args: %+v\n", deleteStmt, args)
+	logger.Debugf("stmt: %+v, args: %+v", deleteStmt, args)
 
 	_, err = m.db.Exec(deleteStmt, args...)
 	if err != nil {
-		log.Printf("Delete Query err: %+v\n", err.Error())
+		logger.Errorf("Delete Query err: %+v", err.Error())
 		return err
 	}
 
@@ -264,16 +284,16 @@ func (m *Postgres) Delete(ids []string) error {
 }
 
 func (m *Postgres) RawQuery(sql string) *sqlx.Rows {
-	fmt.Printf("raw query from Postgres\n")
-	m.db = m.Connect()
+	logger.Debugf("raw query from Postgres")
+	m.Connect()
 	defer m.db.Close()
 
 	rows, err := m.db.Queryx(sql)
 	if err != nil {
-		log.Printf("Queryx err: %+v\n", err.Error())
+		logger.Errorf("Queryx err: %+v", err.Error())
 	}
 	if rows.Err() != nil {
-		log.Printf("rows.Err(): %+v\n", err.Error())
+		logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
 	return rows

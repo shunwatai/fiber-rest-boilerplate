@@ -1,0 +1,17 @@
+[
+  {
+    "update": "users",
+    "updates": [
+      {
+        "q": {},
+        "u": {
+          "$set": {
+            "is_oauth": false,
+            "provider": null
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

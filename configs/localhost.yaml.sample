@@ -1,0 +1,63 @@
+projectName: "Fiber rest starter"
+
+server:
+  env: local # local, dev, prod
+  host: "localhost"
+  port: 7000
+
+jwt:
+  secret: "1234balhblahblah"
+
+database:
+  engine: "postgres"
+  sqlite:
+    user: "user"
+    pass: "user"
+    database: "fiber-starter"
+  mariadb:
+    host: "localhost"
+    port: "3306"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+  postgres:
+    host: "localhost"
+    port: "5432"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+  mongodb:
+    host: "localhost"
+    port: "27017"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+
+logging:
+  level: 0 # debug:0, info:1, warning:2, error:3
+  type:
+    # - "database" # SLOWER - log into database's logs table
+    - "zap"        # log into logs/requests.log
+  zap:
+    output:
+      # - "console"
+      - "file"
+    filename: "requests.log"
+  debugSymbol: 
+
+oauth:
+  google:
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+    secret: "GOCSPX-xxxxxxxxxxxxxxxxxxxxx"
+    callbackUrl: "http://xxxxxxxxxxxxxx/oauth/google/callback"
+
+notification:
+  smtp:
+    host:  "smtp.gmail.com"
+    port: 587 
+    user: "xxxx@gmail.com"
+    pass: "xxxxyyyyyzzzxz"
+
+redis:
+  host: "localhost"
+  port: "6379"
