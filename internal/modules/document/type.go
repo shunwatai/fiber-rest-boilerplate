@@ -3,7 +3,6 @@ package document
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/iancoleman/strcase"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/modules/user"
@@ -11,6 +10,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 )
 
 type Document struct {
@@ -18,10 +19,10 @@ type Document struct {
 	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
 	User      *user.User             `json:"user"`
-	Name      string                 `json:"name" db:"name" example:"test.jpg"`
-	FilePath  string                 `json:"filePath" db:"file_path" example:"upload/xx/202210041710-test.jpg"`
-	FileType  string                 `json:"fileType" db:"file_type" default:"jpg"`
-	FileSize  int64                  `json:"fileSize" db:"file_size" default:"342424"`
+	Name      string                 `json:"name" db:"name" bson:"name,omitempty" example:"test.jpg"`
+	FilePath  string                 `json:"filePath" db:"file_path" bson:"file_path,omitempty" example:"upload/xx/202210041710-test.jpg"`
+	FileType  string                 `json:"fileType" db:"file_type" bson:"file_type,omitempty" default:"jpg"`
+	FileSize  int64                  `json:"fileSize" db:"file_size" bson:"file_size,omitempty" default:"342424"`
 	Hash      string                 `json:"hash" db:"hash"`
 	Public    bool                   `json:"public" db:"public" bson:"public,omitempty" validate:"boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
@@ -103,7 +104,6 @@ func (docs *Documents) printValue() {
 // ref: https://stackoverflow.com/a/40865028
 func (doc Document) getTags(key ...string) []string {
 	var tag string
-	cfg.LoadEnvVariables()
 	if len(key) == 1 {
 		tag = key[0]
 	} else if cfg.DbConf.Driver == "mongodb" {

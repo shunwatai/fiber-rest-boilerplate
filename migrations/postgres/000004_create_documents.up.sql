@@ -15,7 +15,7 @@ CREATE TABLE "public"."documents" (
     "id" integer DEFAULT nextval('documents_id_seq') NOT NULL,
     "user_id" integer NULL,
     "name" character varying(255) NOT NULL,
-    "file_path" character varying(255) NOT NULL,
+    "file_path" text NOT NULL,
     "file_type" character varying(255) NOT NULL,
     "file_size" integer NOT NULL,
     "hash" text NOT NULL,

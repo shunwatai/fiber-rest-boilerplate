@@ -33,6 +33,14 @@ func NewService(r *Repository) *Service {
 	return &Service{r, nil}
 }
 
+func (s *Service) GetIdMap(documents Documents) map[string]*Document {
+	documentMap := map[string]*Document{}
+	for _, document := range documents {
+		documentMap[document.GetId()] = document
+	}
+	return documentMap
+}
+
 func (s *Service) Get(queries map[string]interface{}) ([]*Document, *helper.Pagination) {
 	fmt.Printf("document service get\n")
 	return s.repo.Get(queries)
@@ -151,19 +159,9 @@ func (s *Service) Update(documents []*Document) ([]*Document, *helper.HttpErr) {
 
 func (s *Service) Delete(ids []string) ([]*Document, error) {
 	fmt.Printf("document service delete\n")
-	var (
-		records    = []*Document{}
-		conditions = map[string]interface{}{}
-	)
 
-	cfg.LoadEnvVariables()
-	if cfg.DbConf.Driver == "mongodb" {
-		conditions["_id"] = ids
-	} else {
-		conditions["id"] = ids
-	}
-
-	records, _ = s.repo.Get(conditions)
+	getByIdsCondition := helper.GetIdsMapCondition(nil, ids)
+	records, _ := s.repo.Get(getByIdsCondition)
 	fmt.Printf("records: %+v\n", records)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("failed to delete, %s with id: %+v not found", tableName, ids)
@@ -184,7 +182,7 @@ func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, s
 		return nil, "", "", fmt.Errorf("not found")
 	}
 
-	// fmt.Printf("filePath: %+v\n", *repoData.DocumentRequest.FilePath)
+	fmt.Printf("filePath: %+v\n", repoData[0].FilePath)
 	f, err := os.Open(repoData[0].FilePath)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("failed to open file, %+v", err.Error())
