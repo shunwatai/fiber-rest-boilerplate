@@ -26,9 +26,7 @@
         "last_name": null,
         "name": "admin",
         "password": "$2a$04$vRnhDEbQZx9OD0gRzGqWOO0Kii2XqWAyzPRCW2fOKqLhnNVMn2I/u",
-        "email": "admin@example.com",
-        "is_oauth": false,
-        "provider": null
+        "email": "admin@example.com"
       }
     ]
   }
