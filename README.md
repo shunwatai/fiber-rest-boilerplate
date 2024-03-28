@@ -1,20 +1,54 @@
-
 # Install dependencies
 ## Air - hot reload
+```
 go install github.com/cosmtrek/air@latest
+```
 ## Go-migrate - db migration
+```
 go install -tags 'postgres mysql sqlite3 mongodb' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+```
 ## Swag - swagger doc
+```
 go install github.com/swaggo/swag/cmd/swag@latest
+```
 
-# Edit config
-If run by docker, then edit `configs/`
-If run without docker, then edit `configs/`
+# Config
+## Edit config
+For run without docker
+```
+cp configs/localhost.yaml.sample configs/localhost.yaml
+```
+
+For run by docker
+```
+cp configs/docker.yaml.sample configs/docker.yaml
+```
+
+## Set the db driver
+At `database` section, edit the `engine`
+```
+...
+database:
+  engine: "postgres/sqlite/mariadb/mongodb"
+...
+```
 
 # Start databases for development
+1. copy and then edit the `db.env` if needed
+```
+cp db.env.sample db.env
+```
+
+2. Start all by docker-compose
+Postgres, Mariadb & Mongodb will be started
+```
+docker-compose -f compose-db.yaml up -d
+```
 
 # Start the api server
 ## For development
+Set the `env` to `local` in the `configs/<localhost/docker>.yaml`
+
 ### Start without docker
 ```
 air
@@ -37,6 +71,8 @@ make docker-dev-log
 ```
 
 ## For production
+Set the `env` to `prod` in the `configs/<localhost/docker>.yaml`
+
 ### Start by docker
 Run the production container
 ```
@@ -54,7 +90,6 @@ make docker-prod-log
 ```
 
 # DB Migration
-
 ## Create new migration
 ```migrate create -ext sql -dir migrations/<dbEngine(postgres/mariadb/sqlite)> -seq <migrationName>```
 
@@ -64,7 +99,7 @@ e.g.
 
 ## Run migration
 ### Sqlite
-Run migrations
+#### Run migrations
 ```
 go run main.go migrate-up sqlite
 ```
@@ -73,7 +108,7 @@ or
 migrate -source file://migrations/sqlite -database "sqlite3://fiber-starter.db?_auth&_auth_user=user&_auth_pass=user&_auth_crypt=sha1" up
 ```
 
-Revert migration
+#### Revert migration
 ```
 go run main.go migrate-down sqlite
 ```
@@ -83,7 +118,7 @@ migrate -source file://migrations/sqlite -database "sqlite3://fiber-starter.db?_
 ```
 
 ### Mariadb
-Run migrations
+#### Run migrations
 ```
 go run main.go migrate-up mariadb
 ```
@@ -92,7 +127,7 @@ or
 migrate -source file://migrations/mariadb -database "mysql://user:password@tcp(localhost:3306)/fiber-starter" up
 ```
 
-Revert migration
+#### Revert migration
 ```
 go run main.go migrate-down mariadb
 ```
@@ -102,7 +137,7 @@ migrate -source file://migrations/mariadb -database "mysql://user:password@tcp(l
 ```
 
 ### Postgres
-Run migrations
+#### Run migrations
 ```
 go run main.go migrate-up postgres
 ```
@@ -111,7 +146,7 @@ or
 migrate -source file://migrations/postgres -database "postgres://user:password@localhost:5432/fiber-starter?sslmode=disable" up
 ```
 
-Revert migration
+#### Revert migration
 ```
 go run main.go migrate-down postgres
 ```
@@ -121,7 +156,7 @@ migrate -source file://migrations/postgres -database "postgres://user:password@l
 ```
 
 ### Mongodb
-Run migrations
+#### Run migrations
 ```
 go run main.go migrate-up mongodb
 ```
@@ -130,7 +165,7 @@ or
 migrate -source file://migrations/mongodb -database "mongodb://user:password@localhost:27017/fiber-starter?authSource=admin" up
 ```
 
-Revert migration
+#### Revert migration
 ```
 go run main.go migrate-down mongodb
 ```
@@ -171,16 +206,16 @@ go test -v ./internal/database -run TestMongodbConstructSelectStmtFromQuerystrin
 ```
 
 # Swagger
+## Edit the doc
+In each module under `internal/modules/<module>/route`, edit the swagger doc before generate the `docs/` directory at next section below.
 
-## format swagger's comments & generate the swagger docs
-
+## Format swagger's comments & generate the swagger docs
 ```
 $ swag fmt
 $ swag init
 ```
 
 ## go to the swagger page by web browser
-
 http://localhost:7000/swagger/index.html
 
 # Send log to Signoz
