@@ -22,19 +22,25 @@ It is running by fiber with basic CRUD routes which follows the Controller-Servi
 # Install dependencies
 If run the Fiber server without docker, install the following go packages.
 ## Air - hot reload
+`air` for fiber hotreload.
 ```
 go install github.com/cosmtrek/air@latest
 ```
 
 ## Go-migrate - db migration
+`migrate` for run the database's migration.
 ```
 go install -tags 'postgres mysql sqlite3 mongodb' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 ```
 
 ## Swag - swagger doc
+`swag` command for generate swagger doc.
 ```
 go install github.com/swaggo/swag/cmd/swag@latest
 ```
+
+## Nodejs - tailwindcss CLI build
+`npx` for running the tailwindcss command for frontend html template dev
 
 # Config
 ## Edit config
@@ -69,7 +75,7 @@ Postgres, Mariadb & Mongodb will be started
 docker-compose -f compose-db.yaml up -d
 ```
 
-# Start the api server
+# Start the fiber api server
 ## For development
 Set the `env` to `local` in the `configs/<localhost/docker>.yaml`
 
@@ -204,6 +210,11 @@ go run main.go migrate-down mongodb
 or
 ```
 migrate -source file://migrations/mongodb -database "mongodb://user:password@localhost:27017/fiber-starter?authSource=admin" down 1
+```
+
+# Run the tailwindcss build process
+```
+make tw-watch
 ```
 
 # Test sample APIs
