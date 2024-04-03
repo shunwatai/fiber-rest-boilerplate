@@ -416,3 +416,28 @@ func (c *Controller) SendLogin(ctx *fiber.Ctx) error {
 	fctx.Fctx.Response().SetStatusCode(respCode)
 	return fctx.Fctx.Redirect(homePage, fiber.StatusOK)
 }
+
+func (c *Controller) ListUsersPage(ctx *fiber.Ctx) error {
+	// data for template
+	data := fiber.Map{
+		"errMessage": nil,
+		"users":      Users{},
+		"pagination": helper.Pagination{},
+	}
+	tmplFiles := []string{
+		"web/template/parts/error-dialog.gohtml",
+		"web/template/users/list.gohtml",
+		"web/template/base.gohtml",
+	}
+	tpl := template.Must(template.ParseFiles(tmplFiles...))
+
+	users, pagination := c.service.Get(map[string]interface{}{})
+	data["users"] = users
+	data["pagination"] = pagination
+
+	fctx := &helper.FiberCtx{Fctx: ctx}
+	respCode = fiber.StatusOK
+
+	fctx.Fctx.Set(fiber.HeaderContentType, fiber.MIMETextHTML)
+	return tpl.ExecuteTemplate(fctx.Fctx.Response().BodyWriter(), "base.gohtml", data)
+}
