@@ -24,9 +24,17 @@ func GetRoutes(router fiber.Router) {
 
 	viewRoute := router.Group("")
 	viewRoute.Get("/login", ctrl.LoginPage)
-	viewRoute.Post("/login", ctrl.SendLogin)
-	viewRoute.Route("/users", func(api fiber.Router) {
-		api.Get("/", ctrl.ListUsersPage)
+	viewRoute.Post("/login", ctrl.SubmitLogin)
+
+	viewRoute.Route("/users", func(userPage fiber.Router) {
+		userPage.Get("/", ctrl.ListUsersPage)
+		// userPage.Patch("/", ctrl.SubmitBulkUpdate)
+		// userPage.Delete("/", ctrl.SubmitBulkDelete)
+		userPage.Route("/form", func(userForm fiber.Router) {
+			userForm.Get("/", ctrl.UserFormPage)
+			userPage.Post("/", ctrl.SubmitNew)
+			userPage.Patch("/", ctrl.SubmitUpdate)
+		})
 	})
 
 	// normal auth from database's users table
