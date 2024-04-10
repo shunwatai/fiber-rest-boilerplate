@@ -18,6 +18,7 @@
         type="button"
         hx-delete="/users"
         hx-vals="js:{ids:getIdsAsArray()}"
+        hx-confirm="Click confirm to delete"
         :disabled="checkedCount.length===0"
       >
         Delete <span x-show="checkedCount.length>0" x-text="`(${checkedCount.length})`"></span>
@@ -121,4 +122,3 @@
 {{end}}
 
 {{ define "footer" }}<div></div>{{ end }}
-
