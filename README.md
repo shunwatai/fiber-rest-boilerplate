@@ -220,7 +220,7 @@ Please read the README in `cmd/gen/` for usage.
 
 # API details
 ## Users
-[readme](internal/modules/users/README.md)
+[readme](internal/modules/user/README.md)
 
 ## Password reset
 [readme](internal/modules/passwordReset/README.md)
