@@ -89,7 +89,7 @@ I try following the standards from [project-layout](https://github.com/golang-st
 2. [Run database migrations](migrations/README.md#run-migration)
 3. [Set the database in configs/docker.yaml](#for-run-by-docker)
 3. [Start fiber api by docker](#start-by-docker)
-4. [Test the apis by curl](#test-sample-APIs)
+4. [Test the login api by curl for getting the JWT](#login)
 5. [Try the user's web](internal/modules/user/README.md#web-crud)
 
 # Install dependencies
@@ -213,6 +213,9 @@ curl --request GET \
 ```
 
 ## login
+
+There is a default `admin` user with password `admin` once the DB migrations ran.
+
 ```
 curl --request POST \
   --url http://localhost:7000/api/auth/login \
