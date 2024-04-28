@@ -3,6 +3,7 @@ package helper
 import (
 	"golang-api-starter/internal/helper/utils"
 	"html/template"
+	"strconv"
 	"strings"
 )
 
@@ -35,5 +36,11 @@ func TmplCustomFuncs() template.FuncMap {
 		},
 		// DerefBool get the value of *bool
 		"DerefBool": utils.Deref[bool],
+		"GetId": func(mongoId *string, id *FlexInt) string {
+			if mongoId == nil {
+				return strconv.Itoa(int(*id)) 
+			}
+			return *mongoId
+		},
 	}
 }

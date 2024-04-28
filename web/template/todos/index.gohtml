@@ -62,22 +62,6 @@
           </button>
         </span>
       </div>
-
-      <!-- update btn -->
-      <!--
-      <button 
-        class="flex gap-2 border-2 rounded-md shadow-sm border-slate-300 w-fit p-2"
-        type="button"
-        hx-target="#popupMessage"
-        hx-target-5*="#popupMessage"
-        hx-patch="/todos"
-        hx-ext="submit-array"
-        hx-swap="outerHTML"
-      >
-        Update
-        <div id="spinner" class="htmx-indicator animate-spin w-5 h-5 rounded-full m-auto border-2 border-solid border-slate-500 border-t-transparent"></div>
-      </button>
-      -->
     </div>
 
     <!-- hidden input for querystring -->
@@ -181,7 +165,36 @@
                 this.checkedCount.splice(0,this.checkedCount.length)
               }
             });
-        }
+        },
+        getImageFromApi: async function(url){
+          const response = await fetch(url)
+          const blob = await response.blob()
+          const filename = await this.getFilenameFromResponse(response)
+          console.log({blob,filename})
+          if (filename.includes(".pdf")){
+            return window.open(url)
+          }
+          const base64 = await this.getBase64FromBlob(blob)
+          const image_window = window.open(url, "_blank")
+          image_window.document.write(`<html><head></head><body><img width="300" src=${base64} alt="loading" /></body></html>`);
+        },
+        getBase64FromBlob: async function(blob){
+          const base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+              const base64data = reader.result;
+              resolve(base64data);
+            }
+          });
+          return base64
+        },
+        getFilenameFromResponse: async function(response){
+          const header = response.headers.get('Content-Disposition');
+          const parts = header?.split(';');
+          filename = parts[1].split('=')[1];
+          return filename
+        },
       }
     }
   </script>

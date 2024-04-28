@@ -23,6 +23,7 @@
             >
               <span class="mx-2">Task</span><span>{{ShowSortingDirection "task" .pagination.OrderBy}}</span>
             </th>
+            <th class="text-center whitespace-nowrap px-4 py-2 text-gray-900"> documents </th>
             <th class="text-center whitespace-nowrap px-4 py-2 text-gray-900"> done </th>
           </tr>
         </thead>
@@ -30,11 +31,25 @@
         <tbody class="divide-y divide-gray-200">
         {{- range .todos }}
         <tr>
-          <td class="text-center sticky inset-y-0 start-0 bg-white px-4 py-2"><input class="size-5 rounded border-gray-300" type="checkbox" name="ids" value={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}} @click="handleCheck" /></td>
-          <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/todos/form?todoId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{if DerefBool .Done}}<del>{{.Task}}</del>{{else}}{{.Task}}{{end}}</a></td>
+          <td class="text-center sticky inset-y-0 start-0 bg-white px-4 py-2"><input class="size-5 rounded border-gray-300" type="checkbox" name="ids" value={{ GetId .MongoId .Id }} @click="handleCheck" /></td>
+          <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/todos/form?todoId={{ GetId .MongoId .Id }}">{{if DerefBool .Done}}<del>{{.Task}}</del>{{else}}{{.Task}}{{end}}</a></td>
+          <td class="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
+            <div class="flex">
+            <ul class="w-1/3 mx-auto text-start list-disc list-inside">
+            {{- range .Documents }}
+              <li 
+                @click='getImageFromApi("/api/documents/{{ GetId .MongoId .Id }}/download")'
+                class="cursor-pointer"
+              >
+                {{ .Name }}
+              </li>
+            {{ end }}
+            </ul>
+            <div>
+          </td>
           <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900">
             <input 
-              id={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}} value={{.Task}} {{ if DerefBool .Done }} checked {{end}} 
+              id={{ GetId .MongoId .Id }} value={{.Task}} {{ if DerefBool .Done }} checked {{end}} 
               class="size-5 rounded border-gray-300" 
               type="checkbox" 
               name="done" 
