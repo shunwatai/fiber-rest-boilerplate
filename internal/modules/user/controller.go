@@ -424,7 +424,7 @@ func (c *Controller) ListUsersPage(ctx *fiber.Ctx) error {
 		"web/template/parts/navbar.gohtml",
 		"web/template/base.gohtml",
 	}
-	pagesFunc := helper.TmplNumIterateFunc()
+	pagesFunc := helper.TmplCustomFuncs()
 	tpl := template.Must(template.New("").Funcs(pagesFunc).ParseFiles(tmplFiles...))
 
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
@@ -448,7 +448,7 @@ func (c *Controller) GetUserList(ctx *fiber.Ctx) error {
 		"pagination": helper.Pagination{},
 	}
 	tmplFiles := []string{"web/template/users/list.gohtml"}
-	pagesFunc := helper.TmplNumIterateFunc()
+	pagesFunc := helper.TmplCustomFuncs()
 	tpl := template.Must(template.New("").Funcs(pagesFunc).ParseFiles(tmplFiles...))
 	html := `{{ template "list" . }}`
 	tpl, _ = tpl.New("").Parse(html)
