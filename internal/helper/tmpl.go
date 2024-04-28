@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"golang-api-starter/internal/helper/utils"
 	"html/template"
 	"strings"
 )
@@ -32,5 +33,7 @@ func TmplCustomFuncs() template.FuncMap {
 				return "↓"
 			}
 		},
+		// DerefBool get the value of *bool
+		"DerefBool": utils.Deref[bool],
 	}
 }
