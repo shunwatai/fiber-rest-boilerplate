@@ -479,6 +479,7 @@ func (c *Controller) ToggleDone(ctx *fiber.Ctx) error {
 		todos = append(todos, todo)
 	}
 
+	logger.Debugf("have c: %+v", todo.CreatedAt)
 	for _, todo := range todos {
 		if validErr := helper.ValidateStruct(*todo); validErr != nil {
 			data["errMessage"] = validErr.Error()
@@ -487,6 +488,26 @@ func (c *Controller) ToggleDone(ctx *fiber.Ctx) error {
 		if todo.Id == nil && todo.MongoId == nil {
 			data["errMessage"] = "please ensure all records with id for PATCH"
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+		}
+
+		conditions := map[string]interface{}{}
+		conditions["id"] = todo.GetId()
+
+		existing, err := c.service.GetById(conditions)
+		if len(existing) == 0 {
+			respCode = fiber.StatusNotFound
+			return fctx.JsonResponse(
+				respCode,
+				map[string]interface{}{
+					"message": errors.Join(
+						errors.New("cannot update non-existing records..."),
+						err,
+					).Error(),
+				},
+			)
+		} else if todo.CreatedAt == nil {
+	logger.Debugf("remain: %+v", todo.CreatedAt)
+			todo.CreatedAt = existing[0].CreatedAt
 		}
 	}
 
@@ -497,13 +518,8 @@ func (c *Controller) ToggleDone(ctx *fiber.Ctx) error {
 	}
 
 	fctx.Fctx.Response().SetStatusCode(fiber.StatusOK)
-	if len(todos) == 1 {
-		targetPage := fmt.Sprintf("/todos?page=1&items=5")
-		fctx.Fctx.Set("HX-Redirect", targetPage)
-		return nil
-	}
 	data["successMessage"] = "Update success."
-	fctx.Fctx.Set("HX-Trigger", "reloadList")
+	fctx.Fctx.Set("HX-Trigger-After-Swap", "reloadList")
 	return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 }
 
@@ -554,6 +570,25 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 			data["errMessage"] = "please ensure all records with id for PATCH"
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
+
+		conditions := map[string]interface{}{}
+		conditions["id"] = todo.GetId()
+
+		existing, err := c.service.GetById(conditions)
+		if len(existing) == 0 {
+			respCode = fiber.StatusNotFound
+			return fctx.JsonResponse(
+				respCode,
+				map[string]interface{}{
+					"message": errors.Join(
+						errors.New("cannot update non-existing records..."),
+						err,
+					).Error(),
+				},
+			)
+		} else if todo.CreatedAt == nil {
+			todo.CreatedAt = existing[0].CreatedAt
+		}
 	}
 
 	// update todo
@@ -594,7 +629,6 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 		return nil
 	}
 	data["successMessage"] = "Update success."
-	fctx.Fctx.Set("HX-Trigger", "reloadList")
 	return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 }
 
