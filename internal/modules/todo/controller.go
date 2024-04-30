@@ -9,6 +9,7 @@ import (
 	"golang-api-starter/internal/modules/document"
 	"golang-api-starter/internal/modules/todoDocument"
 	"html/template"
+	"slices"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -315,7 +316,8 @@ func (c *Controller) TodoFormPage(ctx *fiber.Ctx) error {
 		"web/template/parts/navbar.gohtml",
 		"web/template/base.gohtml",
 	}
-	tpl := template.Must(template.ParseFiles(tmplFiles...))
+	pagesFunc := helper.TmplCustomFuncs()
+	tpl := template.Must(template.New("").Funcs(pagesFunc).ParseFiles(tmplFiles...))
 
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	u := new(Todo)
@@ -520,7 +522,22 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 		todo.Id = utils.ToPtr(helper.FlexInt(id))
 	}
 
-	logger.Debugf("patch todo:: %+v, %+v", *todo.Id, todo)
+	// remove todoDocument
+	if form.Value["deleteDocumentIds"] != nil && len(form.Value["deleteDocumentIds"]) > 0 {
+		var todoDocumentIds []string
+		todoDocuments, _ := todoDocument.Srvc.Get(map[string]interface{}{"todo_id": form.Value["id"]})
+		// logger.Debugf("todoDocuments %+v", todoDocuments)
+		for _, todoDoc := range todoDocuments {
+			if !slices.Contains(form.Value["deleteDocumentIds"], todoDoc.GetDocumentId()) {
+				continue
+			}
+			todoDocumentIds = append(todoDocumentIds, todoDoc.GetId())
+		}
+		// logger.Debugf("todoDocumentIds %+v", todoDocumentIds)
+		todoDocument.Srvc.Delete(todoDocumentIds)
+	}
+
+	//logger.Debugf("patch todo: %+v, %+v", *todo.Id, todo)
 
 	todos = append(todos, todo)
 
