@@ -29,3 +29,15 @@ async function getImageFromApi(url){
   const image_window = window.open(url, "_blank")
   image_window.document.write(`<html><head></head><body><img width="300" src=${base64} alt="loading" /></body></html>`);
 }
+
+/**
+ * Convert the selected File object to base64 (encode data to Base64)
+ * @param {string} file
+ * @return {string}
+ */
+const fileToBase64 = async file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = reject;
+});
