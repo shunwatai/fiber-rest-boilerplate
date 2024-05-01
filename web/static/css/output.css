@@ -941,6 +941,23 @@ select {
   height: 2rem;
 }
 
+.size-max {
+  width: -moz-max-content;
+  width: max-content;
+  height: -moz-max-content;
+  height: max-content;
+}
+
+.size-full {
+  width: 100%;
+  height: 100%;
+}
+
+.size-\[5rem\] {
+  width: 5rem;
+  height: 5rem;
+}
+
 .h-20 {
   height: 5rem;
 }
@@ -1280,6 +1297,20 @@ select {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity));
 }
 
+.bg-cover {
+  background-size: cover;
+}
+
+.object-contain {
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+
+.object-cover {
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+
 .p-2 {
   padding: 0.5rem;
 }
@@ -1350,6 +1381,18 @@ select {
   line-height: 1rem;
 }
 
+.text-\[100\%\] {
+  font-size: 100%;
+}
+
+.text-\[5rem\] {
+  font-size: 5rem;
+}
+
+.text-\[4rem\] {
+  font-size: 4rem;
+}
+
 .font-bold {
   font-weight: 700;
 }
@@ -1417,6 +1460,11 @@ select {
   color: rgb(51 65 85 / var(--tw-text-opacity));
 }
 
+.text-black {
+  --tw-text-opacity: 1;
+  color: rgb(0 0 0 / var(--tw-text-opacity));
+}
+
 .placeholder-slate-400::-moz-placeholder {
   --tw-placeholder-opacity: 1;
   color: rgb(148 163 184 / var(--tw-placeholder-opacity));
@@ -1471,6 +1519,17 @@ select {
 
 .\[a-zA-Z\:\\-\\\.\] {
   a-z-a--z: \-\.;
+}
+
+.before\:block::before {
+  content: var(--tw-content);
+  display: block;
+}
+
+.before\:size-\[5rem\]::before {
+  content: var(--tw-content);
+  width: 5rem;
+  height: 5rem;
 }
 
 .after\:ml-0::after {
