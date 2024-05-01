@@ -16,3 +16,16 @@ async function getFilenameFromResponse(response) {
   filename = parts[1].split('=')[1];
   return filename
 }
+
+async function getImageFromApi(url){
+  const response = await fetch(url)
+  const blob = await response.blob()
+  const filename = await getFilenameFromResponse(response)
+  console.log({blob,filename})
+  if (filename.includes(".pdf")){
+    return window.open(url)
+  }
+  const base64 = await getBase64FromBlob(blob)
+  const image_window = window.open(url, "_blank")
+  image_window.document.write(`<html><head></head><body><img width="300" src=${base64} alt="loading" /></body></html>`);
+}
