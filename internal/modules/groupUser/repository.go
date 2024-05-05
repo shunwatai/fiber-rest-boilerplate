@@ -4,6 +4,8 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/helper/utils"
+	"golang-api-starter/internal/modules/user"
 
 	//"golang-api-starter/internal/modules/user"
 	"golang.org/x/exp/maps"
@@ -17,6 +19,39 @@ func NewRepository(db database.IDatabase) *Repository {
 	return &Repository{db}
 }
 
+// cascadeFields for joining other module, see the example in internal/modules/todo/repository.go
+func cascadeFields(groupUsers GroupUsers) {
+	if len(groupUsers) == 0 {
+		return
+	}
+
+	// cascade user
+	// get users by userIds
+	var (
+		userIds []string
+		userId  string
+	)
+	// get all userIds
+	for _, groupUser := range groupUsers {
+		userId = groupUser.GetUserId()
+		userIds = append(userIds, userId)
+	}
+
+	if len(userIds) > 0 {
+		// get documents by documentsIds
+		condition := database.GetIdsMapCondition(utils.ToPtr("user_id"), userIds)
+		users, _ := user.Srvc.Get(condition)
+		// get the map[userId]User
+		userMap := user.Srvc.GetIdMap(users)
+
+		for _, groupUser := range groupUsers {
+			groupUser.User = new(user.User)
+			// take out the document by documentId in map and assign
+			user := userMap[groupUser.GetUserId()]
+			groupUser.User = user
+		}
+	}
+}
 
 func (r *Repository) Get(queries map[string]interface{}) ([]*GroupUser, *helper.Pagination) {
 	logger.Debugf("groupUser repo get")
@@ -39,6 +74,8 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*GroupUser, *helper.
 		records = records.rowsToStruct(rows)
 	}
 	// records.printValue()
+
+	cascadeFields(records)
 
 	return records, pagination
 }
