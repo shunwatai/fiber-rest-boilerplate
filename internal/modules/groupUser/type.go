@@ -39,13 +39,13 @@ func (gu *GroupUser) GetId() string {
 
 func (gu *GroupUser) GetGroupId() string {
 	if cfg.DbConf.Driver == "mongodb" {
-		userId, ok := gu.GroupId.(string)
+		groupId, ok := gu.GroupId.(string)
 		if !ok {
 			return ""
 		}
-		return userId
+		return groupId
 	} else {
-		return strconv.Itoa(int(gu.UserId.(int64)))
+		return strconv.Itoa(int(gu.GroupId.(int64)))
 	}
 }
 
