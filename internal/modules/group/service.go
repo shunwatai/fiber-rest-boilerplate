@@ -48,7 +48,7 @@ func (s *Service) isDuplicated(group *Group) error {
 
 	if existing[0].Name == group.Name {
 		respCode = fiber.StatusConflict
-		return logger.Errorf(fmt.Sprintf("group wiht name:%s already exists...", group.Name))
+		return logger.Errorf(fmt.Sprintf("group with name:%s already exists...", group.Name))
 	}
 
 	return nil
