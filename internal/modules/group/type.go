@@ -5,6 +5,7 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
 	"slices"
@@ -19,6 +20,7 @@ type Group struct {
 	Id        *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	Name      string                 `json:"name" db:"name" bson:"name,omitempty" validate:"required"`
 	Type      string                 `json:"type" db:"type" bson:"type,omitempty" validate:"required"`
+	Users     []*user.User           `json:"users"`
 	Disabled  bool                   `json:"disabled" db:"disabled" bson:"disabled,omitempty" validate:"boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
@@ -33,18 +35,6 @@ func (g *Group) GetId() string {
 		return strconv.Itoa(int(*g.Id))
 	}
 }
-
-//func (g *Group) GetUserId() string {
-//	if cfg.DbConf.Driver == "mongodb" {
-//		userId, ok := g.UserId.(string)
-//		if !ok {
-//			return ""
-//		}
-//		return userId
-//	} else {
-//		return strconv.Itoa(int(g.UserId.(int64)))
-//	}
-//}
 
 func (gs Groups) StructToMap() []map[string]interface{} {
 	mapsResults := []map[string]interface{}{}
@@ -89,7 +79,7 @@ func (gs Groups) GetTags(key string) []string {
 func (gs *Groups) printValue() {
 	for _, v := range *gs {
 		if v.Id != nil {
-			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
+			logger.Debugf("existing --> id: %+v, v: %+v\n", v.GetId(), *v)
 		} else {
 			logger.Debugf("new --> v: %+v\n", *v)
 		}
