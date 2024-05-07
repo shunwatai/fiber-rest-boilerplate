@@ -19,7 +19,7 @@ type Group struct {
 	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"`
 	Id        *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	Name      string                 `json:"name" db:"name" bson:"name,omitempty" validate:"required"`
-	Type      string                 `json:"type" db:"type" bson:"type,omitempty" validate:"required"`
+	Type      string                 `json:"type,omitempty" db:"type" bson:"type,omitempty"`
 	Users     []*user.User           `json:"users"`
 	Disabled  bool                   `json:"disabled" db:"disabled" bson:"disabled,omitempty" validate:"boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
