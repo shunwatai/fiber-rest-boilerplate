@@ -81,7 +81,6 @@ I try following the standards from [project-layout](https://github.com/golang-st
     └── template
 ```
 
-
 # Quick start by docker-compose
 1. [Start the databases containers](#start-databases-for-development)
 2. [Run migrations with the desired database(pg/mariab/sqlite/mongodb)](migrations/README.md#run-migration)
