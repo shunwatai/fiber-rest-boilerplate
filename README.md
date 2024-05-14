@@ -274,26 +274,21 @@ ref: https://stackoverflow.com/a/49999321
 go test -v -race ./... -count=1
 ```
 
-## Run specific database tests
-
-### Run sqlite's tests
+## Run integration (database related) tests
 ```
-go test -v ./internal/database -run TestSqliteConstructSelectStmtFromQuerystring -count=1
+go test -v -race ./... -count=1 --tags=integration
 ```
 
-### Run mariadb's tests
-```
-go test -v ./internal/database -run TestMariadbConstructSelectStmtFromQuerystring -count=1
-```
+### Run specific database tests
 
-### Run postgres's tests
-```
-go test -v ./internal/database -run TestPgConstructSelectStmtFromQuerystring -count=1
-```
+Substitude with specific `test name`:
+    - `TestSqliteConstructSelectStmtFromQuerystring`
+    - `TestMariadbConstructSelectStmtFromQuerystring`
+    - `TestPgConstructSelectStmtFromQuerystring`
+    - `TestMongodbConstructSelectStmtFromQuerystring`
 
-### Run mongodb's tests
 ```
-go test -v ./internal/database -run TestMongodbConstructSelectStmtFromQuerystring -count=1
+go test -v ./internal/database -run <test name> -count=1 --tags=integration
 ```
 
 # Swagger
