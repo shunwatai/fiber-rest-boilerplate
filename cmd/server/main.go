@@ -14,6 +14,7 @@ import (
   "golang-api-starter/internal/modules/oauth"
   "golang-api-starter/internal/modules/passwordReset"
   "golang-api-starter/internal/modules/qrcode"
+  "golang-api-starter/internal/modules/resource"
   "golang-api-starter/internal/modules/todo"
   "golang-api-starter/internal/modules/todoDocument"
   "golang-api-starter/internal/modules/user"
@@ -100,6 +101,7 @@ func (f *Fiber) LoadAllRoutes() {
 	oauth.GetRoutes(router)
 	passwordReset.GetRoutes(router)
 	qrcode.GetRoutes(router)
+	resource.GetRoutes(router)
 	todo.GetRoutes(router)
 	todoDocument.GetRoutes(router)
 	user.GetRoutes(router)
