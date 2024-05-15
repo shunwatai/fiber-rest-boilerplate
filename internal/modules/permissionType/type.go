@@ -1,4 +1,4 @@
-package resource
+package permissionType
 
 import (
 	"encoding/json"
@@ -16,31 +16,30 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-type Resource struct {
+type PermissionType struct {
 	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"`
 	Id        *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	Name      string                 `json:"name" db:"name" bson:"name,omitempty" validate:"required"`
-	Disabled  *bool                  `json:"disasbled" db:"disabled" bson:"disabled,omitempty" validate:"required,boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 }
 
-type Resources []*Resource
+type PermissionTypes []*PermissionType
 
-func (r *Resource) GetId() string {
+func (pt *PermissionType) GetId() string {
 	if cfg.DbConf.Driver == "mongodb" {
-		return *r.MongoId
+		return *pt.MongoId
 	} else {
-		return strconv.Itoa(int(*r.Id))
+		return strconv.Itoa(int(*pt.Id))
 	}
 }
 
-func (rs Resources) StructToMap() []map[string]interface{} {
+func (pts PermissionTypes) StructToMap() []map[string]interface{} {
 	mapsResults := []map[string]interface{}{}
-	for _, r := range rs {
+	for _, pt := range pts {
 		tmp := map[string]interface{}{}
 		result := map[string]interface{}{}
-		data, _ := json.Marshal(r)
+		data, _ := json.Marshal(pt)
 		json.Unmarshal(data, &tmp)
 		for k, v := range tmp {
 			result[strcase.ToSnake(k)] = v
@@ -51,32 +50,32 @@ func (rs Resources) StructToMap() []map[string]interface{} {
 	return mapsResults
 }
 
-func (rs Resources) rowsToStruct(rows database.Rows) []*Resource {
+func (pts PermissionTypes) rowsToStruct(rows database.Rows) []*PermissionType {
 	defer rows.Close()
 
-	records := make([]*Resource, 0)
+	records := make([]*PermissionType, 0)
 	for rows.Next() {
-		var r Resource
-		err := rows.StructScan(&r)
+		var pt PermissionType
+		err := rows.StructScan(&pt)
 		if err != nil {
 			log.Fatalf("Scan: %v", err)
 		}
-		records = append(records, &r)
+		records = append(records, &pt)
 	}
 
 	return records
 }
 
-func (rs Resources) GetTags(key string) []string {
-	if len(rs) == 0 {
+func (pts PermissionTypes) GetTags(key string) []string {
+	if len(pts) == 0 {
 		return []string{}
 	}
 
-	return rs[0].getTags(key)
+	return pts[0].getTags(key)
 }
 
-func (rs *Resources) printValue() {
-	for _, v := range *rs {
+func (pts *PermissionTypes) printValue() {
+	for _, v := range *pts {
 		if v.Id != nil {
 			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
 		} else {
@@ -87,7 +86,7 @@ func (rs *Resources) printValue() {
 
 // get the tags by key(json / db / bson) name from the struct
 // ref: https://stackoverflow.com/a/40865028
-func (r Resource) getTags(key ...string) []string {
+func (pt PermissionType) getTags(key ...string) []string {
 	var tag string
 	if len(key) == 1 {
 		tag = key[0]
@@ -98,7 +97,7 @@ func (r Resource) getTags(key ...string) []string {
 	}
 
 	cols := []string{}
-	val := reflect.ValueOf(r)
+	val := reflect.ValueOf(pt)
 	for i := 0; i < val.Type().NumField(); i++ {
 		t := val.Type().Field(i)
 		fieldName := t.Name
