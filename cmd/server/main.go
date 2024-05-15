@@ -9,6 +9,7 @@ import (
 	"golang-api-starter/internal/modules/sample"
   "golang-api-starter/internal/modules/document"
   "golang-api-starter/internal/modules/group"
+  "golang-api-starter/internal/modules/groupResourceAcl"
   "golang-api-starter/internal/modules/groupUser"
   "golang-api-starter/internal/modules/log"
   "golang-api-starter/internal/modules/oauth"
@@ -97,6 +98,7 @@ func (f *Fiber) LoadAllRoutes() {
 	sample.GetRoutes(router) // sample routes for testing
 	document.GetRoutes(router)
 	group.GetRoutes(router)
+	groupResourceAcl.GetRoutes(router)
 	groupUser.GetRoutes(router)
 	log.GetRoutes(router)
 	oauth.GetRoutes(router)
