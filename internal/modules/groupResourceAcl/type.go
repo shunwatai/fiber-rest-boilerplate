@@ -39,6 +39,18 @@ func (gra *GroupResourceAcl) GetId() string {
 	}
 }
 
+func (gu *GroupResourceAcl) GetGroupId() string {
+	if cfg.DbConf.Driver == "mongodb" {
+		groupId, ok := gu.GroupId.(string)
+		if !ok {
+			return ""
+		}
+		return groupId
+	} else {
+		return strconv.Itoa(int(gu.GroupId.(int64)))
+	}
+}
+
 //func (gra *GroupResourceAcl) GetUserId() string {
 //	if cfg.DbConf.Driver == "mongodb" {
 //		userId, ok := gra.UserId.(string)
@@ -95,9 +107,9 @@ func (gras *GroupResourceAcls) printValue() {
 	for _, v := range *gras {
 		if v.Id != nil {
 			logger.Debugf("existing --> id: %+v, v: %+v\n", *v.Id, *v)
-		}else{
-      logger.Debugf("new --> v: %+v\n", *v)
-    }
+		} else {
+			logger.Debugf("new --> v: %+v\n", *v)
+		}
 	}
 }
 
