@@ -27,6 +27,14 @@ type Resource struct {
 
 type Resources []*Resource
 
+func (rs Resources) GetNameMap() map[string]*Resource {
+	nameMap := map[string]*Resource{}
+	for _, r := range rs {
+		nameMap[r.Name] = r
+	}
+	return nameMap
+}
+
 func (r *Resource) GetId() string {
 	if cfg.DbConf.Driver == "mongodb" {
 		return *r.MongoId

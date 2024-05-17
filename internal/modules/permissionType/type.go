@@ -26,6 +26,14 @@ type PermissionType struct {
 
 type PermissionTypes []*PermissionType
 
+func (pts PermissionTypes) GetNameMap() map[string]*PermissionType {
+	nameMap := map[string]*PermissionType{}
+	for _, pt := range pts {
+		nameMap[pt.Name] = pt
+	}
+	return nameMap
+}
+
 func (pt *PermissionType) GetId() string {
 	if cfg.DbConf.Driver == "mongodb" {
 		return *pt.MongoId
