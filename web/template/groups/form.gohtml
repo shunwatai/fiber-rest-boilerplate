@@ -51,7 +51,7 @@
           }
         },
         availableUsers: [
-          {{- range .users}}
+          {{- range .availableUsers}}
             { 
               {{GetIdKeyName}}:{{- .Id -}},
               name:{{- .Name -}},

@@ -351,14 +351,13 @@ func (c *Controller) GroupFormPage(ctx *fiber.Ctx) error {
 		userIdMap := user.Srvc.GetIdMap(groups[0].Users)
 		usersWithoutExisting := []*user.User{}
 		for _, u := range users {
-			_, ok := userIdMap[u.GetId()]
-			if ok {
-				continue
+			_, exists := userIdMap[u.GetId()]
+			if !exists {
+				usersWithoutExisting = append(usersWithoutExisting, u)
 			}
-			usersWithoutExisting = append(usersWithoutExisting, u)
 		}
 		data["group"] = groups[0]
-		data["users"] = usersWithoutExisting
+		data["availableUsers"] = usersWithoutExisting
 		data["title"] = "Update group"
 	} else { // new group
 		data["group"] = nil
