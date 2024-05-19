@@ -20,6 +20,7 @@ type Resource struct {
 	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"`
 	Id        *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	Name      string                 `json:"name" db:"name" bson:"name,omitempty" validate:"required"`
+	Order     int                    `json:"order" db:"order" bson:"order,omitempty"`
 	Disabled  *bool                  `json:"disasbled" db:"disabled" bson:"disabled,omitempty" validate:"required,boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
