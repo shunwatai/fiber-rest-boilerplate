@@ -22,7 +22,7 @@ type Group struct {
 	Name        string                               `json:"name" db:"name" bson:"name,omitempty" validate:"required"`
 	Type        string                               `json:"type,omitempty" db:"type" bson:"type,omitempty"`
 	Users       []*user.User                         `json:"users" validate:"required"`
-	Permissions []*groupResourceAcl.GroupResourceAcl `json:"permissions"`
+	Permissions []*groupResourceAcl.GroupResourceAcl `json:"permissions" validate:"required"`
 	Disabled    bool                                 `json:"disabled" db:"disabled" bson:"disabled,omitempty" validate:"boolean"`
 	CreatedAt   *helper.CustomDatetime               `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt   *helper.CustomDatetime               `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
