@@ -7,6 +7,7 @@ import (
 type CustomMiddlewares struct {
 	PermissionChecker IPermissionCheck
 	JwtChecker        IJwtChecker
+	Logger            ILogger
 }
 
 type IPermissionCheck interface {
@@ -14,4 +15,7 @@ type IPermissionCheck interface {
 }
 type IJwtChecker interface {
 	CheckJwt() fiber.Handler
+}
+type ILogger interface {
+	Log() fiber.Handler
 }

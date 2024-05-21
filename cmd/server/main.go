@@ -100,11 +100,12 @@ func (f *Fiber) LoadAllRoutes() {
 	// initiate custom middleware
 	custMiddlewares := &middleware.CustomMiddlewares{
 		PermissionChecker: &permissioncheck.PermissionChecker{},
-		JwtChecker:      &jwtcheck.JwtChecker{},
+		JwtChecker:        &jwtcheck.JwtChecker{},
+		Logger:            &logging.Logger{},
 	}
 
-	router := f.App.Group("", logging.Logger()) // add logging to all routes
-	sample.GetRoutes(router, custMiddlewares)   // sample routes for testing
+	router := f.App.Group("", custMiddlewares.Logger.Log()) // add logging to all routes
+	sample.GetRoutes(router, custMiddlewares)               // sample routes for testing
 	document.GetRoutes(router, custMiddlewares)
 	group.GetRoutes(router, custMiddlewares)
 	groupResourceAcl.GetRoutes(router, custMiddlewares)
