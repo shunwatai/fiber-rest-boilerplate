@@ -1,9 +1,10 @@
 package groupUser
 
 import (
-	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/config"
-	"golang-api-starter/internal/middleware/jwtcheck"
+	"golang-api-starter/internal/database"
+	"golang-api-starter/internal/middleware"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -16,13 +17,13 @@ var (
 	ctrl      = &Controller{}
 )
 
-func GetRoutes(router fiber.Router) {
+func GetRoutes(router fiber.Router, custMiddleware *middleware.CustomMiddlewares) {
 	db := database.GetDatabase(tableName, viewName)
 	Repo = NewRepository(db)
 	Srvc = NewService(Repo)
 	ctrl = NewController(Srvc)
 
-	r := router.Group("/api/group-users", jwtcheck.CheckJwt())
+	r := router.Group("/api/group-users", custMiddleware.JwtChecker.CheckJwt())
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)
