@@ -67,7 +67,7 @@ func TestStructToMap(t *testing.T) {
 		want  []map[string]interface{}
 	}{
 		{name: "test StructToMap", input: groups, want: []map[string]interface{}{
-			{"_id": "xxxx-xxxx-xxxx-xxxx", "id": float64(2), "created_at": timeJson, "updated_at": timeJson, "name": "user", "type": "user", "disabled": false, "users": nil},
+			{"_id": "xxxx-xxxx-xxxx-xxxx", "id": float64(2), "created_at": timeJson, "updated_at": timeJson, "name": "user", "type": "user", "disabled": false, "users": nil, "permissions": nil},
 		}},
 	}
 
@@ -95,7 +95,7 @@ func TestGetTags(t *testing.T) {
 	}{
 		{name: "test get db tags", input: "db", want: []string{"id", "name", "type", "disabled", "created_at", "updated_at"}},
 		{name: "test get bson tags", input: "bson", want: []string{"_id", "id", "name", "type", "disabled", "created_at", "updated_at"}},
-		{name: "test get json tags", input: "json", want: []string{"_id", "id", "name", "type", "users", "disabled", "createdAt", "updatedAt"}},
+		{name: "test get json tags", input: "json", want: []string{"_id", "id", "name", "type", "users", "permissions", "disabled", "createdAt", "updatedAt"}},
 	}
 
 	for _, testCase := range tests {
