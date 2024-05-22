@@ -3,7 +3,7 @@ package passwordReset
 import (
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
-	"golang-api-starter/internal/middleware"
+	"golang-api-starter/internal/interfaces"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,7 +17,7 @@ var (
 	ctrl              = &Controller{}
 )
 
-func GetRoutes(router fiber.Router, custMiddleware *middleware.CustomMiddlewares) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares) {
 	db := database.GetDatabase(tableName, viewName)
 	Repo = NewRepository(db)
 	Srvc = NewService(Repo)
@@ -27,9 +27,9 @@ func GetRoutes(router fiber.Router, custMiddleware *middleware.CustomMiddlewares
 	viewRoute.Get("/", ctrl.PasswordResetPage)
 	viewRoute.Get("/forgot", ctrl.SendResetEmailPage)
 	viewRoute.Post("/send", ctrl.SendResetEmail)
-	viewRoute.Patch("/", ctrl.ChangePassword, custMiddleware.JwtChecker.CheckJwt())
+	viewRoute.Patch("/", ctrl.ChangePassword, custMiddleware.CheckJwt())
 
-	r := router.Group("/api/password-resets", custMiddleware.JwtChecker.CheckJwt())
+	r := router.Group("/api/password-resets", custMiddleware.CheckJwt())
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)

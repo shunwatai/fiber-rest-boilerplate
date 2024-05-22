@@ -3,7 +3,7 @@ package user
 import (
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
-	"golang-api-starter/internal/middleware"
+	"golang-api-starter/internal/interfaces"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,7 +17,7 @@ var (
 	ctrl      = &Controller{}
 )
 
-func GetRoutes(router fiber.Router, custMiddleware *middleware.CustomMiddlewares) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares) {
 	db := database.GetDatabase(tableName, &viewName)
 	Repo = NewRepository(db)
 	Srvc = NewService(Repo)
@@ -34,7 +34,7 @@ func GetRoutes(router fiber.Router, custMiddleware *middleware.CustomMiddlewares
 	publicViewRoute.Get("/login", ctrl.LoginPage)
 	publicViewRoute.Post("/login", ctrl.SubmitLogin)
 
-	protectedViewRoute := router.Group("/users", custMiddleware.JwtChecker.CheckJwt(), custMiddleware.PermissionChecker.CheckAccess("users"))
+	protectedViewRoute := router.Group("/users", custMiddleware.CheckJwt(), custMiddleware.CheckAccess("users"))
 	protectedViewRoute.Route("", func(userPage fiber.Router) {
 		userPage.Get("/", ctrl.ListUsersPage)
 		userPage.Get("/list", ctrl.GetUserList)
@@ -47,7 +47,7 @@ func GetRoutes(router fiber.Router, custMiddleware *middleware.CustomMiddlewares
 	})
 
 	// users routes
-	r := router.Group("/api/users", custMiddleware.JwtChecker.CheckJwt(), custMiddleware.PermissionChecker.CheckAccess("users"))
+	r := router.Group("/api/users", custMiddleware.CheckJwt(), custMiddleware.CheckAccess("users"))
 	r.Get("/", GetAll)
 	r.Post("/", Create)
 	r.Patch("/", Update)

@@ -6,9 +6,6 @@ import (
 	"golang-api-starter/internal/config"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/middleware"
-	"golang-api-starter/internal/middleware/jwtcheck"
-	"golang-api-starter/internal/middleware/logging"
-	"golang-api-starter/internal/middleware/permissioncheck"
 	"golang-api-starter/internal/modules/sample"
   {{- range .Modules }}
   "golang-api-starter/internal/modules/{{ .ModuleName }}"
@@ -87,14 +84,10 @@ func (f *Fiber) LoadAllRoutes() {
 	}))
 
 	// initiate custom middleware
-	custMiddlewares := &middleware.CustomMiddlewares{
-		PermissionChecker: &permissioncheck.PermissionChecker{},
-		JwtChecker:        &jwtcheck.JwtChecker{},
-		Logger:            &logging.Logger{},
-	}
+	custMiddlewares := middleware.NewCustMiddlewares()
 
-	router := f.App.Group("", custMiddlewares.Logger.Log()) // add logging to all routes
-	sample.GetRoutes(router, custMiddlewares)               // sample routes for testing
+	router := f.App.Group("", custMiddlewares.Log()) // add logging to all routes
+	sample.GetRoutes(router, custMiddlewares)        // sample routes for testing
   {{- range .Modules }}
 	{{.ModuleName}}.GetRoutes(router, custMiddlewares)
   {{- end }}

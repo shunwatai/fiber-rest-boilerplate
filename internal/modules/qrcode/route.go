@@ -1,7 +1,7 @@
 package qrcode
 
 import (
-	"golang-api-starter/internal/middleware"
+	"golang-api-starter/internal/interfaces"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -10,7 +10,7 @@ var tableName = "qrcodes"
 var Srvc = NewService()
 var ctrl = NewController(Srvc)
 
-func GetRoutes(router fiber.Router, custMiddleware *middleware.CustomMiddlewares) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares) {
 	// r := router.Group("/qrcodes", jwtcheck.CheckFromHeader())
 	r := router.Group("/api/qrcodes")
 	r.Post("/from-pdf", GetQrcodeContentFromPdf)
