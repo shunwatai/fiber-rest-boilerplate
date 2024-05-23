@@ -9,17 +9,19 @@ import (
 )
 
 var (
-	cfg       = config.Cfg
-	tableName = "group_users"
+	cfg               = config.Cfg
+	tableName         = "group_users"
 	viewName  *string = nil
-	Repo      = &Repository{}
-	Srvc      = &Service{}
-	ctrl      = &Controller{}
+	Repo              = &Repository{}
+	Srvc              = &Service{}
+	ctrl              = &Controller{}
 )
 
-func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares, groupRepo IGroupRepository, userRepo IUserRepository) {
 	db := database.GetDatabase(tableName, viewName)
 	Repo = NewRepository(db)
+	Repo.GroupRepo = groupRepo
+	Repo.UserRepo = userRepo
 	Srvc = NewService(Repo)
 	ctrl = NewController(Srvc)
 

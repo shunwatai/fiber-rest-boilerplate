@@ -17,9 +17,10 @@ var (
 	ctrl      = &Controller{}
 )
 
-func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares, groupRepo IGroupRepository ) {
 	db := database.GetDatabase(tableName, &viewName)
 	Repo = NewRepository(db)
+	Repo.GroupRepo = groupRepo
 	Srvc = NewService(Repo)
 	ctrl = NewController(Srvc)
 

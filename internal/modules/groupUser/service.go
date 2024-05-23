@@ -34,13 +34,6 @@ func (s *Service) checkUpdateNonExistRecord(groupUser *GroupUser) error {
 	return nil
 }
 
-func (s *Service) GetGroupIdMap(gus []*GroupUser) map[string][]*GroupUser {
-	groupUsersMap := map[string][]*GroupUser{}
-	for _, gu := range gus {
-		groupUsersMap[gu.GetGroupId()] = append(groupUsersMap[gu.GetGroupId()], gu)
-	}
-	return groupUsersMap
-}
 
 func (s *Service) Get(queries map[string]interface{}) ([]*GroupUser, *helper.Pagination) {
 	logger.Debugf("groupUser service get")

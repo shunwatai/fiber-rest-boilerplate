@@ -1,4 +1,4 @@
-package user
+package groupUser
 
 import (
 	"golang-api-starter/internal/helper"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestGetId(t *testing.T) {
+func TestUserGetId(t *testing.T) {
 	user := &User{
 		MongoId: utils.ToPtr("xxxx-xxxx-xxxx-xxxx"),
 		Id:      utils.ToPtr(helper.FlexInt(2)),
@@ -43,7 +43,7 @@ func TestGetId(t *testing.T) {
 	}
 }
 
-func TestStructToMap(t *testing.T) {
+func TestUserStructToMap(t *testing.T) {
 	var id int64 = 2
 	now := time.Now()
 	customDatetime := &helper.CustomDatetime{&now, utils.ToPtr(time.RFC3339)}
@@ -82,7 +82,7 @@ func TestStructToMap(t *testing.T) {
 	}
 }
 
-func TestGetTags(t *testing.T) {
+func TestUserGetTags(t *testing.T) {
 	users := Users{
 		&User{},
 	}

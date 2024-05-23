@@ -99,10 +99,11 @@ func (f *Fiber) LoadAllRoutes() {
 
 	router := f.App.Group("", custMiddlewares.Log()) // add logging to all routes
 	sample.GetRoutes(router, custMiddlewares)        // sample routes for testing
+	user.GetRoutes(router, custMiddlewares, group.Repo)
+	group.GetRoutes(router, custMiddlewares, user.Repo)
+	groupUser.GetRoutes(router, custMiddlewares, group.Repo, user.Repo)
 	document.GetRoutes(router, custMiddlewares)
-	group.GetRoutes(router, custMiddlewares)
 	groupResourceAcl.GetRoutes(router, custMiddlewares)
-	groupUser.GetRoutes(router, custMiddlewares)
 	log.GetRoutes(router, custMiddlewares)
 	oauth.GetRoutes(router, custMiddlewares)
 	passwordReset.GetRoutes(router, custMiddlewares)
@@ -111,7 +112,6 @@ func (f *Fiber) LoadAllRoutes() {
 	resource.GetRoutes(router, custMiddlewares)
 	todo.GetRoutes(router, custMiddlewares)
 	todoDocument.GetRoutes(router, custMiddlewares)
-	user.GetRoutes(router, custMiddlewares)
 	web.GetRoutes(router, custMiddlewares)
 
 	// a custom 404 handler instead of default "Cannot GET /page-not-found"
