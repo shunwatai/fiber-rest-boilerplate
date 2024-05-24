@@ -15,7 +15,7 @@
         hx-target-5*="#popupMessage"
         hx-indicator="#spinner"
         hx-disabled-elt="input, button"
-        :hx-vals="JSON.stringify({'users':existingUsers,'permissions':constructPermissionsForSubmit()})"
+        :hx-vals="JSON.stringify({'users':constructUsersForSubmit(),'permissions':constructPermissionsForSubmit()})"
       >
         {{if ne .group nil}}
           <input name="{{if .group.MongoId}}_id{{else}}id{{end}}" type="hidden" value="{{if .group.MongoId }}{{.group.MongoId}}{{else}}{{.group.Id}}{{end}}" />
@@ -58,7 +58,7 @@
         availableUsers: [
           {{- range .availableUsers}}
             { 
-              {{GetIdKeyName}}:{{- .Id -}},
+              id:{{ GetId .MongoId .Id }},
               name:{{- .Name -}},
               email:{{- .Email -}}, 
             },
@@ -68,7 +68,7 @@
           {{if and .group .group.Users}}
             {{- range .group.Users}}
               { 
-                {{GetIdKeyName}}:{{- .Id -}},
+                id:{{ GetId .MongoId .Id }},
                 name:{{- .Name -}},
                 email:{{- .Email -}}, 
               },
@@ -77,7 +77,7 @@
         ],
         removeUserFromGroup: function(e){
           //console.log("delete", e.target.id)
-          const idx = this.existingUsers.findIndex(user=>user.id===+e.target.id)
+          const idx = this.existingUsers.findIndex(user=>user.id===e.target.id)
           if (idx === -1){
             console.log("delete err", idx, e.target.id)
             return
@@ -88,11 +88,28 @@
         addUserToGroup: function(e){
           const availableUsersEles = document.querySelectorAll('input[type="checkbox"]:checked[name="availableUsers"]')
           availableUsersEles.forEach(ele=>{
-            const idx = this.availableUsers.findIndex(user=>user.id===+ele.id)
+            const idx = this.availableUsers.findIndex(user=>user.id===ele.id)
             const newUsers = this.availableUsers.splice(idx,1)
             this.existingUsers.push(newUsers[0])
           })
           this.toggleAddUserPopup()
+        },
+        // construct users shape for submit PATCH req to API
+        constructUsersForSubmit: function(){
+          const users = []
+          // update users by existingUsers
+          {{ if .group }}
+            this.existingUsers.forEach(user=>{
+              const {id, ...others} = user
+              users.push({
+                ...others, 
+                {{ GetIdKeyName }}:user.id,
+              }) 
+            })
+          {{ end }}
+
+          //console.log({users})
+          return users
         },
 
         /* for permission matrix */
@@ -127,7 +144,7 @@
           this.permissionsMatrixData.permissions[name][value] = checked
           this.constructPermissionsForSubmit()
         },
-        // construct shape for submit PATCH req to API
+        // construct permissions shape for submit PATCH req to API
         constructPermissionsForSubmit: function(){
           const permissions = []
           {{ if .group }}
