@@ -4,6 +4,7 @@ import (
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/interfaces"
+	"golang-api-starter/internal/modules/groupUser"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,7 +18,7 @@ var (
 	ctrl              = &Controller{}
 )
 
-func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares, userRepo IUserRepository) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares, userRepo groupUser.IUserRepository) {
 	db := database.GetDatabase(tableName, viewName)
 	Repo = NewRepository(db)
 	Repo.UserRepo = userRepo

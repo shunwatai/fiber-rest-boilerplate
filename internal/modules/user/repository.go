@@ -12,11 +12,7 @@ import (
 
 type Repository struct {
 	db        database.IDatabase
-	GroupRepo IGroupRepository
-}
-
-type IGroupRepository interface {
-	Get(queries map[string]interface{}) ([]*groupUser.Group, *helper.Pagination)
+	GroupRepo groupUser.IGroupRepository
 }
 
 func NewRepository(db database.IDatabase) *Repository {

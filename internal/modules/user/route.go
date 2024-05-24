@@ -4,6 +4,7 @@ import (
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/interfaces"
+	"golang-api-starter/internal/modules/groupUser"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,7 +18,7 @@ var (
 	ctrl      = &Controller{}
 )
 
-func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares, groupRepo IGroupRepository ) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares, groupRepo groupUser.IGroupRepository ) {
 	db := database.GetDatabase(tableName, &viewName)
 	Repo = NewRepository(db)
 	Repo.GroupRepo = groupRepo
@@ -36,6 +37,7 @@ func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares
 	publicViewRoute.Post("/login", ctrl.SubmitLogin)
 
 	protectedViewRoute := router.Group("/users", custMiddleware.CheckJwt(), custMiddleware.CheckAccess("users"))
+	// protectedViewRoute := router.Group("/users", custMiddleware.CheckJwt())
 	protectedViewRoute.Route("", func(userPage fiber.Router) {
 		userPage.Get("/", ctrl.ListUsersPage)
 		userPage.Get("/list", ctrl.GetUserList)

@@ -13,12 +13,7 @@ import (
 
 type Repository struct {
 	db       database.IDatabase
-	UserRepo IUserRepository
-}
-
-type IUserRepository interface {
-	Get(queries map[string]interface{}) ([]*groupUser.User, *helper.Pagination)
-	GetIdMap(users groupUser.Users) map[string]*groupUser.User
+	UserRepo groupUser.IUserRepository
 }
 
 func NewRepository(db database.IDatabase) *Repository {
