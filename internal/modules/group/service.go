@@ -103,8 +103,12 @@ func (s *Service) Update(groups []*groupUser.Group) ([]*groupUser.Group, *helper
 			return nil, &helper.HttpErr{fiber.StatusInternalServerError, err}
 		}
 
-		updateGroupUsers(group)
-		updateGroupResourceAcls(group)
+		// only update users:[] & permissions:[] when PATch single record.
+		// it is because of frontend is difficult to pass the validation of these 2 fields when batch updating "disabled"  
+		if len(groups) == 1 {
+			updateGroupUsers(group)
+			updateGroupResourceAcls(group)
+		}
 	}
 	results, err := s.repo.Update(groups)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
