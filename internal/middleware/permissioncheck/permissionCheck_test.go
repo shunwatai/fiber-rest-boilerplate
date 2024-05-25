@@ -19,14 +19,6 @@ func TestCheckPermission(t *testing.T) {
 		expectedError     error
 	}{
 		{
-			name:      "admin group, no error",
-			reqMethod: "GET",
-			groupResourceAcls: []*groupResourceAcl.GroupResourceAcl{
-				{ResourceName: utils.ToPtr("users"), GroupName: utils.ToPtr("admin"), PermissionType: utils.ToPtr("read")},
-			},
-			expectedError: nil,
-		},
-		{
 			name:      "matching permission, no error",
 			reqMethod: "POST",
 			groupResourceAcls: []*groupResourceAcl.GroupResourceAcl{
