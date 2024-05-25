@@ -7,6 +7,9 @@ import (
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/middleware"
 	"golang-api-starter/internal/modules/sample"
+	"golang-api-starter/internal/modules/group"
+	"golang-api-starter/internal/modules/user"
+	"golang-api-starter/internal/modules/groupUser"
   {{- range .Modules }}
   "golang-api-starter/internal/modules/{{ .ModuleName }}"
   {{- end }}
@@ -88,6 +91,9 @@ func (f *Fiber) LoadAllRoutes() {
 
 	router := f.App.Group("", custMiddlewares.Log()) // add logging to all routes
 	sample.GetRoutes(router, custMiddlewares)        // sample routes for testing
+	user.GetRoutes(router, custMiddlewares, group.Repo)
+	group.GetRoutes(router, custMiddlewares, user.Repo)
+	groupUser.GetRoutes(router, custMiddlewares, group.Repo, user.Repo)
   {{- range .Modules }}
 	{{.ModuleName}}.GetRoutes(router, custMiddlewares)
   {{- end }}
