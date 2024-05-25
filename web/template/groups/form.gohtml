@@ -15,10 +15,14 @@
         hx-target-5*="#popupMessage"
         hx-indicator="#spinner"
         hx-disabled-elt="input, button"
-        :hx-vals="JSON.stringify({'users':constructUsersForSubmit(),'permissions':constructPermissionsForSubmit()})"
+        :hx-vals="JSON.stringify({
+          'users':constructUsersForSubmit(),
+          'permissions':constructPermissionsForSubmit(),
+          'disabled':{{.group.Disabled}},
+        })"
       >
         {{if ne .group nil}}
-          <input name="{{if .group.MongoId}}_id{{else}}id{{end}}" type="hidden" value="{{if .group.MongoId }}{{.group.MongoId}}{{else}}{{.group.Id}}{{end}}" />
+          <input name="{{GetIdKeyName}}" type="hidden" value="{{GetId .group.MongoId .group.Id}}" />
         {{end}}
 
         <label for="name" class="{{if eq .group nil}}after:content-['*'] after:ml-0.5 after:text-red-500{{end}} block font-medium text-slate-700 mr-auto my-auto">Name</label>
