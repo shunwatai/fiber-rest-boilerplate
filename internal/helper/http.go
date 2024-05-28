@@ -40,10 +40,13 @@ func (ctx *FiberCtx) ErrResponse(respCode int, err error) error {
 }
 
 func (ctx *FiberCtx) handleHtmlError(respCode int) error {
+	ctx.Fctx.Set("Expires","Tue, 03 Jul 2001 06:00:00 GMT")
+	ctx.Fctx.Set("Last-Modified","{now} GMT")
+	ctx.Fctx.Set("Cache-Control","max-age=0, no-cache, private, must-revalidate, proxy-revalidate")
 	if respCode == fiber.StatusUnauthorized {
-		return ctx.Fctx.Status(respCode).Redirect("/unauthorised", fiber.StatusPermanentRedirect)
+		return ctx.Fctx.Status(respCode).Redirect("/unauthorised", fiber.StatusTemporaryRedirect)
 	}
-	return ctx.Fctx.Status(respCode).Redirect("/error", fiber.StatusPermanentRedirect)
+	return ctx.Fctx.Status(respCode).Redirect("/error", fiber.StatusTemporaryRedirect)
 }
 
 func (ctx *FiberCtx) handleHxUnauthorizedError(err error) error {
