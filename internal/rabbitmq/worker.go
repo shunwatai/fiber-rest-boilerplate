@@ -15,12 +15,7 @@ type UploadRequest struct {
 var rbChanns = map[string]func(){"test_queue": HandleTestQueue, "log_queue": HandleLogQueue}
 
 func HandleTestQueue() {
-	url, err := GetUrl()
-	if err != nil {
-		logger.Fatalf("failed to get rabbitmq url: %+v", err)
-	}
-
-	rabbitMQ, err := NewRabbitMQ(url, "test_queue")
+	rabbitMQ, err := NewRabbitMQ(GetUrl(), "test_queue")
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
@@ -60,12 +55,7 @@ func HandleTestQueue() {
 }
 
 func HandleLogQueue() {
-	url, err := GetUrl()
-	if err != nil {
-		logger.Fatalf("failed to get rabbitmq url: %+v", err)
-	}
-
-	rabbitMQ, err := NewRabbitMQ(url, "log_queue")
+	rabbitMQ, err := NewRabbitMQ(GetUrl(), "log_queue")
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}

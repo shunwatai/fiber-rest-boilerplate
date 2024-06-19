@@ -78,10 +78,7 @@ func (c *Controller) HalloPage(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) SendToQueue(ctx *fiber.Ctx) error {
-	url, err := rabbitmq.GetUrl()
-	if err != nil {
-		return logger.Errorf("failed to get rabbitmq url: %+v", err)
-	}
+	url := rabbitmq.GetUrl()
 	rabbitMQ, err := rabbitmq.NewRabbitMQ(url, "test_queue")
 	if err != nil {
 		fmt.Println(err)

@@ -128,10 +128,7 @@ func (l *Logger) Log() fiber.Handler {
 }
 
 func QueueLog(logs ...*customLog.Log) error {
-	url, err := rabbitmq.GetUrl()
-	if err != nil {
-		return logger.Errorf("failed to get rabbitmq url: %+v", err)
-	}
+	url:= rabbitmq.GetUrl()
 	rabbitMQ, err := rabbitmq.NewRabbitMQ(url, "log_queue")
 	if err != nil {
 		return logger.Errorf(err.Error())

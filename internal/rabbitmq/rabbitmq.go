@@ -1,6 +1,11 @@
 package rabbitmq
 
-import "github.com/streadway/amqp"
+import (
+	"fmt"
+	"golang-api-starter/internal/config"
+
+	"github.com/streadway/amqp"
+)
 
 type RabbitMQ struct {
 	conn    *amqp.Connection
@@ -8,8 +13,12 @@ type RabbitMQ struct {
 	queue   amqp.Queue
 }
 
-func GetUrl() (string, error) {
-	return "amqp://user:password@localhost:5672/", nil
+var cfg = config.Cfg
+
+func GetUrl() string {
+	connectionString := fmt.Sprintf("amqp://%s:%s@%s:%s/", *cfg.RabbitMqConf.User, *cfg.RabbitMqConf.Pass, *cfg.RabbitMqConf.Host, *cfg.RabbitMqConf.Port)
+
+	return connectionString
 }
 
 func NewRabbitMQ(url, queueName string) (*RabbitMQ, error) {
