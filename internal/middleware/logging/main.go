@@ -34,7 +34,7 @@ func (l *Logger) Log() fiber.Handler {
 		// log.Printf("1reqBody: %+v, %+v \n", len(string(bodyBytes)), string(bodyBytes))
 		var reqBodyJson, respBodyJson *string
 		if len(string(bodyBytes)) > 0 {
-			if string(c.Response().Header.ContentType()) == "application/json" {
+			if string(c.Request().Header.ContentType()) == "application/json" {
 				reqBodyJson = utils.ToPtr(string(bodyBytes))
 			} else {
 				nonJsonMap := map[string]interface{}{}
