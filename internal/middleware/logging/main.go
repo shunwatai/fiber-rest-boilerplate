@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -24,12 +25,21 @@ var cfg = config.Cfg
 
 type Logger struct{}
 
+var excludeLogRoutes = []string{
+	"/api/logs",
+}
+
 /*
  * Log is a middleware for showing the http req & resp info
  */
 func (l *Logger) Log() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// zlog.Printf("I AM LOGGER....")
+		for _, route := range excludeLogRoutes {
+			if strings.Contains(c.Request().URI().String(), route) {
+				return c.Next()
+			}
+		}
 
 		bodyBytes := c.BodyRaw()
 		// log.Printf("1reqBody: %+v, %+v \n", len(string(bodyBytes)), string(bodyBytes))
