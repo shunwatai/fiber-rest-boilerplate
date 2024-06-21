@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/helper/utils"
+	"golang-api-starter/internal/middleware/jwtcheck"
 	customLog "golang-api-starter/internal/modules/log"
 	"golang-api-starter/internal/rabbitmq"
 	"io"
@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 var cfg = config.Cfg
@@ -53,8 +54,14 @@ func (l *Logger) Log() fiber.Handler {
 		// log.Printf("reqHeader: %+v \n", string(reqHeader))
 
 		var userId interface{}
-		claims, err := auth.ParseJwt(c.Get("Authorization"))
-		if err == nil {
+		var claims jwt.MapClaims
+		// try get userId from both Auth Header & Cookie, if both nothing, set userId = nil
+		claims, _ = jwtcheck.GetTokenFromHeader(c)
+		if len(claims) == 0 {
+			claims, _ = jwtcheck.GetTokenFromCookie(c)
+		}
+
+		if len(claims) > 0 {
 			userId = claims["userId"]
 		}
 		// log.Println("JWT userId:", userId)
@@ -128,7 +135,7 @@ func (l *Logger) Log() fiber.Handler {
 }
 
 func QueueLog(logs ...*customLog.Log) error {
-	url:= rabbitmq.GetUrl()
+	url := rabbitmq.GetUrl()
 	rabbitMQ, err := rabbitmq.NewRabbitMQ(url, "log_queue")
 	if err != nil {
 		return logger.Errorf(err.Error())
@@ -153,13 +160,13 @@ func QueueLog(logs ...*customLog.Log) error {
 // it is useless for now, put it here just in case we need to view the body from logs in the future.
 func DecodeB64ToFormData(b64, reqContentType string) {
 	/* SAMPLE CODE TO USE THIS DecodeB64ToFormData for convert base64's req Body back into multipart/form-data
-		// var testMap map[string]interface{}
-		// if err := json.Unmarshal([]byte(*reqBodyJson), &testMap); err != nil {
-		// 	logger.Errorf("failed to unmarshal: %+v", err.Error())
-		// }
-		//
-		// DecodeB64ToFormData(testMap["base64"].(string), testMap["requestType"].(string))
-  */
+	// var testMap map[string]interface{}
+	// if err := json.Unmarshal([]byte(*reqBodyJson), &testMap); err != nil {
+	// 	logger.Errorf("failed to unmarshal: %+v", err.Error())
+	// }
+	//
+	// DecodeB64ToFormData(testMap["base64"].(string), testMap["requestType"].(string))
+	*/
 
 	// decode the base64 string back to the original byte slice
 	bodyBytes, err := base64.StdEncoding.DecodeString(b64)
