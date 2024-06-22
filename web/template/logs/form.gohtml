@@ -51,6 +51,25 @@
     </div>
   </div>
   <script>
+    function syntaxHighlight(json) {
+      json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let cls = 'text-emerald-400'; // number
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'text-pink-400'; // key
+          } else {
+            cls = 'text-sky-400'; // string
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'text-purple-400'; // boolean
+        } else if (/null/.test(match)) {
+          cls = 'text-cyan-400'; // null
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      });
+    }
+
     function displayJson(eleId,rawJson){
       const ele = document.getElementById(eleId);
       if (!rawJson){
@@ -60,7 +79,7 @@
         return
       }
       const obj = JSON.parse(rawJson);
-      const str = JSON.stringify(obj, undefined, 2);
+      const str = syntaxHighlight(JSON.stringify(obj, undefined, 2));
       ele.classList.add("h-fit");
       ele.classList.add("max-h-60");
       ele.innerHTML += str;
