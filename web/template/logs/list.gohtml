@@ -10,6 +10,12 @@
             </th>
             <th 
               class="text-center whitespace-nowrap px-4 py-2 text-gray-900"
+              name="username"
+            >
+              <span class="mx-2">User</span>
+            </th>
+            <th 
+              class="text-center whitespace-nowrap px-4 py-2 text-gray-900"
               name="ipAddress"
               @click="changeSortDirection"
               x-bind:hx-get="'/logs/list?orderBy=' + $el.getAttribute('name') + '.' + sortDirection"
@@ -61,6 +67,7 @@
         {{- range .logs }}
         <tr>
           <td class="text-center sticky inset-y-0 start-0 bg-white px-4 py-2"><input class="size-5 rounded border-gray-300" type="checkbox" name="ids" value={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}} @click="handleCheck" /></td>
+          <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.Username}}</a></td>
           <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.IpAddress}}</a></td>
           <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.HttpMethod}}</a></td>
           <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.Route}}</a></td>
