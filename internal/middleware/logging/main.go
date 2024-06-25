@@ -27,6 +27,7 @@ type Logger struct{}
 
 var excludeLogRoutes = []string{
 	"/api/logs",
+	"/favicon.ico",
 }
 
 /*
