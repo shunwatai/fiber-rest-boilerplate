@@ -53,7 +53,7 @@ func (l *Logger) Log() fiber.Handler {
 				nonJsonMap["requestType"] = string(c.Request().Header.ContentType())
 				nonJsonMap["base64"] = b64Str
 				if jsonBytes, err := json.Marshal(nonJsonMap); err != nil {
-					logger.Errorf("failed to marshal nonJsonMap, err: %+v", err.Error())
+					logger.Errorf("failed to marshal nonJsonMap, err: %s", err.Error())
 				} else {
 					reqBodyJson = utils.ToPtr(string(jsonBytes))
 				}
@@ -91,7 +91,7 @@ func (l *Logger) Log() fiber.Handler {
 					nonJsonMap["responseType"] = string(c.Response().Header.ContentType())
 					nonJsonMap["base64"] = b64Str
 					if jsonBytes, err := json.Marshal(nonJsonMap); err != nil {
-						logger.Errorf("failed to marshal nonJsonMap, err: %+v", err.Error())
+						logger.Errorf("failed to marshal nonJsonMap, err: %s", err.Error())
 					} else {
 						respBodyJson = utils.ToPtr(string(jsonBytes))
 					}
@@ -155,11 +155,11 @@ func QueueLog(logs ...*customLog.Log) error {
 	for _, log := range logs {
 		logDataBytes, err := json.Marshal(log)
 		if err != nil {
-			return logger.Errorf("failed to json marshal log, err: %+v", err)
+			return logger.Errorf("failed to json marshal log, err: %s", err.Error())
 		}
 
 		if err := rabbitMQ.Publish(logDataBytes); err != nil {
-			logger.Errorf("rabbit failed to publish error:", err)
+			return logger.Errorf("rabbit failed to publish error: %s", err.Error())
 		}
 	}
 
@@ -181,7 +181,7 @@ func DecodeB64ToFormData(b64, reqContentType string) {
 	// decode the base64 string back to the original byte slice
 	bodyBytes, err := base64.StdEncoding.DecodeString(b64)
 	if err != nil {
-		logger.Errorf("err: %+v", err.Error())
+		logger.Errorf("base64.StdEncoding.DecodeString err: %s", err.Error())
 		return
 	}
 
@@ -201,7 +201,7 @@ func DecodeB64ToFormData(b64, reqContentType string) {
 	// parse the multipart request
 	err = mr.ParseMultipartForm(200 << 20) // 200MB max memory
 	if err != nil {
-		logger.Errorf("err: %+v", err.Error())
+		logger.Errorf("mr.ParseMultipartForm err: %s", err.Error())
 		return
 	}
 
