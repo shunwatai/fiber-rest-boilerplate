@@ -54,5 +54,23 @@ func TmplCustomFuncs() template.FuncMap {
 		"IsMongo": func() bool {
 			return cfg.DbConf.Driver == "mongodb"
 		},
+		// GetActionByMethod for log list page to show the (readable)request aciont name for user
+		"GetActionByMethod": func(method string) string {
+			action, ok := MethodToPermType[method]
+			if !ok || len(action) == 0 {
+				return ""
+			}
+			return strings.ToUpper(action[0:1]) + action[1:]
+		},
+		// GetSucceedFailedByCode return succeed / failed by status code 2xx / 4xx
+		"GetSucceedFailedByCode": func(code int64) string {
+			if code >= 200 && code < 400 {
+				return "Succeed"
+			}
+			if code >= 400 && code <= 500 {
+				return "Failed"
+			}
+			return ""
+		},
 	}
 }
