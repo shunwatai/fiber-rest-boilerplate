@@ -7,7 +7,6 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
-	// "golang-api-starter/internal/helper/utils"
 	"golang-api-starter/internal/modules/groupUser"
 	"strconv"
 	"time"
@@ -131,21 +130,12 @@ func (s *Service) Create(users []*groupUser.User) ([]*groupUser.User, *helper.Ht
 		if (users[index].Id != nil && *users[index].Id != *existing.Id) || (users[index].MongoId != nil && *users[index].MongoId != *existing.MongoId) {
 			return nil, &helper.HttpErr{fiber.StatusConflict, fmt.Errorf("something went wrong, ID+Name not match with existing")}
 		} 
-		// else {
-		// 	if users[index].Password == nil {
-		// 		users[index].Password = existing.Password
-		// 	}
-		// 	if users[index].CreatedAt == nil {
-		// 		users[index].CreatedAt = existing.CreatedAt
-		// 	}
-		// }
 	}
 
 	results, err := s.repo.Create(users)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
 
-// func (s *Service) Update(usersDto []*groupUser.UserDTO) ([]*groupUser.User, *helper.HttpErr) {
 func (s *Service) Update(users []*groupUser.User) ([]*groupUser.User, *helper.HttpErr) {
 	logger.Debugf("user service update")
 

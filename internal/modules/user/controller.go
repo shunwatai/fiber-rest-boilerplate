@@ -125,14 +125,20 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	}
 
 	users := make(groupUser.Users, 0, len(usersDto))
-	for _, userDto := range usersDto {
-		id := userDto.GetId()
-		user, tempUser := new(groupUser.User), new(groupUser.User)
+	for _, uDto := range usersDto {
+		id := uDto.GetId()
+		user := new(groupUser.User)
 		if len(id) > 0 { // handle json with "id" for update
 			users, _ := c.service.GetById(map[string]interface{}{"id": id})
 			if len(users) > 0 {
 				user = users[0]
-				userDto.MapToUser(user)
+				if validateErrs := uDto.Validate("update"); validateErrs != nil {
+					return fctx.JsonResponse(
+						fiber.StatusUnprocessableEntity,
+						map[string]interface{}{"message": validateErrs.Error()},
+					)
+				}
+				uDto.MapToUser(user)
 			} else {
 				return fctx.JsonResponse(
 					fiber.StatusUnprocessableEntity,
@@ -140,34 +146,15 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 				)
 			}
 		} else { // handle create new user
-			var requireErrs []error
-			var requiredKeys = map[string]bool{
-				"password": userDto.Password.Presented,
-				"name":     userDto.Name.Presented,
-				"email":    userDto.Email.Presented,
-			}
-			for key, presented := range requiredKeys {
-				if !presented {
-					requireErrs = append(requireErrs, errors.New(key+" is required"))
-				}
-			}
-			if len(requireErrs) > 0 {
+			if validateErrs := uDto.Validate("create"); validateErrs != nil {
 				return fctx.JsonResponse(
 					fiber.StatusUnprocessableEntity,
-					map[string]interface{}{"message": errors.Join(requireErrs...).Error()},
+					map[string]interface{}{"message": validateErrs.Error()},
 				)
 			}
-			userDto.MapToUser(user)
+			uDto.MapToUser(user)
 		}
 
-		// validate user json
-		tempUser.Password = userDto.Password.Value
-		if validErr := helper.ValidateStruct(*tempUser); validErr != nil {
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
-			)
-		}
 		users = append(users, user)
 	}
 
@@ -250,17 +237,14 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 			)
 		}
 
-		userDto.MapToUser(u)
-
 		// validate user json
-		tempUser := *userIdMap[userDto.GetId()]
-		tempUser.Password = userDto.Password.Value
-		if validErr := helper.ValidateStruct(tempUser); validErr != nil {
+		if validateErrs := userDto.Validate("update"); validateErrs != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
+				map[string]interface{}{"message": validateErrs.Error()},
 			)
 		}
+		userDto.MapToUser(u)
 	}
 
 	results, httpErr := c.service.Update(existings)
@@ -646,21 +630,16 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 		u, ok := userIdMap[userDto.GetId()]
 		if !ok {
 			notFoundMsg := fmt.Sprintf("cannot update non-existing id: %+v", userDto.GetId())
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": notFoundMsg},
-			)
-		}
-
-		userDto.MapToUser(u)
-
-		// validate user json
-		tempUser := *userIdMap[userDto.GetId()]
-		tempUser.Password = userDto.Password.Value
-		if validErr := helper.ValidateStruct(tempUser); validErr != nil {
-			data["errMessage"] = validErr.Error()
+			data["errMessage"] = notFoundMsg
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
+
+		// validate user json
+		if validateErrs := userDto.Validate("update"); validateErrs != nil {
+			data["errMessage"] = validateErrs.Error()
+			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+		}
+		userDto.MapToUser(u)
 	}
 
 	// workaround if batch update Disabled on list page, ignore these fields for insert statement because of sliqte issue...
@@ -693,8 +672,8 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 
 	c.service.ctx = ctx
-	user := &groupUser.User{}
-	users := []*groupUser.User{}
+	userDto := &groupUser.UserDto{}
+	usersDto := []*groupUser.UserDto{}
 
 	data := fiber.Map{}
 	tmplFiles := []string{"web/template/parts/popup.gohtml"}
@@ -708,20 +687,26 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
-	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(userDto, &usersDto)
 	if parseErr != nil {
 		data["errMessage"] = parseErr.Error()
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 	if userErr == nil {
-		users = append(users, user)
+		usersDto = append(usersDto, userDto)
 	}
 
-	for _, user := range users {
-		if validErr := helper.ValidateStruct(*user); validErr != nil {
-			data["errMessage"] = validErr.Error()
+	users := make(groupUser.Users, 0, len(usersDto))
+	for _, uDto := range usersDto {
+		user := new(groupUser.User)
+
+		// validate user json
+		if validateErrs := uDto.Validate("create"); validateErrs != nil {
+			data["errMessage"] = validateErrs.Error()
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
+		uDto.MapToUser(user)
+		users = append(users, user)
 	}
 
 	*database.IgnrCols = append(*database.IgnrCols, "provider")

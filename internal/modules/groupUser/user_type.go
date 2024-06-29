@@ -2,6 +2,7 @@ package groupUser
 
 import (
 	"encoding/json"
+	"errors"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
@@ -13,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/iancoleman/strcase"
 )
 
@@ -33,6 +35,51 @@ type UserDto struct {
 	Search    helper.Optional[string]                `json:"-" example:"google"`
 }
 type UsersDto []*UserDto
+
+func (userDto *UserDto) Validate(action string) error {
+	var ignoreRequiredCheckIfUpdate = func(presented bool) bool {
+		if action == "update" {
+			return true
+		}
+		return presented
+	}
+	validate := validator.New()
+	var validateErrs []error
+	var validations = map[string]map[bool]map[string]map[string]any{
+		"password": {
+			ignoreRequiredCheckIfUpdate(userDto.Password.Presented): {
+				"omitempty,min=4": {"at least 4 character": userDto.Password.Value},
+			},
+		},
+		"name": {
+			ignoreRequiredCheckIfUpdate(userDto.Name.Presented): {
+				"omitempty,alphanum": {"only allow A-Z1-9, no space": userDto.Name.Value},
+			},
+		},
+		"email": {
+			ignoreRequiredCheckIfUpdate(userDto.Email.Presented): {
+				"omitempty,email": {"is not valid": userDto.Email.Value},
+			},
+		},
+	}
+	for key, presentedRuleValue := range validations {
+		for presented, ruleErrmsgValue := range presentedRuleValue {
+			if !presented {
+				validateErrs = append(validateErrs, errors.New(key+" is required"))
+			} else {
+				for rule, errmsgValue := range ruleErrmsgValue {
+					for errMsg, value := range errmsgValue {
+						if err := validate.Var(value, rule); err != nil {
+							validateErrs = append(validateErrs, errors.New(key+" "+errMsg))
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return errors.Join(validateErrs...)
+}
 
 func (userDto *UserDto) GetId() string {
 	if cfg.DbConf.Driver == "mongodb" && userDto.MongoId.Presented {
@@ -90,10 +137,10 @@ func (ud *UserDto) MapToUser(user *User) {
 }
 
 type User struct {
-	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"` // https://stackoverflow.com/a/20739427
-	Id        *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
-	Name      string                 `json:"name" db:"name" bson:"name,omitempty" example:"emma" validate:"omitempty,alphanum"`
-	Password  *string                `json:"password,omitempty" db:"password" bson:"password,omitempty" example:"password" validate:"omitempty,min=4"`
+	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty"` // https://stackoverflow.com/a/20739427
+	Id        *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2"`
+	Name      string                 `json:"name" db:"name" bson:"name,omitempty" example:"emma"`
+	Password  *string                `json:"password,omitempty" db:"password" bson:"password,omitempty" example:"password"`
 	Email     *string                `json:"email,omitempty" db:"email" bson:"email,omitempty" example:"xxx@example.com"`
 	FirstName *string                `json:"firstName" db:"first_name" bson:"first_name,omitempty" example:"Emma"`
 	LastName  *string                `json:"lastName" db:"last_name" bson:"last_name,omitempty" example:"Watson"`
