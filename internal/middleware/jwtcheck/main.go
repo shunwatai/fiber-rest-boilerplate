@@ -3,8 +3,11 @@ package jwtcheck
 import (
 	"errors"
 	"golang-api-starter/internal/auth"
+	"golang-api-starter/internal/config"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/modules/user"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,6 +15,8 @@ import (
 )
 
 type JwtChecker struct{}
+
+var cfg = config.Cfg
 
 /*
 * CheckJwt is a middleware for checking the jwt in both cookie & header
@@ -34,17 +39,35 @@ func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 			errStr []string
 		)
 
+		var checkUserDisabled = func() error {
+			var userId string
+			if cfg.DbConf.Driver == "mongodb" {
+				userId = claims["userId"].(string)
+			} else {
+				userId = strconv.Itoa(int(claims["userId"].(float64)))
+			}
+			err := user.Srvc.IsDisabled(userId)
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+
 		claims, err := GetTokenFromCookie(c)
-		if err == nil {
+		if err != nil {
+			errStr = append(errStr, err.Error())
+		} else if userErr := checkUserDisabled(); userErr != nil {
+			errStr = append(errStr, userErr.Error())
+		} else {
 			c.Locals("claims", claims)
 			return c.Next()
-		} else {
-			errStr = append(errStr, err.Error())
 		}
 
 		claims, err = GetTokenFromHeader(c)
 		if err != nil {
 			errStr = append(errStr, err.Error())
+		} else if userErr := checkUserDisabled(); userErr != nil {
+			errStr = append(errStr, userErr.Error())
 		}
 
 		if err != nil {
