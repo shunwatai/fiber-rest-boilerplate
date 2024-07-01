@@ -129,7 +129,7 @@ func (s *Service) Create(users []*groupUser.User) ([]*groupUser.User, *helper.Ht
 		// validate upsert, if id is present in JSON for updating existing user, check if id match with existing user or not
 		if (users[index].Id != nil && *users[index].Id != *existing.Id) || (users[index].MongoId != nil && *users[index].MongoId != *existing.MongoId) {
 			return nil, &helper.HttpErr{fiber.StatusConflict, fmt.Errorf("something went wrong, ID+Name not match with existing")}
-		} 
+		}
 	}
 
 	results, err := s.repo.Create(users)
@@ -233,6 +233,20 @@ func (s *Service) Refresh(user *groupUser.User) (map[string]interface{}, *helper
 	} else {
 		return userTokenResponse, nil
 	}
+}
+
+func (s *Service) IsDisabled(userId string) error {
+	logger.Debugf("user service getById\n")
+
+	records, _ := s.repo.Get(map[string]interface{}{"id": userId})
+	if len(records) == 0 {
+		return logger.Errorf("%s with id: %s not found", tableName, userId)
+	}
+	if records[0].Disabled {
+		return logger.Errorf("user %+s is disabled", records[0].Name)
+	}
+
+	return nil
 }
 
 func IndexOfDuplicatedName(users groupUser.Users, existingUser *groupUser.User) int {
