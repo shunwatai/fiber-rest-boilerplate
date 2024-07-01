@@ -10,6 +10,7 @@ ARG GO_VERSION=1.22
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
 WORKDIR /app
 COPY ./configs/ /app/configs/
+COPY ./web/ /app/web/
 
 RUN --mount=type=cache,target=/var/cache/apk \
     apk --update add alpine-sdk musl-dev sqlite-dev
