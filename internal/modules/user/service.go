@@ -186,7 +186,10 @@ func (s *Service) Login(user *groupUser.User) (map[string]interface{}, *helper.H
 		},
 	})
 	if len(results) == 0 {
-		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
+		return nil, &helper.HttpErr{fiber.StatusNotFound, logger.Errorf("user not exists...")}
+	}
+	if results[0].Disabled{
+		return nil, &helper.HttpErr{fiber.StatusForbidden, logger.Errorf("user disabled...")}
 	}
 	logger.Debugf("results?? %+v", results)
 
@@ -202,7 +205,7 @@ func (s *Service) Login(user *groupUser.User) (map[string]interface{}, *helper.H
 		match := checkPassword(*results[0].Password, *user.Password)
 
 		if !match {
-			return nil, &helper.HttpErr{fiber.StatusInternalServerError, fmt.Errorf("password not match...")}
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, logger.Errorf("password not match...")}
 		}
 	}
 

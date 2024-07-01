@@ -332,7 +332,7 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 
 	result, httpErr := c.service.Login(user)
 	if httpErr != nil {
-		return fctx.JsonResponse(respCode, map[string]interface{}{"message": httpErr.Err.Error()})
+		return fctx.JsonResponse(httpErr.Code, map[string]interface{}{"message": httpErr.Err.Error()})
 	}
 
 	if err := SetTokensInCookie(result, ctx); err != nil {
