@@ -80,7 +80,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// }
 
 	for _, groupUser := range groupUsers {
-		if validErr := helper.ValidateStruct(*groupUser); validErr != nil {
+		if validErr := helper.Validate.Struct(*groupUser); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -146,7 +146,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	}
 
 	for _, groupUser := range groupUsers {
-		if validErr := helper.ValidateStruct(*groupUser); validErr != nil {
+		if validErr := helper.Validate.Struct(*groupUser); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},

@@ -93,7 +93,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// }
 
 	for _, passwordReset := range passwordResets {
-		if validErr := helper.ValidateStruct(*passwordReset); validErr != nil {
+		if validErr := helper.Validate.Struct(*passwordReset); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -160,7 +160,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	}
 
 	for _, passwordReset := range passwordResets {
-		if validErr := helper.ValidateStruct(*passwordReset); validErr != nil {
+		if validErr := helper.Validate.Struct(*passwordReset); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},

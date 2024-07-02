@@ -59,7 +59,7 @@ func (s *Service) Create(groupResourceAcls []*GroupResourceAcl) ([]*GroupResourc
 		if groupResourceAcl.UserId == nil {
 			groupResourceAcl.UserId = claims["userId"]
 		}
-		if validErr := helper.ValidateStruct(*groupResourceAcl); validErr != nil {
+		if validErr := helper.Validate.Struct(*groupResourceAcl); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
 	}
