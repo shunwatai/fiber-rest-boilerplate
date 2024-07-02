@@ -92,7 +92,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 
 	for _, group := range groups {
 		logger.Debugf("group??? %+v", group)
-		if validErr := helper.ValidateStruct(*group); validErr != nil {
+		if validErr := helper.Validate.Struct(*group); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -158,7 +158,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	}
 
 	for _, group := range groups {
-		if validErr := helper.ValidateStruct(*group); validErr != nil {
+		if validErr := helper.Validate.Struct(*group); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -443,7 +443,7 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 	}
 
 	for _, group := range groups {
-		if validErr := helper.ValidateStruct(*group); validErr != nil {
+		if validErr := helper.Validate.Struct(*group); validErr != nil {
 			data["errMessage"] = validErr.Error()
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
@@ -494,7 +494,7 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 	}
 
 	for _, group := range groups {
-		if validErr := helper.ValidateStruct(*group); validErr != nil {
+		if validErr := helper.Validate.Struct(*group); validErr != nil {
 			data["errMessage"] = validErr.Error()
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
