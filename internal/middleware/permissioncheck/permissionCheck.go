@@ -46,7 +46,9 @@ func (pc *PermissionChecker) CheckAccess(resourceName string) fiber.Handler {
 			if gu.IsAdmin() {
 				return c.Next()
 			}
-			groupIds = append(groupIds, gu.GetGroupId())
+			if !gu.Group.Disabled {
+				groupIds = append(groupIds, gu.GetGroupId())
+			}
 		}
 
 		// get groupResourceAcls by groupIds & resourceName
