@@ -224,6 +224,14 @@ Check status
 docker-compose -f compose-prod.yaml ps
 ```
 
+Run DB migration
+
+Because of the production's container doesn't contain db migration files,
+use dev container to run the migrations:
+```
+docker-compose -f compose-dev.yaml run fiber-api-dev go run -tags 'libsqlite3 linux musl' main.go migrate-up postgres
+```
+
 Watch the log
 ```
 make docker-prod-log

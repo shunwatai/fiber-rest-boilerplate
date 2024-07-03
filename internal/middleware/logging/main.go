@@ -69,7 +69,7 @@ func (l *Logger) Log() fiber.Handler {
 		// try get userId from both Auth Header & Cookie, if both nothing, set userId = nil
 		claims, _ = jwtcheck.GetTokenFromHeader(c)
 		if len(claims) == 0 {
-			claims, _ = jwtcheck.GetTokenFromCookie(c)
+			claims, _ = jwtcheck.GetTokenFromCookie(c, "accessToken")
 		}
 
 		if len(claims) > 0 {

@@ -372,7 +372,7 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 		respCode = fiber.StatusExpectationFailed
 		return fctx.JsonResponse(
 			respCode,
-			map[string]interface{}{"message": "Invalid Token type... please try to login again"},
+			map[string]interface{}{"message": fmt.Sprintf("Invalid Token: %s... please try to login again", err.Error())},
 		)
 	}
 
