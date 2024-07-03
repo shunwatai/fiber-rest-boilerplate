@@ -41,13 +41,15 @@ func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 		var (
 			claims jwt.MapClaims
 			errStr []string
+			err    error
 		)
 
 		var checkUserDisabled = func() error {
 			var userId string
-			if cfg.DbConf.Driver == "mongodb" {
+			switch cfg.DbConf.Driver {
+			case "mongodb":
 				userId = claims["userId"].(string)
-			} else {
+			default:
 				userId = strconv.Itoa(int(claims["userId"].(float64)))
 			}
 			err := user.Srvc.IsDisabled(userId)
@@ -57,36 +59,16 @@ func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 			return nil
 		}
 
-		claims, err := GetTokenFromCookie(c, "accessToken")
+		claims, err = GetTokenFromCookie(c, "accessToken")
 		if err != nil {
-			if je, ok := err.(*jwtError); ok && je.errorType == "invalid" {
-				if claims, err := GetTokenFromCookie(c, "refreshToken"); err != nil {
-					errStr = append(errStr, err.Error())
-				} else {
-					var (
-						result     = map[string]interface{}{}
-						refreshErr *helper.HttpErr
-					)
-					if cfg.DbConf.Driver == "mongodb" {
-						userId := claims["userId"].(string)
-						result, refreshErr = user.Srvc.Refresh(&groupUser.User{MongoId: &userId})
-					} else {
-						userId := int64(claims["userId"].(float64))
-						result, refreshErr = user.Srvc.Refresh(&groupUser.User{Id: utils.ToPtr(helper.FlexInt(userId))})
-					}
-					if refreshErr != nil {
-						errStr = append(errStr, refreshErr.Error())
-					}
-					if err := user.SetTokensInCookie(result, c); err != nil {
-						errStr = append(errStr, err.Error())
-					} else {
-						logger.Infof(">>>token refreshed")
-						c.Locals("claims", claims)
-						return c.Next()
-					}
-				}
+			refreshClaims, err := refreshTokenIfNeeded(c, claims, err)
+			if err != nil {
+				errStr = append(errStr, err.Error())
+			} else {
+				logger.Debugf(">>>refreshed token")
+				c.Locals("claims", refreshClaims)
+				return c.Next()
 			}
-			errStr = append(errStr, err.Error())
 		} else if userErr := checkUserDisabled(); userErr != nil {
 			errStr = append(errStr, userErr.Error())
 		} else {
@@ -152,6 +134,38 @@ func GetTokenFromCookie(ctx *fiber.Ctx, tokenType string) (jwt.MapClaims, error)
 	}
 
 	return claims, nil
+}
+
+func refreshTokenIfNeeded(c *fiber.Ctx, claims jwt.Claims, err error) (jwt.Claims, error) {
+	if err == nil {
+		return claims, nil
+	}
+
+	je, ok := err.(*jwtError)
+	if !ok || je.errorType != "invalid" {
+		return nil, err
+	}
+
+	refreshTokenClaims, err := GetTokenFromCookie(c, "refreshToken")
+	if err != nil {
+		return nil, err
+	}
+
+	var refreshErr *helper.HttpErr
+	var result map[string]interface{}
+	switch cfg.DbConf.Driver {
+	case "mongodb":
+		userId := refreshTokenClaims["userId"].(string)
+		result, refreshErr = user.Srvc.Refresh(&groupUser.User{MongoId: &userId})
+	default:
+		userId := int64(refreshTokenClaims["userId"].(float64))
+		result, refreshErr = user.Srvc.Refresh(&groupUser.User{Id: utils.ToPtr(helper.FlexInt(userId))})
+	}
+	if refreshErr != nil {
+		return nil, refreshErr
+	}
+
+	return refreshTokenClaims, user.SetTokensInCookie(result, c)
 }
 
 type jwtError struct {
