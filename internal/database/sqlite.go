@@ -234,17 +234,18 @@ func (m *Sqlite) Save(records Records) (Rows, error) {
 	cols := records.GetTags("db")
 
 	// logger.Debugf("cols: %+v", cols)
+	var reservedTimeCols = []string{"created_at", "updated_at"}
 	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
 		// use in SQL's VALUES()
-		if strings.Contains(col, "_at") {
+		if slices.Contains(reservedTimeCols, col) {
 			colWithColon = append(colWithColon, fmt.Sprintf("IFNULL(:%s, CURRENT_TIMESTAMP)", col))
 		} else {
 			colWithColon = append(colWithColon, fmt.Sprintf(":%s", col))
 		}
 
 		// use in SQL's ON CONFLICT DO UPDATE SET
-		if strings.Contains(col, "_at") {
+		if slices.Contains(reservedTimeCols, col) {
 			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(excluded.%s, CURRENT_TIMESTAMP)", col, col))
 			continue
 		}
