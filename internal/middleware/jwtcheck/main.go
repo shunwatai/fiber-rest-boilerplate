@@ -2,9 +2,13 @@ package jwtcheck
 
 import (
 	"errors"
+	"fmt"
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
+	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/helper/utils"
+	"golang-api-starter/internal/modules/groupUser"
 	"golang-api-starter/internal/modules/user"
 	"slices"
 	"strconv"
@@ -53,8 +57,35 @@ func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 			return nil
 		}
 
-		claims, err := GetTokenFromCookie(c)
+		claims, err := GetTokenFromCookie(c, "accessToken")
 		if err != nil {
+			if je, ok := err.(*jwtError); ok && je.errorType == "invalid" {
+				if claims, err := GetTokenFromCookie(c, "refreshToken"); err != nil {
+					errStr = append(errStr, err.Error())
+				} else {
+					var (
+						result     = map[string]interface{}{}
+						refreshErr *helper.HttpErr
+					)
+					if cfg.DbConf.Driver == "mongodb" {
+						userId := claims["userId"].(string)
+						result, refreshErr = user.Srvc.Refresh(&groupUser.User{MongoId: &userId})
+					} else {
+						userId := int64(claims["userId"].(float64))
+						result, refreshErr = user.Srvc.Refresh(&groupUser.User{Id: utils.ToPtr(helper.FlexInt(userId))})
+					}
+					if refreshErr != nil {
+						errStr = append(errStr, refreshErr.Error())
+					}
+					if err := user.SetTokensInCookie(result, c); err != nil {
+						errStr = append(errStr, err.Error())
+					} else {
+						logger.Infof(">>>token refreshed")
+						c.Locals("claims", claims)
+						return c.Next()
+					}
+				}
+			}
 			errStr = append(errStr, err.Error())
 		} else if userErr := checkUserDisabled(); userErr != nil {
 			errStr = append(errStr, userErr.Error())
@@ -100,19 +131,34 @@ func GetTokenFromHeader(ctx *fiber.Ctx) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func GetTokenFromCookie(ctx *fiber.Ctx) (jwt.MapClaims, error) {
-	jwt := ctx.Cookies("accessToken")
+func GetTokenFromCookie(ctx *fiber.Ctx, tokenType string) (jwt.MapClaims, error) {
+	jwt := ctx.Cookies(tokenType)
 	if len(jwt) == 0 {
-		return nil, logger.Errorf("cookie['accessToken'] isn't present")
+		return nil, &jwtError{
+			errorType:    "missing",
+			errorMessage: fmt.Sprintf("cookie['%s'] isn't present", tokenType),
+		}
 	}
 
-	accessToken := "Bearer " + jwt
-	logger.Debugf("%s\n", accessToken)
+	token := "Bearer " + jwt
+	// logger.Debugf("%s\n", token)
 
-	claims, err := auth.ParseJwt(accessToken)
+	claims, err := auth.ParseJwt(token)
 	if err != nil {
-		return nil, logger.Errorf("failed to parse token from cookie, err: %+v", err)
+		return nil, &jwtError{
+			errorType:    "invalid",
+			errorMessage: fmt.Sprintf("auth.ParseJwt failed, err: %s", err.Error()),
+		}
 	}
 
 	return claims, nil
+}
+
+type jwtError struct {
+	errorType    string
+	errorMessage string
+}
+
+func (je *jwtError) Error() string {
+	return je.errorMessage
 }
