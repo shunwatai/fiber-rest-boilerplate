@@ -211,19 +211,20 @@ func (m *Postgres) Save(records Records) (Rows, error) {
 	cols := records.GetTags("db")
 
 	// logger.Debugf("cols: %+v", cols)
+	var reservedTimeCols = []string{"created_at", "updated_at"}
 	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
 		// use in SQL's VALUES()
 		if col == "id" {
 			colWithColon = append(colWithColon, fmt.Sprintf("COALESCE(:%s, nextval('%s_id_seq'))", col, m.TableName))
-		} else if strings.Contains(col, "_at") {
+		} else if slices.Contains(reservedTimeCols, col) {
 			colWithColon = append(colWithColon, fmt.Sprintf("COALESCE(:%s, CURRENT_TIMESTAMP)", col))
 		} else {
 			colWithColon = append(colWithColon, fmt.Sprintf(":%s", col))
 		}
 
 		// use in SQL's ON DUPLICATE KEY UPDATE
-		if strings.Contains(col, "_at") {
+		if slices.Contains(reservedTimeCols, col) {
 			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=COALESCE(EXCLUDED.%s, %s.%s)", col, col, m.TableName, col))
 			continue
 		}
