@@ -58,7 +58,7 @@
             >
               <span class="mx-2">Status</span><span>{{ShowSortingDirection "status" .pagination.OrderBy}}</span>
             </th>
-            <th class="text-center whitespace-nowrap px-4 py-2 text-gray-900"> duration(ms) </th>
+            <th class="text-center whitespace-nowrap px-4 py-2 text-gray-900"> duration </th>
             <th class="text-center whitespace-nowrap px-4 py-2 text-gray-900"> timestamp </th>
           </tr>
         </thead>
@@ -72,7 +72,7 @@
           <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.HttpMethod}}</a></td>
           <td class="text-left whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.Route}}</a></td>
           <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.Status}}</a></td>
-          <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.Duration}}</a></td>
+          <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{DurationToSec .Duration}}</a></td>
           <td class="text-center whitespace-nowrap px-4 py-2 font-medium text-gray-900"><a class="block" href="/logs/form?logId={{if not .MongoId}}{{.Id}}{{else}}{{.MongoId}}{{end}}">{{.CreatedAt}}</a></td>
         </tr>
         {{- end }}

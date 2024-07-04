@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // TmplCustomFuncs contains list of  custom functions for go template
@@ -71,6 +72,10 @@ func TmplCustomFuncs() template.FuncMap {
 				return "Failed"
 			}
 			return ""
+		},
+		// GetDuration converts duration to millisecond for display
+		"GetDuration": func(duration int64) time.Duration {
+			return time.Duration(duration) * time.Millisecond
 		},
 	}
 }
