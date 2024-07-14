@@ -9,6 +9,7 @@ import (
 	"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -17,7 +18,7 @@ import (
 
 type Todo struct {
 	MongoId       *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"` // https://stackoverflow.com/a/20739427
-	Id            *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
+	Id            *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	UserId        interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
 	User          *user.User             `json:"user"`
 	TodoDocuments interface{}            `json:"-"`
@@ -131,7 +132,9 @@ func (todo Todo) getTags(key ...string) []string {
 				name = fieldName
 			}
 			// fmt.Println(name)
-			cols = append(cols, name)
+			if !slices.Contains(*database.IgnrCols, name) {
+				cols = append(cols, name)
+			}
 		}
 	}
 	return cols

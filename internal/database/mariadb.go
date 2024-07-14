@@ -17,6 +17,7 @@ import (
 type MariaDb struct {
 	*ConnectionInfo
 	TableName string
+	ViewName  *string
 	db        *sqlx.DB
 	mu        sync.Mutex
 }
@@ -53,6 +54,13 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 		logger.Errorf("queries[\"columns\"] cannot be nil...")
 	}
 
+	var tableName string
+	if m.ViewName != nil {
+		tableName = *m.ViewName
+	} else {
+		tableName = m.TableName
+	}
+
 	exactMatchCols := map[string]bool{"id": true} // default id(PK) have to be exact match
 	if queries["exactMatch"] != nil {
 		for k := range queries["exactMatch"].(map[string]bool) {
@@ -67,8 +75,8 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 	logger.Debugf("dateRangeStmt: %+v, len: %+v", dateRangeStmt, len(dateRangeStmt))
 	helper.SanitiseQuerystring(cols, queries)
 
-	countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", m.TableName)
-	selectStmt := fmt.Sprintf(`SELECT * FROM %s`, m.TableName)
+	countAllStmt := fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)
+	selectStmt := fmt.Sprintf(`SELECT * FROM %s`, tableName)
 
 	logger.Debugf("queries: %+v, len: %+v", queries, len(queries))
 	if len(queries) != 0 || len(dateRangeStmt) != 0 { // add where clause
@@ -125,7 +133,7 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 		defer totalRow.Close()
 		totalRow.Scan(&pagination.Count)
 	}
-	if pagination.Items > 0 {
+	if pagination.Items > 0 && pagination.Count > 0 {
 		pagination.TotalPages = int64(math.Ceil(float64(pagination.Count) / float64(pagination.Items)))
 	}
 	// logger.Debugf("pagination: %+v", pagination)
@@ -133,6 +141,7 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 	var limit string
 	var offset string = strconv.Itoa(int((pagination.Page - 1) * pagination.Items))
 	if pagination.Items == 0 {
+		pagination.Items = pagination.Count
 		limit = strconv.Itoa(int(pagination.Count))
 	} else {
 		limit = strconv.Itoa(int(pagination.Items))
@@ -146,6 +155,8 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 		pagination.OrderBy["key"], pagination.OrderBy["by"],
 		limit, offset,
 	)
+
+	pagination.SetPageUrls()
 
 	return selectStmt, pagination, bindvarMap
 }

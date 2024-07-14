@@ -21,6 +21,7 @@ import (
 type Mongodb struct {
 	*ConnectionInfo
 	TableName string
+	ViewName  *string
 	Db        *mongo.Client
 	ctx       *context.Context
 	mu        sync.Mutex
@@ -165,7 +166,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	} else {
 		logger.Debugf("count: %+v", count)
 		pagination.Count = count
-		if pagination.Items > 0 {
+		if pagination.Items > 0 && pagination.Count > 0 {
 			pagination.TotalPages = int64(math.Ceil(float64(pagination.Count) / float64(pagination.Items)))
 		}
 		logger.Debugf("pagination: %+v", pagination)
@@ -174,6 +175,7 @@ func (m *Mongodb) getConditionsFromQuerystring(
 	var limit int64
 	var offset int64 = (pagination.Page - 1) * pagination.Items
 	if pagination.Items == 0 {
+		pagination.Items = pagination.Count
 		limit = pagination.Count
 	} else {
 		limit = pagination.Items
@@ -192,13 +194,10 @@ func (m *Mongodb) getConditionsFromQuerystring(
 		},
 	)
 
+	pagination.SetPageUrls()
+
 	return selectStmt, options, pagination
 }
-
-// Get all columns []string by m.TableName
-// func (m *Mongodb) GetColumns() []string {
-// 	return []string{}
-// }
 
 func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Pagination) {
 	m.mu.Lock()
@@ -208,7 +207,15 @@ func (m *Mongodb) Select(queries map[string]interface{}) (Rows, *helper.Paginati
 	defer cancel()
 	m.Connect()
 	defer m.Db.Disconnect(ctx)
-	collection := m.Db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+
+	var tableName string
+	if m.ViewName != nil {
+		tableName = *m.ViewName
+	} else {
+		tableName = m.TableName
+	}
+
+	collection := m.Db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", tableName))
 
 	var (
 		cur *mongo.Cursor
@@ -275,7 +282,7 @@ func (m *Mongodb) Save(records Records) (Rows, error) {
 			{Key: "$set", Value: record},
 		}, opts)
 		if err != nil {
-			logger.Errorf("update error: %+v",err)
+			return nil, logger.Errorf("save error: %+v", err)
 		}
 
 		/* only new created records has res.UpsertedID, existing's Ids appended in the if condition above */

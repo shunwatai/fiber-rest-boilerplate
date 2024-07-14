@@ -9,7 +9,6 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
-	"image"
 	"image/jpeg"
 	"io"
 	"log"
@@ -33,6 +32,27 @@ type Service struct {
 
 func NewService(r *Repository) *Service {
 	return &Service{r, nil}
+}
+
+// checkUpdateNonExistRecord for the "update" function to remain the createdAt value without accidental alter the createdAt
+// it may slow, should follow user/service.go's Update to fetch all records at once to reduce db fetching
+func (s *Service) checkUpdateNonExistRecord(document *Document) error {
+	conditions := map[string]interface{}{}
+	conditions["id"] = document.GetId()
+
+	existing, _ := s.repo.Get(conditions)
+	if len(existing) == 0 {
+		respCode = fiber.StatusNotFound
+		return logger.Errorf("cannot update non-existing records...")
+	} else if document.CreatedAt == nil {
+		document.CreatedAt = existing[0].CreatedAt
+	}
+
+	return nil
+}
+
+func (s *Service) SetCtx(ctx *fiber.Ctx) {
+	s.ctx = ctx
 }
 
 func (s *Service) GetIdMap(documents Documents) map[string]*Document {
@@ -108,7 +128,7 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 			log.Println("failed to copy file", copyError)
 			return nil, &helper.HttpErr{fiber.StatusInternalServerError, copyError}
 		}
-		// logger.Debugf("uploaded to ", uploadPath)
+		// logger.Debugf("uploaded to %+v", uploadPath)
 
 		sha1Sum := hex.EncodeToString(hash.Sum(nil))
 		// logger.Debugf("file hash: ", sha1Sum, hash.Sum(nil))
@@ -155,6 +175,11 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 
 func (s *Service) Update(documents []*Document) ([]*Document, *helper.HttpErr) {
 	logger.Debugf("document service update")
+	for _, document := range documents {
+		if err := s.checkUpdateNonExistRecord(document); err != nil {
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, err}
+		}
+	}
 	results, err := s.repo.Update(documents)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
@@ -184,7 +209,7 @@ func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, s
 		return nil, "", "", fmt.Errorf("not found")
 	}
 
-	logger.Debugf("filePath: %+v\n", repoData[0].FilePath)
+	logger.Debugf("filePath: %+v", repoData[0].FilePath)
 	f, err := os.Open(repoData[0].FilePath)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("failed to open file, %+v", err.Error())
@@ -195,7 +220,7 @@ func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, s
 	if err != nil {
 		return nil, "", "", fmt.Errorf("failed to get file type, %+v", err.Error())
 	}
-	logger.Debugf("fileType: ", fileType)
+	logger.Debugf("fileType: %+v", fileType)
 	fileBytes, fileErr := os.ReadFile(repoData[0].FilePath)
 	if fileErr != nil {
 		return nil, "", "", fmt.Errorf("failed to get file type, %+v", fileErr.Error())
@@ -206,14 +231,15 @@ func (s *Service) GetDocument(queries map[string]interface{}) ([]byte, string, s
 	jpgPngRegex := regexp.MustCompile(`png|jpg|jpeg|jpe`)
 	if size != 0 && strings.Contains(fileType, "image") && jpgPngRegex.MatchString(fileType) {
 		buf := new(bytes.Buffer)
-		img, _, err := image.Decode(bytes.NewReader(fileBytes))
+		imgBytes := bytes.NewReader(fileBytes)
+		img, err := imaging.Decode(imgBytes)
 		if err != nil {
-			log.Fatalln("image.Decode err: ", err)
+			return nil, "", "", logger.Errorf("image.Decode err: %+v", err)
 		}
 		resizedImg := imaging.Resize(img, int(size), 0, imaging.Lanczos)
 		err = jpeg.Encode(buf, resizedImg, nil)
 		if err != nil {
-			log.Fatalln("jpeg.Encode err: ", err)
+			return nil, "", "", logger.Errorf("jpeg.Encode err: %+v", err)
 		}
 
 		return buf.Bytes(), "image/jpeg", fileName, nil

@@ -8,18 +8,32 @@ import (
 )
 
 var (
-	cfg       = config.Cfg
-	tableName = "todos"
-	Repo      = &Repository{}
-	Srvc      = &Service{}
-	ctrl      = &Controller{}
+	cfg               = config.Cfg
+	tableName         = "todos"
+	viewName  *string = nil
+	Repo              = &Repository{}
+	Srvc              = &Service{}
+	ctrl              = &Controller{}
 )
 
 func GetRoutes(router fiber.Router) {
-	db := database.GetDatabase(tableName)
+	db := database.GetDatabase(tableName, viewName)
 	Repo = NewRepository(db)
 	Srvc = NewService(Repo)
 	ctrl = NewController(Srvc)
+
+	protectedViewRoute := router.Group("/todos", jwtcheck.CheckJwt())
+	protectedViewRoute.Route("", func(todoPage fiber.Router) {
+		todoPage.Get("/", ctrl.ListTodosPage)
+		todoPage.Get("/list", ctrl.GetTodoList)
+		todoPage.Delete("/", ctrl.SubmitDelete)
+		todoPage.Patch("/", ctrl.SubmitUpdate)
+		todoPage.Patch("/toggle-done", ctrl.ToggleDone)
+		todoPage.Post("/", ctrl.SubmitNew)
+		todoPage.Route("/form", func(todoForm fiber.Router) {
+			todoForm.Get("/", ctrl.TodoFormPage)
+		})
+	})
 
 	r := router.Group("/api/todos", jwtcheck.CheckJwt())
 	r.Get("/", GetAll)

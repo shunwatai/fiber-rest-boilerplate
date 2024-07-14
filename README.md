@@ -1,34 +1,63 @@
-# Fiber boilerpate
-This is my personal repo just for fun which for myself startng a golang REST API quicker and learn about golang.
+# Fiber REST boilerplate with HTMX
+This is my personal repo just for fun which for spinning up golang REST API quicker and to learn about golang and HTMX.
 
-It runs by fiber with basic CRUD routes which follows the Controller-Service-Repository pattern like Spring boot or Laravel's structure.
+It runs by fiber with pre-defined CRUD examples which follows the Controller-Service-Repository pattern like Spring boot or Laravel's architecture.
 
 # Features
-- With implementations of `postgres`, `sqlite`, `mariadb`, `mongodb` for accessing records in DB in `internal/database/`. Just raw sql without ORM.
-- With example modules like `users`, `todos`, `documents` etc. in `interal/modules/`, with CRUD APIs.
+- With implementations of `postgres`, `sqlite`, `mariadb`, `mongodb` in [`internal/database/`](internal/database). Just raw sql without ORM.
+    - Swtich between different DBs driver by changing the `database.engine` in config.
+- With example of pre-defined modules in [`internal/modules/`](internal/modules/). They come with CRUD APIs and support Filtering, Sorting, Pagination etc. 
+    - [User](internal/modules/user/README.md#crud)
+    - [Group](internal/modules/group/README.md#crud) 
+        - example of assigning users
+        - TBD access control of modules
+    - [Todo](internal/modules/todo/README.md#crud) 
+        - example of request by form-data for uploading documents
 - `HTMX` web templates with `tailwind` & `alpinejs`.
-- With a [script](#generate-new-module) `cmd/gen/gen.go` for generate new module to `internal/modules/`.
-- With the example of JWT auth in the [login API](#login).
-- Can generate swagger doc.
+- With a [script](#generate-new-module) `cmd/gen/gen.go` for generate new module in `internal/modules/`.
+- JWT auth, [login sample by curl](#login).
+- Can generate swagger doc by `swag`.
 - Make use of `viper` for loading env variables in config.
 - With a logging wrapper by `zap` which uses as middleware for writing the request's logs in `log/`, the log file maybe used for centralised log server like ELK or Signoz. 
+- Can run in both non-docker or docker environment.
+
+# Quick start by docker-compose
+1. [Start the databases containers](#start-databases-containers-for-development). Skip this if use Sqlite.
+2. [Run migrations with the desired database(pg/mariab/sqlite/mongodb)](migrations/README.md#run-migration)
+3. [Set the db driver in configs/docker.yaml](#for-run-by-docker)
+3. [Start fiber api by docker](#start-by-docker)
+4. [Test the login api by curl for getting the JWT](#login)
+5. Try the web
+    -  [users page](internal/modules/user/README.md#crud)
+    -  [todos page](internal/modules/todo/README.md#crud)
 
 # Todo
-- [ ] Need more test cases
+- [ ] Need more test cases & validations
 - [ ] Add GET `/me`
-- [ ] Try `bubbletea` for `cmd/gen/gen.go`
-- [ ] Try Oauth
-- [ ] Web template by htmx
+- [ ] Need tons of refactors...
+- [ ] Generate new module script `cmd/gen/gen.go`
+    - [ ] Try `bubbletea` for better tui interaction
+    - [ ] Support generate web templates
+- [ ] Web template example by htmx
     - [x] Login page
     - [x] Forget page
     - [x] Users page CRUD
-        - [x] Users list
-        - [x] User form
+        - [x] list page
+        - [x] form page
     - [ ] Todos page
-        - [ ] Todos list
-        - [ ] Todo form
-        - [ ] Todo form upload file
-- [ ] DB try views and joining in repository
+        - [x] list page
+            - [ ] search by file name (may add a db migration for a view joining todos & documents)
+        - [x] form page
+            - [x] upload files
+            - [x] delete files
+        - [x] preview files
+    - [ ] Groups page
+        - [ ] list page
+        - [ ] form page
+            - [ ] manage users
+- [ ] Group permssions for ACL
+- [ ] Try Redis/Valkey for caching GET?
+- [ ] Try Oauth (goth? or oauth2-proxy?)
 
 # Project structure
 I try following the standards from [project-layout](https://github.com/golang-standards/project-layout) as much as I can.
@@ -66,11 +95,11 @@ I try following the standards from [project-layout](https://github.com/golang-st
 ├── log                             # storing the API log files
 │   └── requests.log
 ├── main.go                         # the fiber starting point
-├── Makefile
+├── Makefile                        # you get the idea
 ├── migrations                      # storing the DB migration files
 ├── node_modules                    # because of tailwind
-├── package.json
-├── package-lock.json
+├── package.json                    # because of tailwind
+├── package-lock.json               # because of tailwind
 ├── qrcodes                         # my stuffs
 ├── README.Docker.md
 ├── README.md
@@ -79,19 +108,11 @@ I try following the standards from [project-layout](https://github.com/golang-st
 │   ├── xxx.pdf
 │   └── yyy.jpg
 └── web                             # serving the HTMX templates and web's libs
-    ├── static
-    └── template
+    ├── static                      # css & js & 3rd parties libs
+    └── template                    # web templates for the modules like user, todo etc.
 ```
 
-# Quick start by docker-compose
-1. [Start the databases containers](#start-databases-for-development)
-2. [Run database migrations](migrations/README.md#run-migration)
-3. [Set the database in configs/docker.yaml](#for-run-by-docker)
-3. [Start fiber api by docker](#start-by-docker)
-4. [Test the login api by curl for getting the JWT](#login)
-5. [Try the user's web](internal/modules/user/README.md#web-crud)
-
-# Install dependencies
+# Install dependencies (for running without docker)
 If run the Fiber server without docker, install the following go packages.
 ## Air - hot reload
 `air` for fiber hotreload.
@@ -115,7 +136,7 @@ go install github.com/swaggo/swag/cmd/swag@latest
 `npx` for running the tailwindcss command for frontend html template dev
 
 # Config
-## Edit config
+## Copy sample config
 ### For run without docker
 ```
 cp configs/localhost.yaml.sample configs/localhost.yaml
@@ -135,7 +156,7 @@ database:
 ...
 ```
 
-# Start databases for development
+# Start databases containers for development
 1. copy and then edit the `db.env` if needed
 ```
 cp db.env.sample db.env
@@ -178,7 +199,12 @@ make docker-dev-log
 ```
 
 ## For production
-Set the `env` to `prod` in the `configs/<localhost/docker>.yaml`
+### Change config
+Change the values in the `configs/<localhost/docker>.yaml`
+- Change the `server.env` to `prod`
+- Change the `server.host` 
+- Change `jwt.secret` 
+- Change `log.level` higher than `0`
 
 ### Start by docker
 Run the production container
@@ -233,6 +259,9 @@ The `cmd/gen/gen.go` is for generating new module without tedious copy & paste, 
 ## Users
 [readme](internal/modules/user/README.md)
 
+## Todos
+[readme](internal/modules/todo/README.md)
+
 ## Password reset
 [readme](internal/modules/passwordReset/README.md)
 
@@ -245,26 +274,21 @@ ref: https://stackoverflow.com/a/49999321
 go test -v -race ./... -count=1
 ```
 
-## Run specific database tests
-
-### Run sqlite's tests
+## Run integration (database related) tests
 ```
-go test -v ./internal/database -run TestSqliteConstructSelectStmtFromQuerystring -count=1
+go test -v -race ./... -count=1 --tags=integration
 ```
 
-### Run mariadb's tests
-```
-go test -v ./internal/database -run TestMariadbConstructSelectStmtFromQuerystring -count=1
-```
+### Run specific database tests
 
-### Run postgres's tests
-```
-go test -v ./internal/database -run TestPgConstructSelectStmtFromQuerystring -count=1
-```
+Substitude with specific `test name`:
+    - `TestSqliteConstructSelectStmtFromQuerystring`
+    - `TestMariadbConstructSelectStmtFromQuerystring`
+    - `TestPgConstructSelectStmtFromQuerystring`
+    - `TestMongodbConstructSelectStmtFromQuerystring`
 
-### Run mongodb's tests
 ```
-go test -v ./internal/database -run TestMongodbConstructSelectStmtFromQuerystring -count=1
+go test -v ./internal/database -run <test name> -count=1 --tags=integration
 ```
 
 # Swagger

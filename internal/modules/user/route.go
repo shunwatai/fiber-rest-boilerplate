@@ -11,37 +11,40 @@ import (
 var (
 	cfg       = config.Cfg
 	tableName = "users"
+	viewName  = "users_view"
 	Repo      = &Repository{}
 	Srvc      = &Service{}
 	ctrl      = &Controller{}
 )
 
 func GetRoutes(router fiber.Router) {
-	db := database.GetDatabase(tableName)
+	db := database.GetDatabase(tableName, &viewName)
 	Repo = NewRepository(db)
 	Srvc = NewService(Repo)
 	ctrl = NewController(Srvc)
 
-	viewRoute := router.Group("")
-	viewRoute.Get("/login", ctrl.LoginPage)
-	viewRoute.Post("/login", ctrl.SubmitLogin)
-
-	viewRoute.Route("/users", func(userPage fiber.Router) {
-		userPage.Get("/", ctrl.ListUsersPage)
-		// userPage.Patch("/", ctrl.SubmitBulkUpdate)
-		// userPage.Delete("/", ctrl.SubmitBulkDelete)
-		userPage.Route("/form", func(userForm fiber.Router) {
-			userForm.Get("/", ctrl.UserFormPage)
-			userPage.Post("/", ctrl.SubmitNew)
-			userPage.Patch("/", ctrl.SubmitUpdate)
-			userPage.Delete("/", ctrl.SubmitDelete)
-		})
-	})
-
 	// normal auth from database's users table
 	authRoute := router.Group("/api/auth")
 	authRoute.Post("/login", Login)
+	authRoute.Get("/logout", ctrl.Logout)
 	authRoute.Post("/refresh", Refresh)
+
+	// web view routes
+	publicViewRoute := router.Group("")
+	publicViewRoute.Get("/login", ctrl.LoginPage)
+	publicViewRoute.Post("/login", ctrl.SubmitLogin)
+
+	protectedViewRoute := router.Group("/users", jwtcheck.CheckJwt())
+	protectedViewRoute.Route("", func(userPage fiber.Router) {
+		userPage.Get("/", ctrl.ListUsersPage)
+		userPage.Get("/list", ctrl.GetUserList)
+		userPage.Delete("/", ctrl.SubmitDelete)
+		userPage.Patch("/", ctrl.SubmitUpdate)
+		userPage.Post("/", ctrl.SubmitNew)
+		userPage.Route("/form", func(userForm fiber.Router) {
+			userForm.Get("/", ctrl.UserFormPage)
+		})
+	})
 
 	// users routes
 	r := router.Group("/api/users", jwtcheck.CheckJwt())

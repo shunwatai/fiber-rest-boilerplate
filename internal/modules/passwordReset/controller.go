@@ -171,25 +171,6 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 				map[string]interface{}{"message": "please ensure all records with id for PATCH"},
 			)
 		}
-
-		conditions := map[string]interface{}{}
-		conditions["id"] = passwordReset.GetId()
-
-		existing, err := c.service.GetById(conditions)
-		if len(existing) == 0 {
-			respCode = fiber.StatusNotFound
-			return fctx.JsonResponse(
-				respCode,
-				map[string]interface{}{
-					"message": errors.Join(
-						errors.New("cannot update non-existing records..."),
-						err,
-					).Error(),
-				},
-			)
-		} else if passwordReset.CreatedAt == nil {
-			passwordReset.CreatedAt = existing[0].CreatedAt
-		}
 	}
 
 	results, httpErr := c.service.Update(passwordResets)
@@ -287,11 +268,13 @@ func (c *Controller) SendResetEmailPage(ctx *fiber.Ctx) error {
 	// data for template
 	data := map[string]interface{}{
 		"errMessage": nil,
+		"showNavbar": false,
 	}
 
 	tmplFiles := []string{
 		"web/template/parts/popup.gohtml",
 		"web/template/reset-password/send-reset-email.gohtml",
+		"web/template/parts/navbar.gohtml",
 		"web/template/base.gohtml",
 	}
 	tpl := template.Must(template.ParseFiles(tmplFiles...))
@@ -345,11 +328,13 @@ func (c *Controller) PasswordResetPage(ctx *fiber.Ctx) error {
 	// data for template
 	data := map[string]interface{}{
 		"errMessage": nil,
+		"showNavbar": false,
 	}
 
 	tmplFiles := []string{
 		"web/template/parts/popup.gohtml",
 		"web/template/reset-password/reset-form.gohtml",
+		"web/template/parts/navbar.gohtml",
 		"web/template/base.gohtml",
 	}
 	tpl := template.Must(template.ParseFiles(tmplFiles...))
