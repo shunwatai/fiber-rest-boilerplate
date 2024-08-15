@@ -323,7 +323,7 @@ func (m *Sqlite) Delete(ids []string) error {
 	return nil
 }
 
-func (m *Sqlite) RawQuery(sql string) *sqlx.Rows {
+func (m *Sqlite) RawQuery(sql string, args ...interface{}) *sqlx.Rows {
 	logger.Debugf("raw query from Sqlite")
 	m.Connect()
 	defer m.db.Close()
@@ -333,7 +333,7 @@ func (m *Sqlite) RawQuery(sql string) *sqlx.Rows {
 		m.db.Exec(sql)
 	}
 
-	rows, err := m.db.Queryx(sql)
+	rows, err := m.db.Queryx(sql, args...)
 	if err != nil {
 		logger.Errorf("Queryx err: %+v", err.Error())
 	}

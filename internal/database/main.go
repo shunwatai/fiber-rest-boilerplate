@@ -33,7 +33,7 @@ type IDatabase interface {
 	GetConnectionString() string
 
 	/* Select by raw sql */
-	RawQuery(string) *sqlx.Rows
+	RawQuery(string, ...interface{}) *sqlx.Rows
 
 	/* Select by req querystring with pagination */
 	Select(map[string]interface{}) (Rows, *helper.Pagination)
