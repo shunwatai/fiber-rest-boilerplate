@@ -187,7 +187,7 @@ func (s *Service) Login(user *groupUser.User) (map[string]interface{}, *helper.H
 	// })
 
 	args := []interface{}{user.Name,user.Name}
-	results := s.repo.GetByRawSql("SELECT * FROM users WHERE name=$1 or email=$2 LIMIT 1;", args...)
+	results := s.repo.GetByRawSql("SELECT * FROM users_view WHERE name=$1 or email=$2 LIMIT 1;", args...)
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, logger.Errorf("user not exists...")}
 	}
