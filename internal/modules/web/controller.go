@@ -39,7 +39,9 @@ func (c *Controller) ErrorPage(ctx *fiber.Ctx) error {
 
 	fctx.Fctx.Set(fiber.HeaderContentType, fiber.MIMETextHTML)
 
-	return tpl.ExecuteTemplate(fctx.Fctx.Response().BodyWriter(), "base.gohtml", fiber.Map{})
+	data := map[string]string{"errMessage": `{{ define "errMessage" }}something went wrong, please try to <a href='/login' class='font-bold text-blue-500'>login</a> again.{{ end }}`}
+	tpl, _ = tpl.New("").Parse(data["errMessage"])
+	return tpl.ExecuteTemplate(fctx.Fctx.Response().BodyWriter(), "base.gohtml", data)
 }
 
 func (c *Controller) UnauthorisedPage(ctx *fiber.Ctx) error {
@@ -50,5 +52,5 @@ func (c *Controller) UnauthorisedPage(ctx *fiber.Ctx) error {
 
 	fctx.Fctx.Set(fiber.HeaderContentType, fiber.MIMETextHTML)
 
-	return tpl.ExecuteTemplate(fctx.Fctx.Response().BodyWriter(), "base.gohtml", fiber.Map{"showNavbar": true,"errMessage":"insufficient permission"})
+	return tpl.ExecuteTemplate(fctx.Fctx.Response().BodyWriter(), "base.gohtml", fiber.Map{"showNavbar": true, "errMessage": "insufficient permission"})
 }
