@@ -332,7 +332,7 @@ func (c *Controller) GroupFormPage(ctx *fiber.Ctx) error {
 	tpl := template.Must(template.New("").Funcs(pagesFunc).ParseFiles(tmplFiles...))
 
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
-	u := new(groupUser.Group)
+	g := new(groupUser.Group)
 	// logger.Debugf("group_id: %+v", paramsMap["group_id"])
 
 	if paramsMap["group_id"] == nil { // new group
@@ -340,20 +340,20 @@ func (c *Controller) GroupFormPage(ctx *fiber.Ctx) error {
 	} else { // update group
 		if cfg.DbConf.Driver == "mongodb" {
 			groupId := paramsMap["group_id"].(string)
-			u.MongoId = &groupId
+			g.MongoId = &groupId
 		} else {
 			groupId, err := strconv.ParseInt(paramsMap["group_id"].(string), 10, 64)
 			if err != nil {
 				return nil
 			}
 
-			u.Id = utils.ToPtr(helper.FlexInt(groupId))
+			g.Id = utils.ToPtr(helper.FlexInt(groupId))
 		}
 
 		// get group by ID
-		groups, _ := c.service.Get(map[string]interface{}{"id": u.GetId()})
+		groups, _ := c.service.Get(map[string]interface{}{"id": g.GetId()})
 		if len(groups) == 0 {
-			logger.Errorf("something went wrong... failed to find group with id: %+v", u.Id)
+			logger.Errorf("something went wrong... failed to find group with id: %+v", g.Id)
 			return nil
 		}
 
