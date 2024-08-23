@@ -88,7 +88,6 @@ func GetUserTokenResponse(user *groupUser.User) (map[string]interface{}, error) 
 func (s *Service) Get(queries map[string]interface{}) ([]*groupUser.User, *helper.Pagination) {
 	logger.Debugf("user service get")
 	users, pagination := s.repo.Get(queries)
-	cascadeFields(users)
 
 	return users, pagination
 }

@@ -86,6 +86,7 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
 	results, err := c.service.GetById(paramsMap)
+	sanitise(results)
 
 	if err != nil {
 		respCode = fiber.StatusNotFound
@@ -129,22 +130,22 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		id := uDto.GetId()
 		user := new(groupUser.User)
 		if len(id) > 0 { // handle json with "id" for update
-			users, _ := c.service.GetById(map[string]interface{}{"id": id})
-			if len(users) > 0 {
-				user = users[0]
-				if validateErrs := uDto.Validate("update"); validateErrs != nil {
-					return fctx.JsonResponse(
-						fiber.StatusUnprocessableEntity,
-						map[string]interface{}{"message": validateErrs.Error()},
-					)
-				}
-				uDto.MapToUser(user)
-			} else {
+			existingUser, err := c.service.GetById(map[string]interface{}{"id": id})
+			if err != nil {
 				return fctx.JsonResponse(
 					fiber.StatusUnprocessableEntity,
 					map[string]interface{}{"message": errors.New("failed to update, id: " + id + " not exists").Error()},
 				)
 			}
+			user = existingUser[0]
+
+			if validateErrs := uDto.Validate("update"); validateErrs != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": validateErrs.Error()},
+				)
+			}
+			uDto.MapToUser(user)
 		} else { // handle create new user
 			if validateErrs := uDto.Validate("create"); validateErrs != nil {
 				return fctx.JsonResponse(
