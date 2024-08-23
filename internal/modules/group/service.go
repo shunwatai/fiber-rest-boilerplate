@@ -108,8 +108,12 @@ func (s *Service) Update(groups []*groupUser.Group) ([]*groupUser.Group, *helper
 		// only update users:[] & permissions:[] when PATch single record.
 		// it is because of frontend is difficult to pass the validation of these 2 fields when batch updating "disabled"  
 		if len(groups) == 1 {
-			updateGroupUsers(group)
-			updateGroupResourceAcls(group)
+			if group.Users != nil {
+				updateGroupUsers(group)
+			}
+			if group.Permissions != nil {
+				updateGroupResourceAcls(group)
+			}
 		}
 	}
 	results, err := s.repo.Update(groups)
@@ -142,9 +146,9 @@ func updateGroupUsers(group *groupUser.Group) {
 		groupUser.Srvc.Delete(existingGroupUsersIds)
 	}
 	// update groupUsers table
-	if len(group.Users) > 0 {
+	if group.Users != nil && len(*group.Users) > 0 {
 		groupUsers := []*groupUser.GroupUser{}
-		for _, u := range group.Users {
+		for _, u := range *group.Users {
 			groupUsers = append(groupUsers, &groupUser.GroupUser{GroupId: group.GetId(), UserId: u.GetId()})
 		}
 
@@ -169,9 +173,9 @@ func updateGroupResourceAcls(group *groupUser.Group) {
 		groupResourceAcl.Srvc.Delete(existingGroupResourceAclsIds)
 	}
 	// update groupResourceAcls table
-	if len(group.Permissions) > 0 {
+	if group.Permissions != nil && len(*group.Permissions) > 0 {
 		groupResourceAcls := []*groupResourceAcl.GroupResourceAcl{}
-		for _, perm := range group.Permissions {
+		for _, perm := range *group.Permissions {
 			if resourceNameMap[*perm.ResourceName] == nil ||
 				permissionTypeNameMap[*perm.PermissionType] == nil {
 				continue
