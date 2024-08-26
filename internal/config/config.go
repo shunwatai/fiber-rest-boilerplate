@@ -96,6 +96,7 @@ type OAuth struct {
 type Smtp struct {
 	Host string
 	Port int
+	Ssl  bool
 	User string
 	Pass string
 }

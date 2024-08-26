@@ -55,10 +55,12 @@ func (e *EmailInfo) checkInfo() error {
 }
 
 func (e *EmailInfo) getClient() (*mail.Client, error) {
+	logger.Debugf("smtp conf: %+v", cfg.Notification.Smtp)
 	client, err := mail.NewClient(
 		cfg.Notification.Smtp.Host,
 		mail.WithPort(cfg.Notification.Smtp.Port),
 		mail.WithSMTPAuth(mail.SMTPAuthPlain),
+		mail.WithSSLPort(cfg.Notification.Smtp.Ssl),
 		mail.WithUsername(cfg.Notification.Smtp.User),
 		mail.WithPassword(cfg.Notification.Smtp.Pass),
 	)
