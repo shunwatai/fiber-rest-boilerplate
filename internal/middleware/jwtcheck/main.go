@@ -36,6 +36,9 @@ func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 		}
 
 		requestHeader := c.GetReqHeaders()
+		if requestHeader["Accept"] == nil || len(strings.TrimSpace(requestHeader["Accept"][0])) == 0 {
+			return logger.Errorf("ERROR: missing Accept in request header...")
+		}
 		isHtml := strings.Contains(requestHeader["Accept"][0], "text/html")
 
 		var (
