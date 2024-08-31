@@ -59,7 +59,7 @@ func (s *Service) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}
 		if {{.ModuleName}}.UserId == nil {
 			{{.ModuleName}}.UserId = claims["userId"]
 		}
-		if validErr := helper.ValidateStruct(*{{.ModuleName}}); validErr != nil {
+		if validErr := helper.Validate.Struct(*{{.ModuleName}}); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
 	}

@@ -326,7 +326,7 @@ func (m *Mongodb) Delete(ids []string) error {
 }
 
 // useless for mongo, it implemented by sqlite, postgres, mariadb
-func (m *Mongodb) RawQuery(sql string) *sqlx.Rows {
+func (m *Mongodb) RawQuery(sql string, args ...interface{}) *sqlx.Rows {
 	return &sqlx.Rows{}
 }
 

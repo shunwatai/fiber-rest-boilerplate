@@ -6,12 +6,15 @@ import (
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+var mu sync.RWMutex
 
 type Rows interface {
 	StructScan(interface{}) error
@@ -30,7 +33,7 @@ type IDatabase interface {
 	GetConnectionString() string
 
 	/* Select by raw sql */
-	RawQuery(string) *sqlx.Rows
+	RawQuery(string, ...interface{}) *sqlx.Rows
 
 	/* Select by req querystring with pagination */
 	Select(map[string]interface{}) (Rows, *helper.Pagination)
@@ -60,8 +63,12 @@ type Records interface {
 }
 
 type IgnoredCols []string
+
 var IgnrCols = new(IgnoredCols)
+
 func SetIgnoredCols(cols ...string) {
+	mu.Lock()
+	defer mu.Unlock()
 	*IgnrCols = IgnoredCols(cols)
 }
 

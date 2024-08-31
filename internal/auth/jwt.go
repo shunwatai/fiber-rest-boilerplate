@@ -1,9 +1,8 @@
 package auth
 
 import (
-	"errors"
-	"fmt"
 	"golang-api-starter/internal/config"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"strings"
 	"time"
 
@@ -16,13 +15,13 @@ func ParseJwt(token string) (jwt.MapClaims, error) {
 	// fmt.Println("tokenStr:", len(tokenStr), tokenStr)
 
 	if len(tokenStr) != 2 {
-		return nil, fmt.Errorf("Malformed token")
+		return nil, logger.Errorf("Malformed token")
 	}
 
 	tokenString := tokenStr[1]
 	jwtToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, logger.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
 		secret := config.Cfg.Jwt.Secret
@@ -30,8 +29,7 @@ func ParseJwt(token string) (jwt.MapClaims, error) {
 	})
 
 	if err != nil {
-		fmt.Println("ParseJwt error: ", err)
-		return nil, err
+		return nil, logger.Errorf(err.Error())
 	}
 
 	claims, ok := jwtToken.Claims.(jwt.MapClaims)
@@ -39,12 +37,12 @@ func ParseJwt(token string) (jwt.MapClaims, error) {
 	// fmt.Printf("?? %+v\n", jwtToken)
 	// fmt.Println("exp: ", claims["exp"])
 	if int64(claims["exp"].(float64)) < time.Now().Local().Unix() {
-		err := errors.New("token expired")
+		err := logger.Errorf("token expired")
 		return claims, err
 	}
 
 	if !ok && !jwtToken.Valid {
-		err := errors.New("Unauthorized")
+		err := logger.Errorf("Unauthorized")
 		return claims, err
 	}
 

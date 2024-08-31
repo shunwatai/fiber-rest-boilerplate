@@ -59,7 +59,7 @@ func (s *Service) Create(groupUsers []*GroupUser) ([]*GroupUser, *helper.HttpErr
 			if groupUser.UserId == nil {
 				groupUser.UserId = claims["userId"]
 			}
-			if validErr := helper.ValidateStruct(*groupUser); validErr != nil {
+			if validErr := helper.Validate.Struct(*groupUser); validErr != nil {
 				return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 			}
 		}

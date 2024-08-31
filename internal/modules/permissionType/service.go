@@ -59,7 +59,7 @@ func (s *Service) Create(permissionTypes []*PermissionType) ([]*PermissionType, 
 		if permissionType.UserId == nil {
 			permissionType.UserId = claims["userId"]
 		}
-		if validErr := helper.ValidateStruct(*permissionType); validErr != nil {
+		if validErr := helper.Validate.Struct(*permissionType); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
 	}

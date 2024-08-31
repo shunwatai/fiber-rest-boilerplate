@@ -81,7 +81,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// }
 
 	for _, todoDocument := range todoDocuments {
-		if validErr := helper.ValidateStruct(*todoDocument); validErr != nil {
+		if validErr := helper.Validate.Struct(*todoDocument); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -147,7 +147,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	}
 
 	for _, todoDocument := range todoDocuments {
-		if validErr := helper.ValidateStruct(*todoDocument); validErr != nil {
+		if validErr := helper.Validate.Struct(*todoDocument); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},

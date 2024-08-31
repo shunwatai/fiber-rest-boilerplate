@@ -156,7 +156,7 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 		if document.UserId == nil {
 			document.UserId = claims["userId"]
 		}
-		if validErr := helper.ValidateStruct(*document); validErr != nil {
+		if validErr := helper.Validate.Struct(*document); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
 

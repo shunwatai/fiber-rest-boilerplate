@@ -81,7 +81,7 @@ func (s *Service) Create(todoDocuments []*TodoDocument) ([]*TodoDocument, *helpe
 			if todoDocument.UserId == nil {
 				todoDocument.UserId = claims["userId"]
 			}
-			if validErr := helper.ValidateStruct(*todoDocument); validErr != nil {
+			if validErr := helper.Validate.Struct(*todoDocument); validErr != nil {
 				return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 			}
 		}

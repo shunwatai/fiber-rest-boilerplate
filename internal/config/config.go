@@ -96,6 +96,7 @@ type OAuth struct {
 type Smtp struct {
 	Host string
 	Port int
+	Ssl  bool
 	User string
 	Pass string
 }
@@ -174,7 +175,7 @@ func (c *Config) WatchConfig() {
 func (c *Config) GetServerUrl() string {
 	url := fmt.Sprintf("http://%s", c.ServerConf.Host)
 
-	if len(c.ServerConf.Port) > 0 {
+	if len(c.ServerConf.Port) > 0 && c.Env == "local" {
 		url = fmt.Sprintf("%s:%s", url, c.ServerConf.Port)
 	}
 

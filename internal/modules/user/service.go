@@ -88,7 +88,6 @@ func GetUserTokenResponse(user *groupUser.User) (map[string]interface{}, error) 
 func (s *Service) Get(queries map[string]interface{}) ([]*groupUser.User, *helper.Pagination) {
 	logger.Debugf("user service get")
 	users, pagination := s.repo.Get(queries)
-	cascadeFields(users)
 
 	return users, pagination
 }
@@ -129,7 +128,7 @@ func (s *Service) Create(users []*groupUser.User) ([]*groupUser.User, *helper.Ht
 		// validate upsert, if id is present in JSON for updating existing user, check if id match with existing user or not
 		if (users[index].Id != nil && *users[index].Id != *existing.Id) || (users[index].MongoId != nil && *users[index].MongoId != *existing.MongoId) {
 			return nil, &helper.HttpErr{fiber.StatusConflict, fmt.Errorf("something went wrong, ID+Name not match with existing")}
-		} 
+		}
 	}
 
 	results, err := s.repo.Create(users)
@@ -179,14 +178,20 @@ func (s *Service) Delete(ids []string) ([]*groupUser.User, error) {
 func (s *Service) Login(user *groupUser.User) (map[string]interface{}, *helper.HttpErr) {
 	logger.Debugf("user service login")
 
-	results, _ := s.repo.Get(map[string]interface{}{
-		"name": user.Name,
-		"exactMatch": map[string]bool{
-			"name": true,
-		},
-	})
+	// results, _ := s.repo.Get(map[string]interface{}{
+	// 	"name": user.Name,
+	// 	"exactMatch": map[string]bool{
+	// 		"name": true,
+	// 	},
+	// })
+
+	args := []interface{}{user.Name,user.Name}
+	results := s.repo.GetByRawSql("SELECT * FROM users_view WHERE name=$1 or email=$2 LIMIT 1;", args...)
 	if len(results) == 0 {
-		return nil, &helper.HttpErr{fiber.StatusNotFound, fmt.Errorf("user not exists...")}
+		return nil, &helper.HttpErr{fiber.StatusNotFound, logger.Errorf("user not exists...")}
+	}
+	if results[0].Disabled{
+		return nil, &helper.HttpErr{fiber.StatusForbidden, logger.Errorf("user disabled...")}
 	}
 	logger.Debugf("results?? %+v", results)
 
@@ -202,7 +207,7 @@ func (s *Service) Login(user *groupUser.User) (map[string]interface{}, *helper.H
 		match := checkPassword(*results[0].Password, *user.Password)
 
 		if !match {
-			return nil, &helper.HttpErr{fiber.StatusInternalServerError, fmt.Errorf("password not match...")}
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, logger.Errorf("password not match...")}
 		}
 	}
 
@@ -233,6 +238,20 @@ func (s *Service) Refresh(user *groupUser.User) (map[string]interface{}, *helper
 	} else {
 		return userTokenResponse, nil
 	}
+}
+
+func (s *Service) IsDisabled(userId string) error {
+	logger.Debugf("user service getById\n")
+
+	records, _ := s.repo.Get(map[string]interface{}{"id": userId})
+	if len(records) == 0 {
+		return logger.Errorf("%s with id: %s not found", tableName, userId)
+	}
+	if records[0].Disabled {
+		return logger.Errorf("user %+s is disabled", records[0].Name)
+	}
+
+	return nil
 }
 
 func IndexOfDuplicatedName(users groupUser.Users, existingUser *groupUser.User) int {

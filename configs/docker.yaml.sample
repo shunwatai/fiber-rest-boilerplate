@@ -57,8 +57,9 @@ oauth:
 
 notification:
   smtp:
-    host:  "smtp.gmail.com"
+    host: "smtp.gmail.com"
     port: 587 
+    ssl: true 
     user: "xxxx@gmail.com"
     pass: "xxxxyyyyyzzzxz"
 
