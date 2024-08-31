@@ -300,12 +300,12 @@ func (m *MariaDb) Delete(ids []string) error {
 	return nil
 }
 
-func (m *MariaDb) RawQuery(sql string) *sqlx.Rows {
+func (m *MariaDb) RawQuery(sql string, args ...interface{}) *sqlx.Rows {
 	logger.Debugf("raw query from Postgres")
 	m.Connect()
 	defer m.db.Close()
 
-	rows, err := m.db.Queryx(sql)
+	rows, err := m.db.Queryx(sql, args...)
 	if err != nil {
 		logger.Errorf("Queryx err: %+v", err.Error())
 	}

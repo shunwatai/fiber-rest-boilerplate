@@ -88,7 +88,6 @@ func GetUserTokenResponse(user *groupUser.User) (map[string]interface{}, error) 
 func (s *Service) Get(queries map[string]interface{}) ([]*groupUser.User, *helper.Pagination) {
 	logger.Debugf("user service get")
 	users, pagination := s.repo.Get(queries)
-	cascadeFields(users)
 
 	return users, pagination
 }
@@ -179,12 +178,15 @@ func (s *Service) Delete(ids []string) ([]*groupUser.User, error) {
 func (s *Service) Login(user *groupUser.User) (map[string]interface{}, *helper.HttpErr) {
 	logger.Debugf("user service login")
 
-	results, _ := s.repo.Get(map[string]interface{}{
-		"name": user.Name,
-		"exactMatch": map[string]bool{
-			"name": true,
-		},
-	})
+	// results, _ := s.repo.Get(map[string]interface{}{
+	// 	"name": user.Name,
+	// 	"exactMatch": map[string]bool{
+	// 		"name": true,
+	// 	},
+	// })
+
+	args := []interface{}{user.Name,user.Name}
+	results := s.repo.GetByRawSql("SELECT * FROM users_view WHERE name=$1 or email=$2 LIMIT 1;", args...)
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, logger.Errorf("user not exists...")}
 	}
