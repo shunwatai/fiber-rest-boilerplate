@@ -74,9 +74,10 @@ type Logging struct {
 }
 
 type ServerConf struct {
-	Env  string
-	Host string
-	Port string
+	Env          string
+	Host         string
+	Port         string
+	TrustedProxies []string
 }
 
 type Jwt struct {
