@@ -34,7 +34,7 @@
         <input name="status" class="mt-1 px-3 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-sky-500 block rounded-md sm:text-sm focus:ring-1" value="{{if and (ne .log nil) (ne .log nil)}}{{.log.Status}}{{end}}" readonly />
 
         <label for="duration" class="block font-medium text-slate-700 mr-auto my-auto">Duration(ms)</label>
-        <input name="duration" class="mt-1 px-3 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-sky-500 block rounded-md sm:text-sm focus:ring-1" value="{{if and (ne .log nil) (ne .log nil)}}{{.log.Status}}{{end}}" readonly />
+        <input name="duration" class="mt-1 px-3 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-sky-500 block rounded-md sm:text-sm focus:ring-1" value="{{if and (ne .log nil) (ne .log nil)}}{{GetDuration .log.Duration}}{{end}}" readonly />
 
         <label for="createdAt" class="block font-medium text-slate-700 mr-auto my-auto">Timestamp</label>
         <input name="createdAt" class="mt-1 px-3 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-sky-500 block rounded-md sm:text-sm focus:ring-1" value="{{if and (ne .log nil) (ne .log nil)}}{{.log.CreatedAt}}{{end}}" readonly />
