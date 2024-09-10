@@ -57,7 +57,7 @@ func (f *Fiber) GetApp() {
 		// for get the real IP if behind a proxy
 		EnableTrustedProxyCheck:      true,
 		ProxyHeader:                  "X-Real-IP",
-		TrustedProxies:               []string{"172.19.0.4"},
+		TrustedProxies:               cfg.ServerConf.TrustedProxies,
 	})
 }
 

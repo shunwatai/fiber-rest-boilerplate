@@ -319,6 +319,7 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 	defer mu.Unlock()
 
 	logger.Debugf("user ctrl login")
+	respCode = fiber.StatusInternalServerError
 	user := &groupUser.User{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}

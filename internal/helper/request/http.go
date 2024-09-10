@@ -94,8 +94,8 @@ func JsonToMap(bodyBytes []byte) (map[string]interface{}, error) {
 	if err := json.Unmarshal(bodyBytes, &obj); err != nil {
 		logger.Errorf("failed Unmarshal to object: %s", err.Error())
 	} else {
-		result["data"] = obj
-		return result, nil
+		// result["data"] = obj
+		return obj, nil
 	}
 
 	// try handle array of json: [{...}, {...}]
