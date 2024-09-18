@@ -74,9 +74,9 @@ type Logging struct {
 }
 
 type ServerConf struct {
-	Env          string
-	Host         string
-	Port         string
+	Env            string
+	Host           string
+	Port           string
 	TrustedProxies []string
 }
 
@@ -126,10 +126,13 @@ func (c *Config) LoadEnvVariables() {
 	// determine the /.dockerenv file for checking running inside docker or not for using the corresponding config
 	// ref: https://stackoverflow.com/a/12518877
 	if _, err := os.Stat("/.dockerenv"); err == nil { // running in docker
-		// log.Printf("Running inside docker\n")
+		log.Printf("Running inside docker\n")
 		c.Vpr.SetConfigName("docker")
+	} else if len(os.Getenv("KUBERNETES_SERVICE_HOST")) > 0 { // running in k8s
+		log.Printf("Running in k8s\n")
+		c.Vpr.SetConfigName("k3s")
 	} else if errors.Is(err, os.ErrNotExist) { // running in localhost w/o docker
-		// log.Printf("Running in localhost\n")
+		log.Printf("Running in localhost\n")
 		c.Vpr.SetConfigName("localhost")
 	} else {
 		// Schrodinger: file may or may not exist. See err for details.
