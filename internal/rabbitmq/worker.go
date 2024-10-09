@@ -12,10 +12,8 @@ type UploadRequest struct {
 	File []byte `json:"file"`
 }
 
-var rbChanns = map[string]func(){"test_queue": HandleTestQueue, "log_queue": HandleLogQueue}
-
 func HandleTestQueue() {
-	rabbitMQ, err := NewRabbitMQ(GetUrl(), "test_queue")
+	rabbitMQ, err := NewRabbitMQ(GetUrl(), *cfg.RabbitMqConf.Queues.TestQueue)
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
@@ -55,7 +53,7 @@ func HandleTestQueue() {
 }
 
 func HandleLogQueue() {
-	rabbitMQ, err := NewRabbitMQ(GetUrl(), "log_queue")
+	rabbitMQ, err := NewRabbitMQ(GetUrl(), *cfg.RabbitMqConf.Queues.LogQueue)
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
@@ -97,6 +95,8 @@ func HandleLogQueue() {
 func RunWorker() {
 	// Open a dummy channel to hold this RunWorker without exit
 	forever := make(chan bool)
+
+	var rbChanns = map[string]func(){*cfg.RabbitMqConf.Queues.TestQueue: HandleTestQueue, *cfg.RabbitMqConf.Queues.LogQueue: HandleLogQueue}
 
 	for chanName, handler := range rbChanns {
 		logger.Infof("handling queue: %+v", chanName)
