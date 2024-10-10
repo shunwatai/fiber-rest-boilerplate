@@ -98,7 +98,9 @@ func (l *Logger) Log() fiber.Handler {
 				}}
 				// log.Printf("%+v\n", logData)
 
-				go QueueLog(logData...)
+				for _, log := range logData {
+					go rabbitmq.QueueMsg(*cfg.RabbitMqConf.Queues.LogQueue, log)
+				}
 
 				// create log to database,
 				// WARN: this will slower the performance as one more database operation
@@ -138,11 +140,11 @@ func QueueLog(logs ...*customLog.Log) error {
 	for _, log := range logs {
 		logDataBytes, err := json.Marshal(log)
 		if err != nil {
-			return logger.Errorf("failed to json marshal log, err: %+v", err)
+			return logger.Errorf("failed to json marshal log, err: %s", err.Error())
 		}
 
 		if err := rabbitMQ.Publish(logDataBytes); err != nil {
-			logger.Errorf("rabbit failed to publish error:", err)
+			return logger.Errorf("rabbit failed to publish error: %s", err.Error())
 		}
 	}
 
@@ -153,18 +155,18 @@ func QueueLog(logs ...*customLog.Log) error {
 // it is useless for now, put it here just in case we need to view the body from logs in the future.
 func DecodeB64ToFormData(b64, reqContentType string) {
 	/* SAMPLE CODE TO USE THIS DecodeB64ToFormData for convert base64's req Body back into multipart/form-data
-		// var testMap map[string]interface{}
-		// if err := json.Unmarshal([]byte(*reqBodyJson), &testMap); err != nil {
-		// 	logger.Errorf("failed to unmarshal: %+v", err.Error())
-		// }
-		//
-		// DecodeB64ToFormData(testMap["base64"].(string), testMap["requestType"].(string))
-  */
+	// var testMap map[string]interface{}
+	// if err := json.Unmarshal([]byte(*reqBodyJson), &testMap); err != nil {
+	// 	logger.Errorf("failed to unmarshal: %+v", err.Error())
+	// }
+	//
+	// DecodeB64ToFormData(testMap["base64"].(string), testMap["requestType"].(string))
+	*/
 
 	// decode the base64 string back to the original byte slice
 	bodyBytes, err := base64.StdEncoding.DecodeString(b64)
 	if err != nil {
-		logger.Errorf("err: %+v", err.Error())
+		logger.Errorf("base64.StdEncoding.DecodeString err: %s", err.Error())
 		return
 	}
 
@@ -184,7 +186,7 @@ func DecodeB64ToFormData(b64, reqContentType string) {
 	// parse the multipart request
 	err = mr.ParseMultipartForm(200 << 20) // 200MB max memory
 	if err != nil {
-		logger.Errorf("err: %+v", err.Error())
+		logger.Errorf("mr.ParseMultipartForm err: %s", err.Error())
 		return
 	}
 

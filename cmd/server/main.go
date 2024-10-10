@@ -111,7 +111,7 @@ func (f *Fiber) LoadAllRoutes() {
 		custMiddlewares.Log(),                           // add logging to all routes
 		custMiddlewares.CheckJwt(skipJwtCheckRoutes...), // add jwt check to all routes
 	)
-	sample.GetRoutes(router, custMiddlewares) // sample routes for testing
+sample.GetRoutes(router, custMiddlewares) // sample routes for testing
 	user.GetRoutes(router, custMiddlewares, group.Repo)
 	group.GetRoutes(router, custMiddlewares, user.Repo)
 	groupUser.GetRoutes(router, custMiddlewares, group.Repo, user.Repo)
@@ -146,6 +146,11 @@ func (f *Fiber) Start() {
 	fmt.Println(strings.Repeat("*", 50))
 
 	lg.Fatal(f.App.Listen(fmt.Sprintf(":%s", cfg.ServerConf.Port)))
+}
+
+func StartQueueWorker() {
+	// rabbitmq.RunWorker(log.Srvc, user.Srvc, passwordReset.Srvc)
+	rabbitmq.RunWorker(&rbmqSrvc.RbmqWorker{})
 }
 
 var Api = &Fiber{}
