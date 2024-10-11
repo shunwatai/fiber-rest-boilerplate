@@ -21,6 +21,8 @@ import (
 	"golang-api-starter/internal/modules/todoDocument"
 	"golang-api-starter/internal/modules/user"
 	"golang-api-starter/internal/modules/web"
+	"golang-api-starter/internal/rabbitmq"
+	rbmqSrvc "golang-api-starter/internal/rabbitmq/service"
 	"golang-api-starter/web/static"
 	lg "log"
 	"net/http"
@@ -151,6 +153,11 @@ func (f *Fiber) Start() {
 	fmt.Println(strings.Repeat("*", 50))
 
 	lg.Fatal(f.App.Listen(fmt.Sprintf(":%s", cfg.ServerConf.Port)))
+}
+
+func StartQueueWorker() {
+	// rabbitmq.RunWorker(log.Srvc, user.Srvc, passwordReset.Srvc)
+	rabbitmq.RunWorker(&rbmqSrvc.RbmqWorker{})
 }
 
 var Api = &Fiber{}

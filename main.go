@@ -6,7 +6,6 @@ import (
 	"golang-api-starter/cmd/gen"
 	"golang-api-starter/cmd/server"
 	"golang-api-starter/internal/helper/logger/zap_log"
-	"golang-api-starter/internal/rabbitmq"
 	"os"
 )
 
@@ -41,7 +40,7 @@ func main() {
 	} else if os.Args[1] == "generate" { // run new module generation
 		gen.GenerateNewModule()
 	} else if os.Args[1] == "run-rbmq-worker" { // run rabbitmq worker
-		rabbitmq.RunWorker()
+		server.StartQueueWorker()
 	} else {
 		fmt.Printf("do nothing...\n")
 	}
