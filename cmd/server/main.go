@@ -21,6 +21,8 @@ import (
 	"golang-api-starter/internal/modules/todoDocument"
 	"golang-api-starter/internal/modules/user"
 	"golang-api-starter/internal/modules/web"
+	"golang-api-starter/internal/rabbitmq"
+	rbmqSrvc "golang-api-starter/internal/rabbitmq/service"
 	"golang-api-starter/web/static"
 	lg "log"
 	"net/http"
@@ -111,7 +113,7 @@ func (f *Fiber) LoadAllRoutes() {
 		custMiddlewares.Log(),                           // add logging to all routes
 		custMiddlewares.CheckJwt(skipJwtCheckRoutes...), // add jwt check to all routes
 	)
-sample.GetRoutes(router, custMiddlewares) // sample routes for testing
+	sample.GetRoutes(router, custMiddlewares) // sample routes for testing
 	user.GetRoutes(router, custMiddlewares, group.Repo)
 	group.GetRoutes(router, custMiddlewares, user.Repo)
 	groupUser.GetRoutes(router, custMiddlewares, group.Repo, user.Repo)
