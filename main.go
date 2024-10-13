@@ -24,6 +24,7 @@ func main() {
 	api.LoadMiddlewares()
 	api.LoadSwagger()
 	api.LoadAllRoutes()
+	api.LoadCachingService()
 
 	// default run the api server
 	if len(os.Args) == 1 {

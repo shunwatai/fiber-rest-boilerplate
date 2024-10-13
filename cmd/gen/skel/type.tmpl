@@ -26,7 +26,7 @@ type {{.StructName}}Dto struct {
 	CreatedAt helper.Optional[helper.CustomDatetime] `json:"createdAt"`
 	UpdatedAt helper.Optional[helper.CustomDatetime] `json:"updatedAt"`
 }
-type {{.StructName}}sDto []*{{.StructName}}Dto
+type {{.Plural}}Dto []*{{.StructName}}Dto
 
 func ({{.ModuleName}}Dto *{{.StructName}}Dto) Validate(action string) error {
 	var ignoreRequiredCheckIfUpdate = func(presented bool) bool {
@@ -212,4 +212,20 @@ func ({{.Initial}} {{.StructName}}) getTags(key ...string) []string {
 		}
 	}
 	return cols
+}
+
+type cacheValue struct {
+	{{.StructName}}s        []*{{.StructName}}
+	Pagination *helper.Pagination
+}
+
+// MarshalBinary serializes data into a byte slice for caching.
+func ({{.Initial}} *cacheValue) MarshalBinary() (data []byte, err error) {
+	bytes, err := json.Marshal({{.Initial}})
+	return bytes, err
+}
+
+// UnmarshalBinary deserializes the byte slice back into data for caching.
+func ({{.Initial}} *cacheValue) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, {{.Initial}})
 }

@@ -55,6 +55,31 @@ type RabbitMqConf struct {
 	}
 }
 
+type RedisConf struct {
+	Host string
+	Port string
+	User *string
+	Pass *string
+}
+type CacheConf struct {
+	Enabled   bool
+	Driver    string `mapstructure:"engine"`
+	RedisConf `mapstructure:"redis"`
+}
+
+type ApsaraConf struct {
+	AccessKey    *string
+	AccessSecret *string
+	PushKey      *string
+	PullKey      *string
+}
+
+type TranscodingApi struct {
+	Host   *string
+	Port   *string
+	Secure bool
+}
+
 type DbConf struct {
 	Driver       string `mapstructure:"engine"`
 	SqliteConf   `mapstructure:"sqlite"`
@@ -111,14 +136,15 @@ type Notification struct {
 }
 
 type Config struct {
-	*DbConf       `mapstructure:"database"`
-	*ServerConf   `mapstructure:"server"`
-	*Jwt          `mapstructure:"jwt"`
-	*Logging      `mapstructure:"logging"`
-	*OAuth        `mapstructure:"oauth"`
-	*Notification `mapstructure:"notification"`
-	*RabbitMqConf `mapstructure:"rbmq"`
-	Vpr           *viper.Viper
+	*DbConf         `mapstructure:"database"`
+	*ServerConf     `mapstructure:"server"`
+	*Jwt            `mapstructure:"jwt"`
+	*Logging        `mapstructure:"logging"`
+	*OAuth          `mapstructure:"oauth"`
+	*Notification   `mapstructure:"notification"`
+	*RabbitMqConf   `mapstructure:"rbmq"`
+	*CacheConf      `mapstructure:"cache"`
+	Vpr             *viper.Viper
 }
 
 func (c *Config) LoadEnvVariables() {
