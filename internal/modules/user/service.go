@@ -13,6 +13,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -185,12 +186,22 @@ func (s *Service) Login(user *groupUser.User) (map[string]interface{}, *helper.H
 	// 	},
 	// })
 
-	args := []interface{}{user.Name,user.Name}
-	results := s.repo.GetByRawSql("SELECT * FROM users_view WHERE name=$1 or email=$2 LIMIT 1;", args...)
+	var results []*groupUser.User
+	if cfg.DbConf.Driver == "mongodb" {
+		mongoArgs := bson.D{{"$or", bson.A{
+			bson.D{{"name", "admin"}},
+			bson.D{{"email", "admin"}},
+		}}}
+		results = s.repo.GetByRawSql("query", mongoArgs)
+	} else {
+		args := []interface{}{user.Name, user.Name}
+		results = s.repo.GetByRawSql("SELECT * FROM users_view WHERE name=$1 or email=$2 LIMIT 1;", args...)
+	}
+
 	if len(results) == 0 {
 		return nil, &helper.HttpErr{fiber.StatusNotFound, logger.Errorf("user not exists...")}
 	}
-	if results[0].Disabled{
+	if results[0].Disabled {
 		return nil, &helper.HttpErr{fiber.StatusForbidden, logger.Errorf("user disabled...")}
 	}
 	logger.Debugf("results?? %+v", results)

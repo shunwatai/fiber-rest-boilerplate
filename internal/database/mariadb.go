@@ -5,6 +5,7 @@ import (
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"math"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -300,18 +301,22 @@ func (m *MariaDb) Delete(ids []string) error {
 	return nil
 }
 
-func (m *MariaDb) RawQuery(sql string, args ...interface{}) *sqlx.Rows {
-	logger.Debugf("raw query from Postgres")
+func (m *MariaDb) RawQuery(sql string, args ...interface{}) (Rows, error) {
+	// logger.Debugf("raw query from Mariadb")
 	m.Connect()
 	defer m.db.Close()
 
+	// default bindvars are =$1, =$2, etc. for sqlite & postgres, chanage bindvars placeholder into =?
+	var re = regexp.MustCompile(`(=\$[1-9]+)`)
+	sql = re.ReplaceAllString(sql, `=?`)
+
 	rows, err := m.db.Queryx(sql, args...)
 	if err != nil {
-		logger.Errorf("Queryx err: %+v", err.Error())
+		return nil, logger.Errorf("Queryx err: %+v", err.Error())
 	}
 	if rows.Err() != nil {
-		logger.Errorf("rows.Err(): %+v", err.Error())
+		return nil, logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
-	return rows
+	return rows, nil
 }
