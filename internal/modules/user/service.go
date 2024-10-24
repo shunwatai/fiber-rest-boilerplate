@@ -89,6 +89,7 @@ func GetUserTokenResponse(user *groupUser.User) (map[string]interface{}, error) 
 func (s *Service) Get(queries map[string]interface{}) ([]*groupUser.User, *helper.Pagination) {
 	logger.Debugf("user service get")
 	users, pagination := s.repo.Get(queries)
+	cascadeFields(users)
 
 	return users, pagination
 }
@@ -97,6 +98,7 @@ func (s *Service) GetById(queries map[string]interface{}) ([]*groupUser.User, er
 	logger.Debugf("user service getById\n")
 
 	records, _ := s.repo.Get(queries)
+	cascadeFields(records)
 	if len(records) == 0 {
 		return nil, fmt.Errorf("%s with id: %s not found", tableName, queries["id"])
 	}
