@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -33,7 +32,7 @@ type IDatabase interface {
 	GetConnectionString() string
 
 	/* Select by raw sql */
-	RawQuery(string, ...interface{}) *sqlx.Rows
+	RawQuery(string, ...interface{}) (Rows, error)
 
 	/* Select by req querystring with pagination */
 	Select(map[string]interface{}) (Rows, *helper.Pagination)

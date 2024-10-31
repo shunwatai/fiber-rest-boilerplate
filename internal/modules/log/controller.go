@@ -9,6 +9,7 @@ import (
 	"golang-api-starter/internal/modules/user"
 	"html/template"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -265,7 +266,11 @@ func (c *Controller) ListLogsPage(ctx *fiber.Ctx) error {
 
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	logs, pagination := c.service.Get(paramsMap)
-	logger.Debugf("logs?? %+v", logs)
+	for _, l := range logs {
+		loc, _ := time.LoadLocation("Asia/Hong_Kong")
+		*l.CreatedAt.Time = l.CreatedAt.Time.In(loc)
+	}
+	// logger.Debugf("logs?? %+v", logs)
 	data["logs"] = logs
 	data["pagination"] = pagination
 
@@ -292,6 +297,10 @@ func (c *Controller) GetLogList(ctx *fiber.Ctx) error {
 
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	logs, pagination := c.service.Get(paramsMap)
+	for _, l := range logs {
+		loc, _ := time.LoadLocation("Asia/Hong_Kong")
+		*l.CreatedAt.Time = l.CreatedAt.Time.In(loc)
+	}
 	data["logs"] = logs
 	data["pagination"] = pagination
 

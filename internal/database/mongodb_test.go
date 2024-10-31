@@ -82,7 +82,7 @@ func setupMongodbTestTable(t *testing.T, testRecords []map[string]interface{}) f
 	})
 
 	// insert dummy data
-	testDb.runCommands(insertCmd)
+	testDb.runCommands("insert", insertCmd)
 
 	return func(t *testing.T) {
 		t.Log("teardown mongodb test table")
@@ -90,7 +90,7 @@ func setupMongodbTestTable(t *testing.T, testRecords []map[string]interface{}) f
 		dropCmd = append(dropCmd, bson.D{
 			{Key: "drop", Value: testDb.TableName},
 		})
-		testDb.runCommands(dropCmd)
+		testDb.runCommands("drop", dropCmd)
 	}
 }
 

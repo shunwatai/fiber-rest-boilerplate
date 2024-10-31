@@ -44,10 +44,15 @@ type MongodbConf struct {
 }
 
 type RabbitMqConf struct {
-	Host *string
-	Port *string
-	User *string
-	Pass *string
+	Host   *string
+	Port   *string
+	User   *string
+	Pass   *string
+	Queues struct {
+		LogQueue   *string
+		EmailQueue *string
+		TestQueue  *string
+	}
 }
 
 type DbConf struct {

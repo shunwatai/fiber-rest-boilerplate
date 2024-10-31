@@ -44,7 +44,7 @@ func (c *Controller) SendEmail(ctx *fiber.Ctx) error {
 			"resetPasswordUrl": "https://yahoo.com",
 		},
 		MsgContent: body["message"].(string),
-		Template:   template.Must(template.ParseGlob("web/template/reset-password/reset-email.gohtml")),
+		TmplFilePaths: []string{"web/template/reset-password/reset-email.gohtml"},
 	}
 
 	/* for send a simple text email */
@@ -79,16 +79,16 @@ func (c *Controller) HalloPage(ctx *fiber.Ctx) error {
 
 func (c *Controller) SendToQueue(ctx *fiber.Ctx) error {
 	url := rabbitmq.GetUrl()
-	rabbitMQ, err := rabbitmq.NewRabbitMQ(url, "test_queue")
+	rabbitMQ, err := rabbitmq.NewRabbitMQ(url, *cfg.RabbitMqConf.Queues.TestQueue)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 	defer rabbitMQ.Close()
 
-	body := map[string]interface{}{}
-	json.Unmarshal(ctx.BodyRaw(), &body)
-	logger.Debugf("req body: %+v", body)
+	// body := map[string]interface{}{}
+	// json.Unmarshal(ctx.BodyRaw(), &body)
+	// logger.Debugf("req body: %+v", body)
 
 	err = rabbitMQ.Publish(ctx.BodyRaw())
 	if err != nil {

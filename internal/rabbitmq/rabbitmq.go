@@ -1,8 +1,10 @@
 package rabbitmq
 
 import (
+	"encoding/json"
 	"fmt"
 	"golang-api-starter/internal/config"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 
 	"github.com/streadway/amqp"
 )
@@ -63,4 +65,25 @@ func (r *RabbitMQ) Publish(body []byte) error {
 
 func (r *RabbitMQ) Close() error {
 	return r.conn.Close()
+}
+
+// QueueMsg publish the msg to specified queueName
+func QueueMsg(queueName string, msg interface{}) error {
+	url := GetUrl()
+	rabbitMQ, err := NewRabbitMQ(url, queueName)
+	if err != nil {
+		return logger.Errorf(err.Error())
+	}
+	defer rabbitMQ.Close()
+
+	logDataBytes, err := json.Marshal(msg)
+	if err != nil {
+		return logger.Errorf("failed to json marshal log, err: %+v", err)
+	}
+
+	if err := rabbitMQ.Publish(logDataBytes); err != nil {
+		logger.Errorf("rabbit failed to publish error: %s", err.Error())
+	}
+
+	return err
 }

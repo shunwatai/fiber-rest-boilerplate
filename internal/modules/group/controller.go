@@ -416,8 +416,8 @@ func (c *Controller) GroupFormPage(ctx *fiber.Ctx) error {
 			existingAclMap[*permission.ResourceName] = append(existingAclMap[*permission.ResourceName], *permission.PermissionType)
 		}
 		resourcesAcl := map[string]map[string]bool{}
-		resources, _ := resource.Srvc.Get(map[string]interface{}{"disabled": false, "order_by": "order.asc"})
-		permissionTypes, _ := permissionType.Srvc.Get(map[string]interface{}{"order_by": "order.asc"})
+		resources, _ := resource.Srvc.Get(map[string]interface{}{"disabled": false, "order_by": "seq.asc"})
+		permissionTypes, _ := permissionType.Srvc.Get(map[string]interface{}{"order_by": "seq.asc"})
 		for _, resource := range resources {
 			logger.Debugf("resource: %+v", resource.Name)
 			resourcesAcl[resource.Name] = map[string]bool{}

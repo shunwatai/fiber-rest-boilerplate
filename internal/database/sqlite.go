@@ -323,7 +323,7 @@ func (m *Sqlite) Delete(ids []string) error {
 	return nil
 }
 
-func (m *Sqlite) RawQuery(sql string, args ...interface{}) *sqlx.Rows {
+func (m *Sqlite) RawQuery(sql string, args ...interface{}) (Rows, error) {
 	logger.Debugf("raw query from Sqlite")
 	m.Connect()
 	defer m.db.Close()
@@ -335,11 +335,11 @@ func (m *Sqlite) RawQuery(sql string, args ...interface{}) *sqlx.Rows {
 
 	rows, err := m.db.Queryx(sql, args...)
 	if err != nil {
-		logger.Errorf("Queryx err: %+v", err.Error())
+		return nil, logger.Errorf("Queryx err: %+v", err.Error())
 	}
 	if rows.Err() != nil {
-		logger.Errorf("rows.Err(): %+v", err.Error())
+		return nil, logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
-	return rows
+	return rows, nil
 }

@@ -116,7 +116,9 @@ func (l *Logger) Log() fiber.Handler {
 				}}
 				// log.Printf("%+v\n", logData)
 
-				go QueueLog(logData...)
+				for _, log := range logData {
+					go rabbitmq.QueueMsg(*cfg.RabbitMqConf.Queues.LogQueue, log)
+				}
 
 				// create log to database,
 				// WARN: this will slower the performance as one more database operation
@@ -147,7 +149,7 @@ func (l *Logger) Log() fiber.Handler {
 
 func QueueLog(logs ...*customLog.Log) error {
 	url := rabbitmq.GetUrl()
-	rabbitMQ, err := rabbitmq.NewRabbitMQ(url, "log_queue")
+	rabbitMQ, err := rabbitmq.NewRabbitMQ(url, *cfg.RabbitMqConf.Queues.LogQueue)
 	if err != nil {
 		return logger.Errorf(err.Error())
 	}

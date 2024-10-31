@@ -296,18 +296,18 @@ func (m *Postgres) Delete(ids []string) error {
 	return nil
 }
 
-func (m *Postgres) RawQuery(sql string, args ...interface{}) *sqlx.Rows {
+func (m *Postgres) RawQuery(sql string, args ...interface{}) (Rows, error) {
 	//logger.Debugf("raw query from Postgres")
 	m.Connect()
 	defer m.db.Close()
 
 	rows, err := m.db.Queryx(sql, args...)
 	if err != nil {
-		logger.Errorf("Queryx err: %+v", err.Error())
+		return nil, logger.Errorf("Queryx err: %+v", err.Error())
 	}
 	if rows.Err() != nil {
-		logger.Errorf("rows.Err(): %+v", err.Error())
+		return nil, logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
-	return rows
+	return rows, nil
 }
