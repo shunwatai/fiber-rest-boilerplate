@@ -1,0 +1,104 @@
+projectName: "Fiber rest starter"
+
+server:
+  env: local # local, dev, prod
+  host: "localhost"
+  port: 7000
+  trustedProxies: ["172.19.0.0/16", "10.42.0.0/8"]
+
+jwt:
+  secret: "1234balhblahblah"
+
+database:
+  engine: "postgres"
+  sqlite:
+    user: "user"
+    pass: "user"
+    database: "fiber-starter"
+  mariadb:
+    host: "fiber-api-mariadb"
+    port: "3306"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+  postgres:
+    host: "postgres.database.svc.cluster.local"
+    port: "5432"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+  mongodb:
+    host: "fiber-api-mongodb"
+    port: "27017"
+    user: "user"
+    pass: "password"
+    database: "fiber-starter"
+
+logging:
+  level: 0 # debug:0, info:1, warning:2, error:3
+  type:
+    - "database"   # SLOWER - log into database's logs table
+    # - "zap"        # log into logs/requests.log
+  zap:
+    output:
+      # - "console"
+      - "file"
+    filename: "requests.log"
+  debugSymbol:
+
+oauth:
+  google:
+    key: "xxxxxxxxxxxxxxxxxxxxxxxx"
+    secret: "xxxxxxxxxxxxxxxxxxxxxxxx"
+    callbackUrl: "http://localhost:7000/api/oauth/google/callback"
+  github:
+    key:  "xxxxxxxxxxxxxxxxxxxxxxxx"
+    secret:  "xxxxxxxxxxxxxxxxxxxxxxxx"
+    callbackUrl: "http://localhost:7000/api/oauth/github/callback"
+
+notification:
+  smtp:
+    # host:  "smtp.gmail.com"
+    # port: 587 
+    # user: "ilovelibre@gmail.com"
+    # pass: "xxxxxxxxxxxxxxxxxxxxxxxx"
+    # host:  "smtp.titan.email"
+    # port: 465
+    # user: "loanadmin@speedyfinancehk.com"
+    # pass: "xxxxxxxxxxxxxxxxxxxxxxxx"
+    host: "smtppro.zoho.com"
+    port: 465
+    ssl: false 
+    user: "sam@flowmatic.app"
+    pass: "xxxxxxxxxxxxxxxxxxxxxxxx"
+    # host: "smtpdm.aliyun.com"
+    # port: 465
+    # ssl: true 
+    # user: "root"
+    # pass: "xxxxxxxxxxxxxxxxxxxxxxxx"
+
+redis:
+  host: "localhost"
+  port: "6379"
+
+rbmq:
+  host: "rbmq.database.svc.cluster.local"
+  port: "5672"
+  user: "user"
+  pass: "password"
+  queues:
+    logQueue: "log_queue" 
+    emailQueue: "email_queue" 
+    testQueue: "test_queue" 
+
+# for mtr cctv
+apsara:
+  accessKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
+  accessSecret: "xxxxxxxxxxxxxxxxxxxxxxxx"
+  pushKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
+  pullKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
+
+transcodingApi:
+  host: "fiber-api-transcode"
+  port: "80"
+  secure: false
