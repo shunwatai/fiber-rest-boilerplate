@@ -48,12 +48,12 @@ logging:
 
 oauth:
   google:
-    key: "379297037447-2u7nqj3gulkbusbitk05ohijnn151vuk.apps.googleusercontent.com"
-    secret: "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"
+    key: "xxxxxxxxxxxxxxxxxxxxxxxx"
+    secret: "xxxxxxxxxxxxxxxxxxxxxxxx"
     callbackUrl: "http://localhost:7000/api/oauth/google/callback"
   github:
-    key: "6238075cb7f71819f6b4"
-    secret: "6b7204de68871af30eeeea4919ae432dc0a9f016"
+    key:  "xxxxxxxxxxxxxxxxxxxxxxxx"
+    secret:  "xxxxxxxxxxxxxxxxxxxxxxxx"
     callbackUrl: "http://localhost:7000/api/oauth/github/callback"
 
 notification:
@@ -61,21 +61,21 @@ notification:
     # host:  "smtp.gmail.com"
     # port: 587 
     # user: "ilovelibre@gmail.com"
-    # pass: "qlzhnbnemfhpdjir"
+    # pass: "xxxxxxxxxxxxxxxxxxxxxxxx"
     # host:  "smtp.titan.email"
     # port: 465
     # user: "loanadmin@speedyfinancehk.com"
-    # pass: "uISvE7@7Pw!mC2u0o9Ev3Le5DP1Q!u5Rv"
+    # pass: "xxxxxxxxxxxxxxxxxxxxxxxx"
     host: "smtppro.zoho.com"
     port: 465
     ssl: false 
     user: "sam@flowmatic.app"
-    pass: "3.141592654=Pi"
+    pass: "xxxxxxxxxxxxxxxxxxxxxxxx"
     # host: "smtpdm.aliyun.com"
     # port: 465
     # ssl: true 
     # user: "root"
-    # pass: "iCCTVP@ssw0rd"
+    # pass: "xxxxxxxxxxxxxxxxxxxxxxxx"
 
 redis:
   host: "localhost"
@@ -93,10 +93,10 @@ rbmq:
 
 # for mtr cctv
 apsara:
-  accessKey: "LTAI5tKLKQrYQJZjyNGGt4eh"
-  accessSecret: "XUwISLME76qZHLL2LBldezDSrSRyHh"
-  pushKey: "1ZI60g49x0tj8xAa"
-  pullKey: "t2Om0Yj7X9f3ZHqc"
+  accessKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
+  accessSecret: "xxxxxxxxxxxxxxxxxxxxxxxx"
+  pushKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
+  pullKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
 
 transcodingApi:
   host: "fiber-api-transcode"
