@@ -5,11 +5,11 @@ It runs by fiber with basic CRUD routes which follows the Controller-Service-Rep
 
 # Features
 - With implementations of `postgres`, `sqlite`, `mariadb`, `mongodb` for accessing records in DB in `internal/database/`. Just raw sql without ORM.
-- With example modules like `users`, `todos`, `documents` etc. in `interal/modules/`, with CRUD APIs.
+- With example of pre-defined modules like `users`, `todos`, `documents` etc. in `interal/modules/`, with CRUD APIs.
 - `HTMX` web templates with `tailwind` & `alpinejs`.
 - With a [script](#generate-new-module) `cmd/gen/gen.go` for generate new module to `internal/modules/`.
-- With the example of JWT auth in the [login API](#login).
-- Can generate swagger doc.
+- JWT auth, [sample by curl](#login).
+- Can generate swagger doc by `swag`.
 - Make use of `viper` for loading env variables in config.
 - With a logging wrapper by `zap` which uses as middleware for writing the request's logs in `log/`, the log file maybe used for centralised log server like ELK or Signoz. 
 
@@ -26,9 +26,7 @@ It runs by fiber with basic CRUD routes which follows the Controller-Service-Rep
         - [x] User form
     - [ ] Todos page
         - [ ] Todos list
-        - [ ] Todo form
-        - [ ] Todo form upload file
-- [ ] DB try views and joining in repository
+        - [ ] Todo form with upload file
 
 # Project structure
 I try following the standards from [project-layout](https://github.com/golang-standards/project-layout) as much as I can.
@@ -85,8 +83,8 @@ I try following the standards from [project-layout](https://github.com/golang-st
 
 # Quick start by docker-compose
 1. [Start the databases containers](#start-databases-for-development)
-2. [Run database migrations](migrations/README.md#run-migration)
-3. [Set the database in configs/docker.yaml](#for-run-by-docker)
+2. [Run migrations with the desired database(pg/mariab/sqlite/mongodb)](migrations/README.md#run-migration)
+3. [Set the db driver in configs/docker.yaml](#for-run-by-docker)
 3. [Start fiber api by docker](#start-by-docker)
 4. [Test the login api by curl for getting the JWT](#login)
 5. [Try the user's web](internal/modules/user/README.md#web-crud)

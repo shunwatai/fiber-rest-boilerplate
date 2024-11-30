@@ -289,6 +289,23 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 	return fctx.JsonResponse(respCode, map[string]interface{}{"data": result})
 }
 
+func (c *Controller) Logout(ctx *fiber.Ctx) error {
+	logger.Debugf("user ctrl logout")
+	cookieKeys := []string{"accessToken", "refreshToken"}
+
+	// ref: https://github.com/gofiber/fiber/issues/1127#issuecomment-2015543089
+	for _, key := range cookieKeys {
+		ctx.Cookie(&fiber.Cookie{
+			Name:    key,
+			Expires: time.Now().Add(-time.Hour * 24),
+			Value:   "",
+		})
+	}
+
+	ctx.Set("HX-Redirect", "/login")
+	return nil
+}
+
 func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	// Read cookie
@@ -337,10 +354,12 @@ func (c *Controller) LoginPage(ctx *fiber.Ctx) error {
 	// data for template
 	data := map[string]interface{}{
 		"errMessage": nil,
+		"showNavbar": false,
 	}
 	tmplFiles := []string{
 		"web/template/parts/popup.gohtml",
 		"web/template/login.gohtml",
+		"web/template/parts/navbar.gohtml",
 		"web/template/base.gohtml",
 	}
 	tpl := template.Must(template.ParseFiles(tmplFiles...))
@@ -386,24 +405,27 @@ func (c *Controller) SubmitLogin(ctx *fiber.Ctx) error {
 	// login success, redirect to target path/url
 	homePage := "/home"
 	fctx.Fctx.Set("HX-Redirect", homePage)
-	respCode = fiber.StatusOK
-	fctx.Fctx.Response().SetStatusCode(respCode)
-	return fctx.Fctx.Redirect(homePage, fiber.StatusOK)
+	return nil
 }
 
 func (c *Controller) ListUsersPage(ctx *fiber.Ctx) error {
 	// data for template
 	data := fiber.Map{
 		"errMessage": nil,
+		"showNavbar": true,
+		"title":      "Users",
 		"users":      Users{},
 		"pagination": helper.Pagination{},
 	}
 	tmplFiles := []string{
 		"web/template/parts/popup.gohtml",
 		"web/template/users/list.gohtml",
+		"web/template/users/index.gohtml",
+		"web/template/parts/navbar.gohtml",
 		"web/template/base.gohtml",
 	}
-	tpl := template.Must(template.ParseFiles(tmplFiles...))
+	pagesFunc := helper.TmplCustomFuncs()
+	tpl := template.Must(template.New("").Funcs(pagesFunc).ParseFiles(tmplFiles...))
 
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
 	users, pagination := c.service.Get(paramsMap)
@@ -417,17 +439,46 @@ func (c *Controller) ListUsersPage(ctx *fiber.Ctx) error {
 	return tpl.ExecuteTemplate(fctx.Fctx.Response().BodyWriter(), "base.gohtml", data)
 }
 
+func (c *Controller) GetUserList(ctx *fiber.Ctx) error {
+	// data for template
+	data := fiber.Map{
+		"errMessage": nil,
+		"showNavbar": true,
+		"users":      Users{},
+		"pagination": helper.Pagination{},
+	}
+	tmplFiles := []string{"web/template/users/list.gohtml"}
+	pagesFunc := helper.TmplCustomFuncs()
+	tpl := template.Must(template.New("").Funcs(pagesFunc).ParseFiles(tmplFiles...))
+	html := `{{ template "list" . }}`
+	tpl, _ = tpl.New("").Parse(html)
+
+	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
+	users, pagination := c.service.Get(paramsMap)
+	data["users"] = users
+	data["pagination"] = pagination
+
+	fctx := &helper.FiberCtx{Fctx: ctx}
+	respCode = fiber.StatusOK
+
+	fctx.Fctx.Set(fiber.HeaderContentType, fiber.MIMETextHTML)
+	fctx.Fctx.Set("HX-Push-Url", fmt.Sprintf("/users?%s", string(ctx.Request().URI().QueryString())))
+	return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+}
+
 func (c *Controller) UserFormPage(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	// data for template
 	data := fiber.Map{
 		"errMessage": nil,
+		"showNavbar": true,
 		"user":       &User{},
 		"title":      "Create user",
 	}
 	tmplFiles := []string{
 		"web/template/parts/popup.gohtml",
 		"web/template/users/form.gohtml",
+		"web/template/parts/navbar.gohtml",
 		"web/template/base.gohtml",
 	}
 	tpl := template.Must(template.ParseFiles(tmplFiles...))
@@ -515,7 +566,7 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 
 	fctx.Fctx.Response().SetStatusCode(fiber.StatusOK)
 	if len(users) == 1 {
-		targetPage := "/users"
+		targetPage := fmt.Sprintf("/users?page=1&items=5")
 		fctx.Fctx.Set("HX-Redirect", targetPage)
 		return nil
 	}
@@ -569,11 +620,11 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
-	targetPage := "/users"
+	targetPage := "/users?page=1&items=5"
 	fctx.Fctx.Set("HX-Redirect", targetPage)
 	respCode = fiber.StatusCreated
 	fctx.Fctx.Response().SetStatusCode(respCode)
-	return fctx.Fctx.Redirect(targetPage, fiber.StatusOK)
+	return fctx.Fctx.Redirect(targetPage, respCode)
 }
 
 func (c *Controller) SubmitDelete(ctx *fiber.Ctx) error {

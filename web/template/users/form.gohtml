@@ -1,8 +1,6 @@
 {{ define "title"}}<title>{{.title}}</title>{{ end }}
       
 {{ define "content"}}
-  <h1 class="text-2xl mx-auto">{{.title}}</h1>
-
   {{ template "popup" . }}
 
   <!-- user: {{.user}} -->
@@ -13,13 +11,13 @@
         class="flex flex-col mx-auto gap-4 p-2 w-[28vw]"
         {{if eq .user nil}}hx-post{{else}}hx-patch{{end}}="/users"
         hx-ext="json-enc"
-        hx-target-5*="#errorMessage"
+        hx-target-5*="#popupMessage"
         hx-indicator="#spinner"
         hx-disabled-elt="input, button"
         hx-vals="js:{password:setPasswordNullIfEmpty()}"
       >
         {{if ne .user nil}}
-          <input name="id" type="hidden" value="{{if ne .user.MongoId nil}}{{.user.MongoId}}{{else}}{{.user.Id}}{{end}}" />
+          <input name="{{if .user.MongoId}}_id{{else}}id{{end}}" type="hidden" value="{{if .user.MongoId }}{{.user.MongoId}}{{else}}{{.user.Id}}{{end}}" />
         {{end}}
 
         <label for="name" class="{{if eq .user nil}}after:content-['*'] after:ml-0.5 after:text-red-500{{end}} block font-medium text-slate-700 mr-auto my-auto">Login Name</label>

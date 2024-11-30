@@ -10,10 +10,7 @@ url: `http://localhost:7000/login`
 
 default admin login: admin/admin
 
-![](../../../assets/screenshots/login.gif)
-
 ### CRUD
 
 url: `http://localhost:7000/users`
-
-![](../../../assets/screenshots/user_crud.gif)
+![](../../../assets/screenshots/user_web.gif)
