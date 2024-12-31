@@ -404,11 +404,14 @@ func (c *Controller) SubmitLogin(ctx *fiber.Ctx) error {
 
 	// login success, redirect to target path/url
 	homePage := "/home"
+	fctx.Fctx.Response().SetStatusCode(fiber.StatusOK)
 	fctx.Fctx.Set("HX-Redirect", homePage)
 	return nil
 }
 
 func (c *Controller) ListUsersPage(ctx *fiber.Ctx) error {
+	c.service.ctx = ctx
+	username := c.service.GetLoggedInUsername()
 	// data for template
 	data := fiber.Map{
 		"errMessage": nil,
@@ -416,6 +419,7 @@ func (c *Controller) ListUsersPage(ctx *fiber.Ctx) error {
 		"title":      "Users",
 		"users":      Users{},
 		"pagination": helper.Pagination{},
+		"username":   username,
 	}
 	tmplFiles := []string{
 		"web/template/parts/popup.gohtml",
@@ -467,6 +471,8 @@ func (c *Controller) GetUserList(ctx *fiber.Ctx) error {
 }
 
 func (c *Controller) UserFormPage(ctx *fiber.Ctx) error {
+	c.service.ctx = ctx
+	username := c.service.GetLoggedInUsername()
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	// data for template
 	data := fiber.Map{
@@ -474,6 +480,7 @@ func (c *Controller) UserFormPage(ctx *fiber.Ctx) error {
 		"showNavbar": true,
 		"user":       &User{},
 		"title":      "Create user",
+		"username":   username,
 	}
 	tmplFiles := []string{
 		"web/template/parts/popup.gohtml",

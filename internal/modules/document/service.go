@@ -35,6 +35,27 @@ func NewService(r *Repository) *Service {
 	return &Service{r, nil}
 }
 
+// checkUpdateNonExistRecord for the "update" function to remain the createdAt value without accidental alter the createdAt
+// it may slow, should follow user/service.go's Update to fetch all records at once to reduce db fetching
+func (s *Service) checkUpdateNonExistRecord(document *Document) error {
+	conditions := map[string]interface{}{}
+	conditions["id"] = document.GetId()
+
+	existing, _ := s.repo.Get(conditions)
+	if len(existing) == 0 {
+		respCode = fiber.StatusNotFound
+		return logger.Errorf("cannot update non-existing records...")
+	} else if document.CreatedAt == nil {
+		document.CreatedAt = existing[0].CreatedAt
+	}
+
+	return nil
+}
+
+func (s *Service) SetCtx(ctx *fiber.Ctx) {
+	s.ctx = ctx
+}
+
 func (s *Service) GetIdMap(documents Documents) map[string]*Document {
 	documentMap := map[string]*Document{}
 	for _, document := range documents {
@@ -108,7 +129,7 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 			log.Println("failed to copy file", copyError)
 			return nil, &helper.HttpErr{fiber.StatusInternalServerError, copyError}
 		}
-		// logger.Debugf("uploaded to ", uploadPath)
+		// logger.Debugf("uploaded to %+v", uploadPath)
 
 		sha1Sum := hex.EncodeToString(hash.Sum(nil))
 		// logger.Debugf("file hash: ", sha1Sum, hash.Sum(nil))
@@ -155,6 +176,11 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 
 func (s *Service) Update(documents []*Document) ([]*Document, *helper.HttpErr) {
 	logger.Debugf("document service update")
+	for _, document := range documents {
+		if err := s.checkUpdateNonExistRecord(document); err != nil {
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, err}
+		}
+	}
 	results, err := s.repo.Update(documents)
 	return results, &helper.HttpErr{fiber.StatusInternalServerError, err}
 }
