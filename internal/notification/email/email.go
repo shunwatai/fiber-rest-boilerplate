@@ -12,14 +12,18 @@ import (
 
 var cfg = config.Cfg
 
+type IQueue interface {
+	QueueMsg() error
+}
+
 type EmailInfo struct {
-	From       string
-	To         []string
-	Cc         []string
-	Bcc        []string
-	MsgMeta    map[string]interface{} // includes Subject & other data if use Template
-	MsgContent string                 // required for SimpleEmail
-	Template   *template.Template     // required for TemplateEmail
+	From          string
+	To            []string
+	Cc            []string
+	Bcc           []string
+	MsgMeta       map[string]interface{} // includes Subject & other data if use Template
+	MsgContent    string                 // required for SimpleEmail
+	TmplFilePaths []string               // required for TemplateEmail
 }
 
 // ref: https://stackoverflow.com/a/66624104
@@ -40,7 +44,7 @@ func (e *EmailInfo) checkInfo() error {
 	}
 
 	// if send email by template, no need to check for "SimpleEmail"'s e.Subject e.Message
-	if e.Template != nil {
+	if len(e.TmplFilePaths) > 0 {
 		return nil
 	}
 
@@ -113,9 +117,11 @@ func SimpleEmail(info EmailInfo) error {
 }
 
 func TemplateEmail(info EmailInfo) error {
-	if info.Template == nil {
+	if info.TmplFilePaths == nil {
 		return logger.Errorf("Cannot send email without template, please assign the Template to info")
 	}
+	tmpl := template.Must(template.ParseFiles(info.TmplFilePaths...))
+
 	var (
 		mailClient *mail.Client
 		m          *mail.Msg
@@ -129,7 +135,10 @@ func TemplateEmail(info EmailInfo) error {
 	if m, err = info.initMessageWithInfo(); err != nil {
 		return err
 	}
-	m.SetBodyHTMLTemplate(info.Template, info.MsgMeta)
+
+	if err := m.SetBodyHTMLTemplate(tmpl, info.MsgMeta); err != nil {
+		return err
+	}
 
 	if mailClient, err = info.getClient(); err != nil {
 		return err

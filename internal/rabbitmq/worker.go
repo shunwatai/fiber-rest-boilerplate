@@ -3,19 +3,18 @@ package rabbitmq
 import (
 	"encoding/json"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
-	customLog "golang-api-starter/internal/modules/log"
+	"golang-api-starter/internal/interfaces"
 	"log"
 	"time"
 )
 
 type UploadRequest struct {
-	File []byte `json:"file"`
+	File string `json:"file"`
 }
 
-var rbChanns = map[string]func(){"test_queue": HandleTestQueue, "log_queue": HandleLogQueue}
-
-func HandleTestQueue() {
-	rabbitMQ, err := NewRabbitMQ(GetUrl(), "test_queue")
+func HandleTestQueue(rbmqWorker interfaces.IRbmqWorker) {
+	queueName := *cfg.RabbitMqConf.Queues.TestQueue
+	rabbitMQ, err := NewRabbitMQ(GetUrl(), queueName)
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
@@ -40,22 +39,23 @@ func HandleTestQueue() {
 		var uploadRequest UploadRequest
 		err := json.Unmarshal(msg.Body, &uploadRequest)
 		if err != nil {
-			log.Println(err)
+			logger.Errorf(err.Error())
 			continue
 		}
 
 		// Process the file upload here
-		logger.Infof("Received file upload: %d bytes\n", len(uploadRequest.File))
+		logger.Infof("%s: Received file upload: %d bytes, content: %v\n", queueName, len(uploadRequest.File), uploadRequest)
 
 		// Simulate processing time
 		time.Sleep(2 * time.Second)
 
-		logger.Infof("File upload processed successfully")
+		logger.Infof("%s:File upload processed successfully", queueName)
 	}
 }
 
-func HandleLogQueue() {
-	rabbitMQ, err := NewRabbitMQ(GetUrl(), "log_queue")
+func HandleLogQueue(rbmqWorker interfaces.IRbmqWorker) {
+	queueName := *cfg.RabbitMqConf.Queues.LogQueue
+	rabbitMQ, err := NewRabbitMQ(GetUrl(), queueName)
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
@@ -77,30 +77,52 @@ func HandleLogQueue() {
 	logger.Infof("Log worker started. Waiting for logs...")
 
 	for msg := range msgs {
-		var log = new(customLog.Log)
-		if err := json.Unmarshal(msg.Body, log); err != nil {
-			logger.Errorf("failed to Unmarshal log, err: %+v", err)
-		}
-
-		// Process the file upload here
-		logger.Infof("Received log: %d bytes\n", *log)
-
-		// Simulate processing time
+		rbmqWorker.HandleLogFromQueue(msg.Body)
 		time.Sleep(2 * time.Second)
 
-		// create log to database,
-		customLog.Srvc.Create([]*customLog.Log{log})
-		logger.Infof("log processed successfully")
+		logger.Infof("%s: log processed successfully", queueName)
 	}
 }
 
-func RunWorker() {
+func HandleEmailQueue(rbmqWorker interfaces.IRbmqWorker) {
+	queueName := *cfg.RabbitMqConf.Queues.EmailQueue
+	rabbitMQ, err := NewRabbitMQ(GetUrl(), queueName)
+	if err != nil {
+		logger.Fatalf(err.Error())
+	}
+	defer rabbitMQ.Close()
+
+	msgs, err := rabbitMQ.channel.Consume(
+		rabbitMQ.queue.Name, // queue
+		"",                  // consumer
+		true,                // auto-ack
+		false,               // exclusive
+		false,               // no-local
+		false,               // no-wait
+		nil,                 // args
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	logger.Infof("Email worker started. Waiting for emails...")
+
+	for msg := range msgs {
+		rbmqWorker.HandleEmailFromQueue(msg.Body)
+		time.Sleep(2 * time.Second)
+
+		logger.Infof("%s: email sent successfully", queueName)
+	}
+}
+
+func RunWorker(rbmqWorker interfaces.IRbmqWorker) {
 	// Open a dummy channel to hold this RunWorker without exit
 	forever := make(chan bool)
 
-	for chanName, handler := range rbChanns {
-		logger.Infof("handling queue: %+v", chanName)
-		go handler()
+	var rbChanns = []func(interfaces.IRbmqWorker){HandleTestQueue, HandleLogQueue, HandleEmailQueue}
+
+	for _, handler := range rbChanns {
+		go handler(rbmqWorker)
 	}
 
 	<-forever

@@ -4,6 +4,7 @@ server:
   env: local # local, dev, prod
   host: "localhost"
   port: 7000
+  trustedProxies: ["172.19.0.0/16"]
 
 jwt:
   secret: "1234balhblahblah"
@@ -72,3 +73,7 @@ rbmq:
   port: "5672"
   user: "user"
   pass: "password"
+  queues:
+    logQueue: "log_queue" 
+    emailQueue: "email_queue" 
+    testQueue: "test_queue" 

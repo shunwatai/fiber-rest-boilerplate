@@ -13,6 +13,8 @@ import (
   {{- range .Modules }}
   "golang-api-starter/internal/modules/{{ .ModuleName }}"
   {{- end }}
+	"golang-api-starter/internal/rabbitmq"
+	rbmqSrvc "golang-api-starter/internal/rabbitmq/service"
 	"golang-api-starter/web/static"
 	lg "log"
 	"net/http"
@@ -52,9 +54,17 @@ func (f *Fiber) LoadMiddlewares() {
 	f.App.Use(logger.New())
 	f.App.Use(recover.New())
 	f.App.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost",
-		AllowHeaders:     "Origin, Content-Type, Accept",
-		AllowCredentials: true,
+		AllowOrigins: "*",
+		AllowHeaders: "",
+		AllowMethods: strings.Join([]string{
+			fiber.MethodGet,
+			fiber.MethodPost,
+			fiber.MethodHead,
+			fiber.MethodPut,
+			fiber.MethodDelete,
+			fiber.MethodPatch,
+		}, ","),
+		AllowCredentials: false,
 	}))
 	auth.NewOAuth()
 }
@@ -130,6 +140,11 @@ func (f *Fiber) Start() {
 	fmt.Println(strings.Repeat("*", 50))
 
 	lg.Fatal(f.App.Listen(fmt.Sprintf(":%s", cfg.ServerConf.Port)))
+}
+
+func StartQueueWorker() {
+	// rabbitmq.RunWorker(log.Srvc, user.Srvc, passwordReset.Srvc)
+	rabbitmq.RunWorker(&rbmqSrvc.RbmqWorker{})
 }
 
 var Api = &Fiber{}

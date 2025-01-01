@@ -21,6 +21,8 @@ import (
 	"golang-api-starter/internal/modules/todoDocument"
 	"golang-api-starter/internal/modules/user"
 	"golang-api-starter/internal/modules/web"
+	"golang-api-starter/internal/rabbitmq"
+	rbmqSrvc "golang-api-starter/internal/rabbitmq/service"
 	"golang-api-starter/web/static"
 	lg "log"
 	"net/http"
@@ -53,6 +55,11 @@ func (f *Fiber) GetApp() {
 		BodyLimit:                    500 << 20, // 500Mb
 		DisablePreParseMultipartForm: true,      // ref:https://github.com/gofiber/fiber/issues/1838#issuecomment-1086214017
 		StreamRequestBody:            true,
+
+		// for get the real IP if behind a proxy
+		EnableTrustedProxyCheck:      true,
+		ProxyHeader:                  "X-Real-IP",
+		TrustedProxies:               cfg.ServerConf.TrustedProxies,
 	})
 }
 
@@ -60,9 +67,17 @@ func (f *Fiber) LoadMiddlewares() {
 	f.App.Use(logger.New())
 	f.App.Use(recover.New())
 	f.App.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost",
-		AllowHeaders:     "Origin, Content-Type, Accept",
-		AllowCredentials: true,
+		AllowOrigins: "*",
+		AllowHeaders: "",
+		AllowMethods: strings.Join([]string{
+			fiber.MethodGet,
+			fiber.MethodPost,
+			fiber.MethodHead,
+			fiber.MethodPut,
+			fiber.MethodDelete,
+			fiber.MethodPatch,
+		}, ","),
+		AllowCredentials: false,
 	}))
 	auth.NewOAuth()
 }
@@ -146,6 +161,11 @@ func (f *Fiber) Start() {
 	fmt.Println(strings.Repeat("*", 50))
 
 	lg.Fatal(f.App.Listen(fmt.Sprintf(":%s", cfg.ServerConf.Port)))
+}
+
+func StartQueueWorker() {
+	// rabbitmq.RunWorker(log.Srvc, user.Srvc, passwordReset.Srvc)
+	rabbitmq.RunWorker(&rbmqSrvc.RbmqWorker{})
 }
 
 var Api = &Fiber{}
