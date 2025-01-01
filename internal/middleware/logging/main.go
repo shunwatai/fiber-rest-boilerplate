@@ -4,24 +4,31 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/helper/utils"
+	"golang-api-starter/internal/middleware/jwtcheck"
 	customLog "golang-api-starter/internal/modules/log"
 	"golang-api-starter/internal/rabbitmq"
 	"io"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 var cfg = config.Cfg
 
 type Logger struct{}
+
+var excludeLogRoutes = []string{
+	"/api/logs",
+	"/favicon.ico",
+}
 
 /*
  * Log is a middleware for showing the http req & resp info
@@ -29,6 +36,11 @@ type Logger struct{}
 func (l *Logger) Log() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// zlog.Printf("I AM LOGGER....")
+		for _, route := range excludeLogRoutes {
+			if strings.Contains(c.Request().URI().String(), route) {
+				return c.Next()
+			}
+		}
 
 		bodyBytes := c.BodyRaw()
 		// log.Printf("1reqBody: %+v, %+v \n", len(string(bodyBytes)), string(bodyBytes))
@@ -42,7 +54,7 @@ func (l *Logger) Log() fiber.Handler {
 				nonJsonMap["requestType"] = string(c.Request().Header.ContentType())
 				nonJsonMap["base64"] = b64Str
 				if jsonBytes, err := json.Marshal(nonJsonMap); err != nil {
-					logger.Errorf("failed to marshal nonJsonMap, err: %+v", err.Error())
+					logger.Errorf("failed to marshal nonJsonMap, err: %s", err.Error())
 				} else {
 					reqBodyJson = utils.ToPtr(string(jsonBytes))
 				}
@@ -53,8 +65,14 @@ func (l *Logger) Log() fiber.Handler {
 		// log.Printf("reqHeader: %+v \n", string(reqHeader))
 
 		var userId interface{}
-		claims, err := auth.ParseJwt(c.Get("Authorization"))
-		if err == nil {
+		var claims jwt.MapClaims
+		// try get userId from both Auth Header & Cookie, if both nothing, set userId = nil
+		claims, _ = jwtcheck.GetTokenFromHeader(c)
+		if len(claims) == 0 {
+			claims, _ = jwtcheck.GetTokenFromCookie(c)
+		}
+
+		if len(claims) > 0 {
 			userId = claims["userId"]
 		}
 		// log.Println("JWT userId:", userId)
@@ -74,7 +92,7 @@ func (l *Logger) Log() fiber.Handler {
 					nonJsonMap["responseType"] = string(c.Response().Header.ContentType())
 					nonJsonMap["base64"] = b64Str
 					if jsonBytes, err := json.Marshal(nonJsonMap); err != nil {
-						logger.Errorf("failed to marshal nonJsonMap, err: %+v", err.Error())
+						logger.Errorf("failed to marshal nonJsonMap, err: %s", err.Error())
 					} else {
 						respBodyJson = utils.ToPtr(string(jsonBytes))
 					}
