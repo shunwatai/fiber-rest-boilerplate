@@ -5,12 +5,17 @@ import (
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
-	"golang-api-starter/internal/middleware/logging"
+	"golang-api-starter/internal/middleware"
 	"golang-api-starter/internal/modules/document"
+	"golang-api-starter/internal/modules/group"
+	"golang-api-starter/internal/modules/groupResourceAcl"
+	"golang-api-starter/internal/modules/groupUser"
 	"golang-api-starter/internal/modules/log"
 	"golang-api-starter/internal/modules/oauth"
 	"golang-api-starter/internal/modules/passwordReset"
+	"golang-api-starter/internal/modules/permissionType"
 	"golang-api-starter/internal/modules/qrcode"
+	"golang-api-starter/internal/modules/resource"
 	"golang-api-starter/internal/modules/sample"
 	"golang-api-starter/internal/modules/todo"
 	"golang-api-starter/internal/modules/todoDocument"
@@ -89,17 +94,38 @@ func (f *Fiber) LoadAllRoutes() {
 		Browse: false,
 	}))
 
-	router := f.App.Group("", logging.Logger()) // add logging to all routes
-	sample.GetRoutes(router)                    // sample routes for testing
-	web.GetRoutes(router)
-	document.GetRoutes(router)
-	log.GetRoutes(router)
-	oauth.GetRoutes(router)
-	passwordReset.GetRoutes(router)
-	qrcode.GetRoutes(router)
-	todo.GetRoutes(router)
-	todoDocument.GetRoutes(router)
-	user.GetRoutes(router)
+	// initiate custom middleware
+	custMiddlewares := middleware.NewCustMiddlewares()
+
+	skipJwtCheckRoutes := []string{
+		"/api/auth/login",
+		"/login",
+		"/home",
+		"/ping",
+		"/error",
+		"/password-resets",
+		"/password-resets/forgot",
+		"/password-resets/send",
+	}
+	router := f.App.Group("",
+		custMiddlewares.Log(),                           // add logging to all routes
+		custMiddlewares.CheckJwt(skipJwtCheckRoutes...), // add jwt check to all routes
+	)
+	sample.GetRoutes(router, custMiddlewares) // sample routes for testing
+	user.GetRoutes(router, custMiddlewares, group.Repo)
+	group.GetRoutes(router, custMiddlewares, user.Repo)
+	groupUser.GetRoutes(router, custMiddlewares, group.Repo, user.Repo)
+	document.GetRoutes(router, custMiddlewares)
+	groupResourceAcl.GetRoutes(router, custMiddlewares)
+	log.GetRoutes(router, custMiddlewares)
+	oauth.GetRoutes(router, custMiddlewares)
+	passwordReset.GetRoutes(router, custMiddlewares)
+	permissionType.GetRoutes(router, custMiddlewares)
+	qrcode.GetRoutes(router, custMiddlewares)
+	resource.GetRoutes(router, custMiddlewares)
+	todo.GetRoutes(router, custMiddlewares)
+	todoDocument.GetRoutes(router, custMiddlewares)
+	web.GetRoutes(router, custMiddlewares)
 
 	// a custom 404 handler instead of default "Cannot GET /page-not-found"
 	// ref: https://github.com/gofiber/fiber/issues/748#issuecomment-687503079

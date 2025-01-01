@@ -1,3 +1,5 @@
+//go:build integration
+
 package database
 
 import (
@@ -42,18 +44,18 @@ func setupPgTestTable(t *testing.T) func(t *testing.T) {
 	t.Logf("setup postgres test table\n")
 	cfg.LoadEnvVariables()
 	cfg.Vpr.Set("database.engine", "postgres")
-	t.Logf("conf??? %+v, %+v,%+v,%+v,%+v,\n", 
-	*cfg.DbConf.PostgresConf.Host,
-	*cfg.DbConf.PostgresConf.Port,
-	*cfg.DbConf.PostgresConf.User,
-	*cfg.DbConf.PostgresConf.Pass,
-	*cfg.DbConf.PostgresConf.Database,
+	t.Logf("conf??? %+v, %+v,%+v,%+v,%+v,\n",
+		*cfg.DbConf.PostgresConf.Host,
+		*cfg.DbConf.PostgresConf.Port,
+		*cfg.DbConf.PostgresConf.User,
+		*cfg.DbConf.PostgresConf.Pass,
+		*cfg.DbConf.PostgresConf.Database,
 	)
 	if err := cfg.Vpr.Unmarshal(cfg); err != nil {
 		log.Printf("failed loading conf, err: %+v\n", err.Error())
 	}
 	zlog.NewZlog()
-	var testDb = GetDatabase("",nil)
+	var testDb = GetDatabase("", nil)
 
 	// create test table
 	testDb.RawQuery(`CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -125,7 +127,7 @@ func TestPgConstructSelectStmtFromQuerystring(t *testing.T) {
 		teardownTest := setupPgTestTable(t)
 		defer teardownTest(t)
 		var tableName = "todos_test"
-		var testDb = GetDatabase(tableName,nil)
+		var testDb = GetDatabase(tableName, nil)
 		testDb.Connect()
 		log.Printf("testDb: %+v\n", testDb)
 
@@ -133,7 +135,7 @@ func TestPgConstructSelectStmtFromQuerystring(t *testing.T) {
 			{
 				name:  "get by ID",
 				input: map[string]interface{}{"id": 2, "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
-				want1: `SELECT * FROM todos_test WHERE id=:id ORDER BY id desc LIMIT 1 OFFSET 0`,
+				want1: `SELECT * FROM todos_test WHERE id=:id ORDER BY "id" desc LIMIT 1 OFFSET 0`,
 				want2: map[string]interface{}{"id": 2},
 				// want3: &helper.Pagination{
 				// 	Page: 1, Items: 0, Count: 1, OrderBy: map[string]string{"by": "desc", "key": "id"}, TotalPages: 1,
@@ -142,31 +144,31 @@ func TestPgConstructSelectStmtFromQuerystring(t *testing.T) {
 			{
 				name:  "get by IDs",
 				input: map[string]interface{}{"id": []string{"2", "3"}, "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
-				want1: `SELECT * FROM todos_test WHERE id IN (:id1,:id2) ORDER BY id desc LIMIT 2 OFFSET 0`,
+				want1: `SELECT * FROM todos_test WHERE id IN (:id1,:id2) ORDER BY "id" desc LIMIT 2 OFFSET 0`,
 				want2: map[string]interface{}{"id1": "2", "id2": "3"},
 			},
 			{
 				name:  "get keyword by ILIKE",
 				input: map[string]interface{}{"task": "show", "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
-				want1: `SELECT * FROM todos_test WHERE task ILIKE :task ORDER BY id desc LIMIT 1 OFFSET 0`,
+				want1: `SELECT * FROM todos_test WHERE task ILIKE :task ORDER BY "id" desc LIMIT 1 OFFSET 0`,
 				want2: map[string]interface{}{"task": "%show%"},
 			},
 			{
 				name:  "get keywords by ~~ ANY(xx)",
 				input: map[string]interface{}{"task": []string{"show", "stop"}, "columns": []string{"id", "task", "done", "created_at", "updated_at"}, "page": "1", "items": "5"},
-				want1: `SELECT * FROM todos_test WHERE lower(task) ~~ ANY(:task) ORDER BY id desc LIMIT 5 OFFSET 0`,
+				want1: `SELECT * FROM todos_test WHERE lower(task) ~~ ANY(:task) ORDER BY "id" desc LIMIT 5 OFFSET 0`,
 				want2: map[string]interface{}{"task": "{%show%,%stop%}"},
 			},
 			{
 				name:  "get records by keyword that matches in given ids",
 				input: map[string]interface{}{"task": "wan", "id": []string{"13", "15"}, "columns": []string{"id", "task", "done", "created_at", "updated_at"}, "page": "1", "items": "5"},
-				want1: `SELECT * FROM todos_test WHERE id IN (:id1,:id2) AND task ILIKE :task ORDER BY id desc LIMIT 5 OFFSET 0`,
+				want1: `SELECT * FROM todos_test WHERE id IN (:id1,:id2) AND task ILIKE :task ORDER BY "id" desc LIMIT 5 OFFSET 0`,
 				want2: map[string]interface{}{"task": "%wan%", "id1": "13", "id2": "15"},
 			},
 			{
 				name:  "get records by date range",
 				input: map[string]interface{}{"withDateFilter": true, "created_at": "2023-01-01.2023-12-31", "columns": []string{"id", "task", "done", "created_at", "updated_at"}, "page": "1", "items": "5"},
-				want1: `SELECT * FROM todos_test WHERE created_at >= :created_atFrom AND created_at <= :created_atTo ORDER BY id desc LIMIT 5 OFFSET 0`,
+				want1: `SELECT * FROM todos_test WHERE created_at >= :created_atFrom AND created_at <= :created_atTo ORDER BY "id" desc LIMIT 5 OFFSET 0`,
 				want2: map[string]interface{}{"created_atFrom": "2023-01-01", "created_atTo": "2023-12-31"},
 			},
 		}

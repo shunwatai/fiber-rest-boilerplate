@@ -1,3 +1,5 @@
+//go:build integration
+
 package database
 
 import (
@@ -45,7 +47,7 @@ func setupMariadbTestTable(t *testing.T) func(t *testing.T) {
 		log.Printf("failed loading conf, err: %+v\n", err.Error())
 	}
 	zlog.NewZlog()
-	var testDb = GetDatabase("",nil)
+	var testDb = GetDatabase("", nil)
 
 	// create test table
 	testDb.RawQuery("CREATE TABLE IF NOT EXISTS  `todos_test` ( `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `task` varchar(255) NOT NULL, `done` tinyint(1) NOT NULL DEFAULT '0', `created_at` datetime NOT NULL DEFAULT current_timestamp, `updated_at` datetime NOT NULL DEFAULT current_timestamp ON UPDATE CURRENT_TIMESTAMP);")
@@ -97,43 +99,43 @@ func TestMariadbConstructSelectStmtFromQuerystring(t *testing.T) {
 		defer teardownTest(t)
 
 		var tableName = "todos_test"
-		var testDb = GetDatabase(tableName,nil)
+		var testDb = GetDatabase(tableName, nil)
 		testDb.Connect()
 		tests := []mariadbTests{
 			{
 				name:  "get by ID",
 				input: map[string]interface{}{"id": 2, "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
-				want1: `SELECT * FROM todos_test WHERE id=:id ORDER BY id desc LIMIT 1 OFFSET 0`,
+				want1: "SELECT * FROM todos_test WHERE id=:id ORDER BY `id` desc LIMIT 1 OFFSET 0",
 				want2: map[string]interface{}{"id": 2},
 			},
 			{
 				name:  "get by IDs",
 				input: map[string]interface{}{"id": []string{"2", "3"}, "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
-				want1: `SELECT * FROM todos_test WHERE id IN (:id1,:id2) ORDER BY id desc LIMIT 2 OFFSET 0`,
+				want1: "SELECT * FROM todos_test WHERE id IN (:id1,:id2) ORDER BY `id` desc LIMIT 2 OFFSET 0",
 				want2: map[string]interface{}{"id1": "2", "id2": "3"},
 			},
 			{
 				name:  "get keyword by ILIKE",
 				input: map[string]interface{}{"task": "show", "columns": []string{"id", "task", "done", "created_at", "updated_at"}},
-				want1: `SELECT * FROM todos_test WHERE task like :task ORDER BY id desc LIMIT 1 OFFSET 0`,
+				want1: "SELECT * FROM todos_test WHERE task like :task ORDER BY `id` desc LIMIT 1 OFFSET 0",
 				want2: map[string]interface{}{"task": "%show%"},
 			},
 			{
 				name:  "get keywords by ~~ ANY(xx)",
 				input: map[string]interface{}{"task": []string{"show", "stop"}, "columns": []string{"id", "task", "done", "created_at", "updated_at"}, "page": "1", "items": "5"},
-				want1: `SELECT * FROM todos_test WHERE (lower(task) like :task1 or lower(task) like :task2)  ORDER BY id desc LIMIT 5 OFFSET 0`,
+				want1: "SELECT * FROM todos_test WHERE (lower(task) like :task1 or lower(task) like :task2)  ORDER BY `id` desc LIMIT 5 OFFSET 0",
 				want2: map[string]interface{}{"task1": "%show%", "task2": "%stop%"},
 			},
 			{
 				name:  "get records by keyword that matches in given ids",
 				input: map[string]interface{}{"task": "wan", "id": []string{"13", "15"}, "columns": []string{"id", "task", "done", "created_at", "updated_at"}, "page": "1", "items": "5"},
-				want1: `SELECT * FROM todos_test WHERE id IN (:id1,:id2) AND task like :task ORDER BY id desc LIMIT 5 OFFSET 0`,
+				want1: "SELECT * FROM todos_test WHERE id IN (:id1,:id2) AND task like :task ORDER BY `id` desc LIMIT 5 OFFSET 0",
 				want2: map[string]interface{}{"task": "%wan%", "id1": "13", "id2": "15"},
 			},
 			{
 				name:  "get records by date range",
 				input: map[string]interface{}{"withDateFilter": true, "created_at": "2023-01-01.2023-12-31", "columns": []string{"id", "task", "done", "created_at", "updated_at"}, "page": "1", "items": "5"},
-				want1: `SELECT * FROM todos_test WHERE created_at >= :created_atFrom AND created_at <= :created_atTo ORDER BY id desc LIMIT 5 OFFSET 0`,
+				want1: "SELECT * FROM todos_test WHERE created_at >= :created_atFrom AND created_at <= :created_atTo ORDER BY `id` desc LIMIT 5 OFFSET 0",
 				want2: map[string]interface{}{"created_atFrom": "2023-01-01", "created_atTo": "2023-12-31"},
 			},
 		}

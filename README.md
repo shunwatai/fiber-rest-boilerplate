@@ -6,8 +6,13 @@ It runs by fiber with pre-defined CRUD examples which follows the Controller-Ser
 # Features
 - With implementations of `postgres`, `sqlite`, `mariadb`, `mongodb` in [`internal/database/`](internal/database). Just raw sql without ORM.
     - Swtich between different DBs driver by changing the `database.engine` in config.
-- With example of pre-defined modules like `users`, `todos`, `documents` etc. in [`internal/modules/`](internal/modules/)
-    - with CRUD APIs and support Filtering, Sorting, Pagination etc. basic REST functionalities which also integrated in the [web example](internal/modules/user/README.md#crud).
+- With example of pre-defined modules in [`internal/modules/`](internal/modules/). They come with CRUD APIs and support Filtering, Sorting, Pagination etc. 
+    - [User](internal/modules/user/README.md#crud)
+    - [Group](internal/modules/group/README.md#crud) 
+        - example of assigning users
+        - TBD access control of modules
+    - [Todo](internal/modules/todo/README.md#crud) 
+        - example of request by form-data for uploading documents
 - `HTMX` web templates with `tailwind` & `alpinejs`.
 - With a [script](#generate-new-module) `cmd/gen/gen.go` for generate new module in `internal/modules/`.
 - JWT auth, [login sample by curl](#login).
@@ -25,14 +30,11 @@ It runs by fiber with pre-defined CRUD examples which follows the Controller-Ser
 5. Try the web
     -  [users page](internal/modules/user/README.md#crud)
     -  [todos page](internal/modules/todo/README.md#crud)
+    -  [groups page](internal/modules/group/README.md#crud)
 
 # Todo
 - [ ] Need more test cases & validations
-- [ ] Add GET `/me`
 - [ ] Need tons of refactors...
-- [ ] Generate new module script `cmd/gen/gen.go`
-    - [ ] Try `bubbletea` for better tui interaction
-    - [ ] Support generate web templates
 - [ ] Web template example by htmx
     - [x] Login page
     - [x] Forget page
@@ -41,11 +43,27 @@ It runs by fiber with pre-defined CRUD examples which follows the Controller-Ser
         - [x] form page
     - [ ] Todos page
         - [x] list page
+            - [ ] search by file name (may add a db migration for a view joining todos & documents)
         - [x] form page
-        - [x] upload files
-        - [x] delete files
+            - [x] upload files
+            - [x] delete files
         - [x] preview files
-        - [ ] search by file name (may add a db migration for a view joining todos & documents)
+    - [x] Groups page
+        - [x] list page
+        - [x] form page
+            - [x] manage users
+            - [ ] add a section for managing the ACL for accessing the modules
+- [ ] Group permssions for ACL
+    - [x] Add `group` module for managing users
+    - [x] Add `resource` module for defining the resources(modules) to be control
+    - [x] Add `permission_type` module for defining the types like `read`,`add`,`delete` etc.
+    - [ ] Add `group_resource_acl` module for storing the ACLs info
+    - [ ] Add middleware for checking the group's permission at route.go
+    - [ ] Add GET `/me`
+- [ ] Generate new module script `cmd/gen/gen.go`
+    - [ ] Try `bubbletea` for better tui interaction
+    - [ ] Support generate web templates
+- [ ] Try Redis/Valkey for caching GET?
 - [ ] Try Oauth (goth? or oauth2-proxy?)
 
 # Project structure
@@ -212,7 +230,7 @@ make docker-prod-log
 ```
 
 # DB Migration
-Install [go-migrate](https://github.com/golang-migrate/migrate) and the follow the [detail usage](migrations/README.md) for different DBs.
+Install [go-migrate](https://github.com/golang-migrate/migrate) and then follow the [detail usage](migrations/README.md) for different DBs.
 
 # Run the tailwindcss build process
 ```
@@ -244,17 +262,21 @@ The `cmd/gen/gen.go` is for generating new module without tedious copy & paste, 
 
 [Detail usage](cmd/gen/README.md)
 
-Please read the README in `cmd/gen/` for usage.
-
-# API details
+# API & other module details
 ## Users
 [readme](internal/modules/user/README.md)
 
 ## Todos
 [readme](internal/modules/todo/README.md)
 
+## Groups
+[readme](internal/modules/group/README.md)
+
 ## Password reset
 [readme](internal/modules/passwordReset/README.md)
+
+## RabbitMQ
+[readme](internal/rabbitmq/README.md)
 
 # Run tests
 To disable cache when running tests, run with options: `-count=1`
@@ -265,26 +287,21 @@ ref: https://stackoverflow.com/a/49999321
 go test -v -race ./... -count=1
 ```
 
-## Run specific database tests
-
-### Run sqlite's tests
+## Run integration (database related) tests
 ```
-go test -v ./internal/database -run TestSqliteConstructSelectStmtFromQuerystring -count=1
+go test -v -race ./... -count=1 --tags=integration
 ```
 
-### Run mariadb's tests
-```
-go test -v ./internal/database -run TestMariadbConstructSelectStmtFromQuerystring -count=1
-```
+### Run specific database tests
 
-### Run postgres's tests
-```
-go test -v ./internal/database -run TestPgConstructSelectStmtFromQuerystring -count=1
-```
+Substitude with specific `test name`:
+    - `TestSqliteConstructSelectStmtFromQuerystring`
+    - `TestMariadbConstructSelectStmtFromQuerystring`
+    - `TestPgConstructSelectStmtFromQuerystring`
+    - `TestMongodbConstructSelectStmtFromQuerystring`
 
-### Run mongodb's tests
 ```
-go test -v ./internal/database -run TestMongodbConstructSelectStmtFromQuerystring -count=1
+go test -v ./internal/database -run <test name> -count=1 --tags=integration
 ```
 
 # Swagger

@@ -5,8 +5,11 @@ import (
 	"golang-api-starter/internal/auth"
 	"golang-api-starter/internal/config"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
-	"golang-api-starter/internal/middleware/logging"
+	"golang-api-starter/internal/middleware"
 	"golang-api-starter/internal/modules/sample"
+	"golang-api-starter/internal/modules/group"
+	"golang-api-starter/internal/modules/user"
+	"golang-api-starter/internal/modules/groupUser"
   {{- range .Modules }}
   "golang-api-starter/internal/modules/{{ .ModuleName }}"
   {{- end }}
@@ -58,7 +61,7 @@ func (f *Fiber) LoadMiddlewares() {
 
 func (f *Fiber) LoadSwagger() {
 	/* for swagger web */
-	serverUrl := fmt.Sprintf("http://%s/swagger/doc.json", fmt.Sprintf("%s:%s", cfg.ServerConf.Host, cfg.ServerConf.Port))
+	serverUrl := fmt.Sprintf("%s/swagger/doc.json", cfg.GetServerUrl())
 	f.App.Get("/swagger/*", swagger.HandlerDefault)
 	f.App.Get("/swagger/*", swagger.New(swagger.Config{ // custom
 		URL:         fmt.Sprintf("http://%s/doc.json", serverUrl),
@@ -83,10 +86,29 @@ func (f *Fiber) LoadAllRoutes() {
 		Browse: false,
 	}))
 
-	router := f.App.Group("", logging.Logger()) // add logging to all routes
-	sample.GetRoutes(router) // sample routes for testing
+	// initiate custom middleware
+	custMiddlewares := middleware.NewCustMiddlewares()
+
+	skipJwtCheckRoutes := []string{
+		"/api/auth/login",
+		"/login",
+		"/home",
+		"/ping",
+		"/error",
+		"/password-resets",
+		"/password-resets/forgot",
+		"/password-resets/send",
+	}
+	router := f.App.Group("",
+		custMiddlewares.Log(),                           // add logging to all routes
+		custMiddlewares.CheckJwt(skipJwtCheckRoutes...), // add jwt check to all routes
+	)
+	sample.GetRoutes(router, custMiddlewares)        // sample routes for testing
+	user.GetRoutes(router, custMiddlewares, group.Repo)
+	group.GetRoutes(router, custMiddlewares, user.Repo)
+	groupUser.GetRoutes(router, custMiddlewares, group.Repo, user.Repo)
   {{- range .Modules }}
-	{{.ModuleName}}.GetRoutes(router)
+	{{.ModuleName}}.GetRoutes(router, custMiddlewares)
   {{- end }}
 
 	// a custom 404 handler instead of default "Cannot GET /page-not-found"
