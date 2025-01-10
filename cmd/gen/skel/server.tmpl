@@ -52,7 +52,6 @@ func (f *Fiber) GetApp() {
 		EnableTrustedProxyCheck:      true,
 		ProxyHeader:                  "X-Real-IP",
 		TrustedProxies:               cfg.ServerConf.TrustedProxies,
-
 	})
 }
 

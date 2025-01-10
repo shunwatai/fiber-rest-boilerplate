@@ -145,6 +145,9 @@ go install github.com/swaggo/swag/cmd/swag@latest
 # Config
 ## Copy sample config
 ### For run without docker
+## Edit config
+### For run without docker
+>>>>>>> 94f0de9 (chore: update readme)
 ```
 cp configs/localhost.yaml.sample configs/localhost.yaml
 ```
@@ -242,6 +245,26 @@ make docker-prod-log
 Install [go-migrate](https://github.com/golang-migrate/migrate) and then follow the [detail usage](migrations/README.md) for different DBs.
 
 # Run the tailwindcss build process
+||||||| parent of f0c91aa (chore: add compose-db.yaml for start up databases)
+
+## Create new migration
+```
+migrate create -ext sql -dir migrations/<dbEngine(postgres/mariadb/sqlite)> -seq <migrationName>
+```
+
+e.g.
+postgres:
+```
+migrate create -ext sql -dir migrations/postgres -seq add_new_col_to_users
+```
+mongodb:
+```
+migrate create -ext json -dir migrations/mongodb -seq add_xxx_index_to_users
+```
+
+## Run migration
+### Sqlite
+Run migrations
 ```
 make tw-watch
 ```
@@ -286,6 +309,125 @@ The `cmd/gen/gen.go` is for generating new module without tedious copy & paste, 
 
 ## RabbitMQ
 [readme](internal/rabbitmq/README.md)
+
+# Test sample APIs
+## ping
+```
+curl --request GET \
+  --url http://localhost:7000/ping \
+  --header 'User-Agent: insomnium/0.2.3-a'
+```
+
+## login
+```
+curl --request POST \
+  --url http://localhost:7000/api/auth/login \
+  --header 'Content-Type: application/json' \
+  --data '{"name":"admin","password":"admin"}'
+```
+
+# Test sample APIs
+## ping
+```
+curl --request GET \
+  --url http://localhost:7000/ping \
+  --header 'User-Agent: insomnium/0.2.3-a'
+```
+
+## login
+```
+curl --request POST \
+  --url http://localhost:7000/api/auth/login \
+  --header 'Content-Type: application/json' \
+  --data '{"name":"admin","password":"admin"}'
+```
+
+# Generate new module
+The `cmd/gen/gen.go` is for generating new module without tedious copy & paste, find & replace.
+
+## Usage
+Module name should be a singular noun, with an initial which uses as the reciver methods.
+```
+go run main.go generate <module-name-in-singular-lower-case e.g: userDocument> <initial e.g: u (for ud)>
+```
+
+Example to generate new module `post`
+```
+go run main.go generate post p
+```
+sample output:
+```
+...
+created internal/modules/post
+
+created /home/drachen/git/personal/fiber-starter/migrations/postgres/000009_create_posts.up.sql
+created /home/drachen/git/personal/fiber-starter/migrations/postgres/000009_create_posts.down.sql
+...
+created /home/drachen/git/personal/fiber-starter/migrations/mongodb/000008_create_posts.up.json
+created /home/drachen/git/personal/fiber-starter/migrations/mongodb/000008_create_posts.down.json
+
+DB migration files for post created in ./migrations, 
+please go to add the SQL statements in up+down files, and then run: make migrate-up
+```
+
+Afterwards, the following should be created:
+- `interal/module/posts/`
+- `migrations/<postgres&mariadb&sqlite&mongodb>/xxxxx_create_posts.<sql/json>`
+
+Then you have to edit the `interal/modules/post/type.go` for its fields,
+and edit the migration files in `migrations/<postgres/mariadb/sqlite/mongodb>` for its columns and run the migrations.
+Then the `post`'s CRUD should be ready.
+
+# Test sample APIs
+## ping
+```
+curl --request GET \
+  --url http://localhost:7000/ping
+```
+
+## login
+```
+curl --request POST \
+  --url http://localhost:7000/api/auth/login \
+  --header 'Content-Type: application/json' \
+  --data '{"name":"admin","password":"admin"}'
+```
+
+# Generate new module
+The `cmd/gen/gen.go` is for generating new module without tedious copy & paste, find & replace.
+
+## Usage
+Module name should be a singular noun, with an initial which uses as the reciver methods.
+```
+go run main.go generate <module-name-in-singular-lower-case e.g: userDocument> <initial e.g: u (for ud)>
+```
+
+Example to generate new module `post`
+```
+go run main.go generate post p
+```
+sample output:
+```
+...
+created internal/modules/post
+
+created /home/drachen/git/personal/fiber-starter/migrations/postgres/000009_create_posts.up.sql
+created /home/drachen/git/personal/fiber-starter/migrations/postgres/000009_create_posts.down.sql
+...
+created /home/drachen/git/personal/fiber-starter/migrations/mongodb/000008_create_posts.up.json
+created /home/drachen/git/personal/fiber-starter/migrations/mongodb/000008_create_posts.down.json
+
+DB migration files for post created in ./migrations, 
+please go to add the SQL statements in up+down files, and then run: make migrate-up
+```
+
+Afterwards, the following should be created:
+- `interal/module/posts/`
+- `migrations/<postgres&mariadb&sqlite&mongodb>/xxxxx_create_posts.<sql/json>`
+
+Then you have to edit the `interal/modules/post/type.go` for its fields,
+and edit the migration files in `migrations/<postgres/mariadb/sqlite/mongodb>` for its columns and run the migrations.
+Then the `post`'s CRUD should be ready.
 
 # Run tests
 To disable cache when running tests, run with options: `-count=1`
