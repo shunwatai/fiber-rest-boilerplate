@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"golang-api-starter/internal/auth"
+	"golang-api-starter/internal/cache"
 	"golang-api-starter/internal/config"
 	zlog "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/middleware"
@@ -99,6 +100,20 @@ func (f *Fiber) LoadSwagger() {
 		// Ability to change OAuth2 redirect uri location
 		// OAuth2RedirectUrl: fmt.Sprintf("http://%s:8080/swagger/oauth2-redirect.html", serverUrl),
 	}))
+}
+
+func (f *Fiber) LoadCachingService() {
+	if !cfg.CacheConf.Enabled {
+		return
+	}
+
+	// set the caching service according to config
+	cache.CacheService = cache.NewCachingService()
+
+	// clear cache on each hot reload in non-prod environments
+	if cfg.ServerConf.Env != "prod" {
+		cache.CacheService.FlushDb()
+	}
 }
 
 func (f *Fiber) LoadAllRoutes() {

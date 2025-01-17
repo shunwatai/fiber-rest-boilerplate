@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 projectName: "Fiber rest starter"
 
 server:
@@ -103,8 +102,6 @@ transcodingApi:
   host: "fiber-api-transcode"
   port: "80"
   secure: false
-||||||| merged common ancestors
-=======
 projectName: "Fiber rest starter"
 
 server:
@@ -197,16 +194,3 @@ rbmq:
     logQueue: "log_queue" 
     emailQueue: "email_queue" 
     testQueue: "test_queue" 
-
-# for mtr cctv
-apsara:
-  accessKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
-  accessSecret: "xxxxxxxxxxxxxxxxxxxxxxxx"
-  pushKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
-  pullKey: "xxxxxxxxxxxxxxxxxxxxxxxx"
-
-transcodingApi:
-  host: "fiber-api-transcode"
-  port: "80"
-  secure: false
->>>>>>> user-dto
