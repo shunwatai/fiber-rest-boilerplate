@@ -50,13 +50,21 @@ func NewCachingService() ICaching {
 	logger.Debugf("engine: %+v", cfg.CacheConf.Driver)
 
 	if cfg.CacheConf.Driver == "redis" {
-		rds := &Redis{}
-		err := rds.SetClient()
+		err := Rds.SetClient()
 		if err != nil {
 			logger.Fatalf("failed to initilise redis... err: %+v", err.Error())
 		}
 
-		return rds
+		return Rds
+	}
+
+	if cfg.CacheConf.Driver == "memcached" {
+		err := Mc.SetClient()
+		if err != nil {
+			logger.Fatalf("failed to initilise memcached... err: %+v", err.Error())
+		}
+
+		return Mc
 	}
 
 	logger.Fatalf("failed to initilise caching service...")
