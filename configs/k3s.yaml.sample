@@ -81,6 +81,9 @@ notification:
 cache:
   enabled: false
   engine: "redis"
+  memcached:
+    host: "memcached.database.svc.cluster.local"
+    port: "11211"
   redis:
     host: "redis.database.svc.cluster.local"
     port: "6379"

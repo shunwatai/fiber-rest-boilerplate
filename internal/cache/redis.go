@@ -59,9 +59,9 @@ func (r *Redis) SetClient() error {
 var ctx = context.Background()
 
 func (r *Redis) Get(key string, dst interface{}) bool {
-	redisClient := r.Client
+	client := r.Client
 
-	err := redisClient.Get(ctx, key).Scan(dst)
+	err := client.Get(ctx, key).Scan(dst)
 	if err != nil {
 		// logger.Errorf("failed to get cache, err: %+v", err.Error())
 		return false
@@ -71,9 +71,9 @@ func (r *Redis) Get(key string, dst interface{}) bool {
 }
 
 func (r *Redis) Set(key string, value interface{}) error {
-	redisClient := r.Client
+	client := r.Client
 
-	if err := redisClient.Set(ctx, key, value, 4*time.Hour /* 0 for no expire */).Err(); err != nil {
+	if err := client.Set(ctx, key, value, 4*time.Hour /* 0 for no expire */).Err(); err != nil {
 		return logger.Errorf("failed to set cache, err: %+v", err.Error())
 	}
 
@@ -81,16 +81,16 @@ func (r *Redis) Set(key string, value interface{}) error {
 }
 
 func (r *Redis) DelByKey(key string) error {
-	redisClient := r.Client
-	redisClient.Del(ctx, key)
+	client := r.Client
+	client.Del(ctx, key)
 
 	return nil
 }
 
 // FlushDb for clear all keys for debug
 func (r *Redis) FlushDb() error {
-	redisClient := r.Client
-	redisClient.FlushDB(ctx)
+	client := r.Client
+	client.FlushDB(ctx)
 
 	return nil
 }
