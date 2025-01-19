@@ -63,7 +63,7 @@ It runs by fiber with pre-defined CRUD examples which follows the Controller-Ser
 - [ ] Generate new module script `cmd/gen/gen.go`
     - [ ] Try `bubbletea` for better tui interaction
     - [ ] Support generate web templates
-- [ ] Try Redis/Valkey for caching GET?
+- [x] Add Redis & Memcached for caching in GET API
 - [ ] Try Oauth (goth? or oauth2-proxy?)
 
 # Project structure
