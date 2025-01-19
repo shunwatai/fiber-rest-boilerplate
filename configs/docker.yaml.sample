@@ -67,6 +67,9 @@ notification:
 cache:
   enabled: false
   engine: "redis"
+  memcached:
+    host: "memcached-dev"
+    port: "11211"
   redis:
     host: "redis-dev"
     port: "6379"

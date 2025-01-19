@@ -61,10 +61,17 @@ type RedisConf struct {
 	User *string
 	Pass *string
 }
+type MemcachedConf struct {
+	Host string
+	Port string
+	User *string
+	Pass *string
+}
 type CacheConf struct {
-	Enabled   bool
-	Driver    string `mapstructure:"engine"`
-	RedisConf `mapstructure:"redis"`
+	Enabled       bool
+	Driver        string `mapstructure:"engine"`
+	RedisConf     `mapstructure:"redis"`
+	MemcachedConf `mapstructure:"memcached"`
 }
 
 type ApsaraConf struct {
@@ -136,15 +143,15 @@ type Notification struct {
 }
 
 type Config struct {
-	*DbConf         `mapstructure:"database"`
-	*ServerConf     `mapstructure:"server"`
-	*Jwt            `mapstructure:"jwt"`
-	*Logging        `mapstructure:"logging"`
-	*OAuth          `mapstructure:"oauth"`
-	*Notification   `mapstructure:"notification"`
-	*RabbitMqConf   `mapstructure:"rbmq"`
-	*CacheConf      `mapstructure:"cache"`
-	Vpr             *viper.Viper
+	*DbConf       `mapstructure:"database"`
+	*ServerConf   `mapstructure:"server"`
+	*Jwt          `mapstructure:"jwt"`
+	*Logging      `mapstructure:"logging"`
+	*OAuth        `mapstructure:"oauth"`
+	*Notification `mapstructure:"notification"`
+	*RabbitMqConf `mapstructure:"rbmq"`
+	*CacheConf    `mapstructure:"cache"`
+	Vpr           *viper.Viper
 }
 
 func (c *Config) LoadEnvVariables() {
