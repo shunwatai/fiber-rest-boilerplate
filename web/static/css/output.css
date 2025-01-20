@@ -888,6 +888,14 @@ select {
   margin-bottom: 0.5rem;
 }
 
+.mb-8 {
+  margin-bottom: 2rem;
+}
+
+.ml-8 {
+  margin-left: 2rem;
+}
+
 .ml-auto {
   margin-left: auto;
 }
@@ -914,6 +922,14 @@ select {
 
 .mt-6 {
   margin-top: 1.5rem;
+}
+
+.ml-4 {
+  margin-left: 1rem;
+}
+
+.ml-8 {
+  margin-left: 2rem;
 }
 
 .block {
@@ -965,6 +981,11 @@ select {
 .size-8 {
   width: 2rem;
   height: 2rem;
+}
+
+.size-10 {
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .h-20 {
@@ -1073,6 +1094,28 @@ select {
   width: 100%;
 }
 
+.w-8 {
+  width: 2rem;
+}
+
+.w-auto {
+  width: auto;
+}
+
+.w-max {
+  width: -moz-max-content;
+  width: max-content;
+}
+
+.w-min {
+  width: -moz-min-content;
+  width: min-content;
+}
+
+.w-14 {
+  width: 3.5rem;
+}
+
 .min-w-36 {
   min-width: 9rem;
 }
@@ -1105,6 +1148,10 @@ select {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+.cursor-auto {
+  cursor: auto;
 }
 
 .cursor-default {
@@ -1389,6 +1436,10 @@ select {
   padding: 1rem;
 }
 
+.p-0 {
+  padding: 0px;
+}
+
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
@@ -1427,6 +1478,16 @@ select {
 .py-3 {
   padding-top: 0.75rem;
   padding-bottom: 0.75rem;
+}
+
+.px-0 {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
 .pe-10 {

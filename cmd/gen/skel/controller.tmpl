@@ -2,6 +2,8 @@ package {{.ModuleName}}
 
 import (
 	"errors"
+	"fmt"
+	"golang-api-starter/internal/database"
 	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
@@ -52,19 +54,19 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 func (c *Controller) Create(ctx *fiber.Ctx) error {
 	logger.Debugf("{{.ModuleName}} ctrl create\n")
 	c.service.ctx = ctx
-	{{.ModuleName}} := &{{.StructName}}{}
-	{{.ModuleName}}s := []*{{.StructName}}{}
+	{{.ModuleName}}Dto := &{{.StructName}}Dto{}
+	{{.ModuleName}}sDto := []*{{.StructName}}Dto{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
 	if invalidJson := reqCtx.Payload.ValidateJson(); invalidJson != nil {
 		return fctx.JsonResponse(
-			fiber.StatusUnprocessableEntity,
+			respCode,
 			map[string]interface{}{"message": invalidJson.Error()},
 		)
 	}
 
-	{{.ModuleName}}Err, parseErr := reqCtx.Payload.ParseJsonToStruct({{.ModuleName}}, &{{.ModuleName}}s)
+	{{.ModuleName}}Err, parseErr := reqCtx.Payload.ParseJsonToStruct({{.ModuleName}}Dto, &{{.ModuleName}}sDto)
 	if parseErr != nil {
 		return fctx.JsonResponse(
 			fiber.StatusUnprocessableEntity,
@@ -72,32 +74,43 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		)
 	}
 	if {{.ModuleName}}Err == nil {
+		{{.ModuleName}}sDto = append({{.ModuleName}}sDto, {{.ModuleName}}Dto)
+	}
+
+	{{.ModuleName}}s := make({{.StructName}}s, 0, len({{.ModuleName}}sDto))
+	for _, {{.Initial}}Dto := range {{.ModuleName}}sDto {
+		id := {{.Initial}}Dto.GetId()
+		{{.ModuleName}} := new({{.StructName}})
+		if len(id) > 0 { // handle json with "id" for update
+			existing{{.StructName}}, err := c.service.GetById(map[string]interface{}{"id": id})
+			if err != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": errors.New("failed to update, id: " + id + " not exists").Error()},
+				)
+			}
+			{{.ModuleName}} = existing{{.StructName}}[0]
+
+			if validateErrs := {{.Initial}}Dto.Validate("update"); validateErrs != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": validateErrs.Error()},
+				)
+			}
+			{{.Initial}}Dto.MapTo{{.StructName}}({{.ModuleName}})
+		} else { // handle create new {{.ModuleName}}
+			if validateErrs := {{.Initial}}Dto.Validate("create"); validateErrs != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": validateErrs.Error()},
+				)
+			}
+			{{.Initial}}Dto.MapTo{{.StructName}}({{.ModuleName}})
+		}
+
 		{{.ModuleName}}s = append({{.ModuleName}}s, {{.ModuleName}})
 	}
-	// logger.Debugf("{{.ModuleName}}Err: %+v, {{.ModuleName}}sErr: %+v\n", {{.ModuleName}}Err, {{.ModuleName}}sErr)
-	// for _, t := range {{.ModuleName}}s {
-	// 	logger.Debugf("{{.ModuleName}}s: %+v\n", t)
-	// }
 
-	for _, {{.ModuleName}} := range {{.ModuleName}}s {
-		if validErr := helper.ValidateStruct(*{{.ModuleName}}); validErr != nil {
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
-			)
-		}
-
-		if {{.ModuleName}}.Id == nil {
-			continue
-		} else if existing, err := c.service.GetById(map[string]interface{}{
-			"id": {{.ModuleName}}.GetId(),
-		}); err == nil && {{.ModuleName}}.CreatedAt == nil {
-			{{.ModuleName}}.CreatedAt = existing[0].CreatedAt
-		}
-		// logger.Debugf("{{.ModuleName}}? %+v\n", {{.ModuleName}})
-	}
-
-	// return []*{{.StructName}}{}
 	results, httpErr := c.service.Create({{.ModuleName}}s)
 	if httpErr.Err != nil {
 		return fctx.JsonResponse(
@@ -122,8 +135,8 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 func (c *Controller) Update(ctx *fiber.Ctx) error {
 	logger.Debugf("{{.ModuleName}} ctrl update\n")
 
-	{{.ModuleName}} := &{{.StructName}}{}
-	{{.ModuleName}}s := []*{{.StructName}}{}
+	{{.ModuleName}}Dto := &{{.StructName}}Dto{}
+	{{.ModuleName}}sDto := []*{{.StructName}}Dto{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
@@ -134,7 +147,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		)
 	}
 
-	{{.ModuleName}}Err, parseErr := reqCtx.Payload.ParseJsonToStruct({{.ModuleName}}, &{{.ModuleName}}s)
+	{{.ModuleName}}Err, parseErr := reqCtx.Payload.ParseJsonToStruct({{.ModuleName}}Dto, &{{.ModuleName}}sDto)
 	if parseErr != nil {
 		return fctx.JsonResponse(
 			fiber.StatusUnprocessableEntity,
@@ -142,25 +155,51 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		)
 	}
 	if {{.ModuleName}}Err == nil {
-		{{.ModuleName}}s = append({{.ModuleName}}s, {{.ModuleName}})
+		{{.ModuleName}}sDto = append({{.ModuleName}}sDto, {{.ModuleName}}Dto)
 	}
 
-	for _, {{.ModuleName}} := range {{.ModuleName}}s {
-		if validErr := helper.ValidateStruct(*{{.ModuleName}}); validErr != nil {
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
-			)
-		}
-		if {{.ModuleName}}.Id == nil && {{.ModuleName}}.MongoId == nil {
+	{{.ModuleName}}Ids := []string{}
+	for _, {{.ModuleName}}Dto := range {{.ModuleName}}sDto {
+		if !{{.ModuleName}}Dto.Id.Presented && !{{.ModuleName}}Dto.MongoId.Presented {
 			return fctx.JsonResponse(
 				respCode,
 				map[string]interface{}{"message": "please ensure all records with id for PATCH"},
 			)
 		}
+
+		{{.ModuleName}}Ids = append({{.ModuleName}}Ids, {{.ModuleName}}Dto.GetId())
 	}
 
-	results, httpErr := c.service.Update({{.ModuleName}}s)
+	// create map by existing {{.ModuleName}} from DB
+	{{.ModuleName}}IdMap := map[string]*{{.StructName}}{}
+	getByIdsCondition := database.GetIdsMapCondition(nil, {{.ModuleName}}Ids)
+	existings, _ := c.service.Get(getByIdsCondition)
+	for _, {{.ModuleName}} := range existings {
+		{{.ModuleName}}IdMap[{{.ModuleName}}.GetId()] = {{.ModuleName}}
+	}
+
+	for _, {{.ModuleName}}Dto := range {{.ModuleName}}sDto {
+		// check for non-existing ids
+		u, ok := {{.ModuleName}}IdMap[{{.ModuleName}}Dto.GetId()]
+		if !ok {
+			notFoundMsg := fmt.Sprintf("cannot update non-existing id: %+v", {{.ModuleName}}Dto.GetId())
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": notFoundMsg},
+			)
+		}
+
+		// validate {{.ModuleName}} json
+		if validateErrs := {{.ModuleName}}Dto.Validate("update"); validateErrs != nil {
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": validateErrs.Error()},
+			)
+		}
+		{{.ModuleName}}Dto.MapTo{{.StructName}}(u)
+	}
+
+	results, httpErr := c.service.Update(existings)
 	if httpErr.Err != nil {
 		return fctx.JsonResponse(
 			httpErr.Code,

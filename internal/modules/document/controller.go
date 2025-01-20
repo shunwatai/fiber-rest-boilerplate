@@ -115,7 +115,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	}
 
 	for _, document := range documents {
-		if validErr := helper.ValidateStruct(*document); validErr != nil {
+		if validErr := helper.Validate.Struct(*document); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},

@@ -211,23 +211,25 @@ func (m *Postgres) Save(records Records) (Rows, error) {
 	cols := records.GetTags("db")
 
 	// logger.Debugf("cols: %+v", cols)
+	var reservedTimeCols = []string{"created_at", "updated_at"}
 	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
 		// use in SQL's VALUES()
 		if col == "id" {
 			colWithColon = append(colWithColon, fmt.Sprintf("COALESCE(:%s, nextval('%s_id_seq'))", col, m.TableName))
-		} else if strings.Contains(col, "_at") {
+		} else if slices.Contains(reservedTimeCols, col) {
 			colWithColon = append(colWithColon, fmt.Sprintf("COALESCE(:%s, CURRENT_TIMESTAMP)", col))
 		} else {
 			colWithColon = append(colWithColon, fmt.Sprintf(":%s", col))
 		}
 
 		// use in SQL's ON DUPLICATE KEY UPDATE
-		if strings.Contains(col, "_at") {
+		if slices.Contains(reservedTimeCols, col) {
 			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=COALESCE(EXCLUDED.%s, %s.%s)", col, col, m.TableName, col))
 			continue
 		}
-		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=COALESCE(EXCLUDED.%s, %s.%s)", col, col, m.TableName, col))
+		// colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=COALESCE(EXCLUDED.%s, %s.%s)", col, col, m.TableName, col))
+		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=EXCLUDED.%s", col, col))
 	}
 
 	insertStmt := fmt.Sprintf(
@@ -294,18 +296,18 @@ func (m *Postgres) Delete(ids []string) error {
 	return nil
 }
 
-func (m *Postgres) RawQuery(sql string) *sqlx.Rows {
-	logger.Debugf("raw query from Postgres")
+func (m *Postgres) RawQuery(sql string, args ...interface{}) (Rows, error) {
+	//logger.Debugf("raw query from Postgres")
 	m.Connect()
 	defer m.db.Close()
 
-	rows, err := m.db.Queryx(sql)
+	rows, err := m.db.Queryx(sql, args...)
 	if err != nil {
-		logger.Errorf("Queryx err: %+v", err.Error())
+		return nil, logger.Errorf("Queryx err: %+v", err.Error())
 	}
 	if rows.Err() != nil {
-		logger.Errorf("rows.Err(): %+v", err.Error())
+		return nil, logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
-	return rows
+	return rows, nil
 }

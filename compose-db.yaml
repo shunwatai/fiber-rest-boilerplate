@@ -67,6 +67,8 @@ services:
       - 15672:15672
     volumes:
       - rabbitmq-data-dev:/var/lib/rabbitmq/
+    networks:
+      - api
 
 volumes:
   pg-data-dev:

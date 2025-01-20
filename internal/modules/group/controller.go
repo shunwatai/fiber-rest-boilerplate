@@ -3,6 +3,7 @@ package group
 import (
 	"errors"
 	"fmt"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/helper/utils"
@@ -63,8 +64,8 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 func (c *Controller) Create(ctx *fiber.Ctx) error {
 	logger.Debugf("group ctrl create\n")
 	c.service.ctx = ctx
-	group := &groupUser.Group{}
-	groups := []*groupUser.Group{}
+	groupDto := &groupUser.GroupDto{}
+	groupsDto := []*groupUser.GroupDto{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
@@ -75,7 +76,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		)
 	}
 
-	groupErr, parseErr := reqCtx.Payload.ParseJsonToStruct(group, &groups)
+	groupErr, parseErr := reqCtx.Payload.ParseJsonToStruct(groupDto, &groupsDto)
 	if parseErr != nil {
 		return fctx.JsonResponse(
 			fiber.StatusUnprocessableEntity,
@@ -83,30 +84,45 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		)
 	}
 	if groupErr == nil {
-		groups = append(groups, group)
+		groupsDto = append(groupsDto, groupDto)
 	}
 	// logger.Debugf("groupErr: %+v, groupsErr: %+v\n", groupErr, groupsErr)
 	// for _, t := range groups {
 	// 	logger.Debugf("groups: %+v\n", t)
 	// }
 
-	for _, group := range groups {
-		logger.Debugf("group??? %+v", group)
-		if validErr := helper.ValidateStruct(*group); validErr != nil {
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
-			)
+	groups := make(groupUser.Groups, 0, len(groupsDto))
+	for _, gDto := range groupsDto {
+		id := gDto.GetId()
+		group := new(groupUser.Group)
+		if len(id) > 0 { // handle json with "id" for update
+			existingGrp, err := c.service.GetById(map[string]interface{}{"id": id})
+			if err != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": errors.New("failed to update, id: " + id + " not exists").Error()},
+				)
+			}
+			group = existingGrp[0]
+
+			if validateErrs := gDto.Validate("update"); validateErrs != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": validateErrs.Error()},
+				)
+			}
+			gDto.MapToGroup(group)
+		} else { // handle create new group
+			if validateErrs := gDto.Validate("create"); validateErrs != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": validateErrs.Error()},
+				)
+			}
+			gDto.MapToGroup(group)
 		}
 
-		if group.Id == nil {
-			continue
-		} else if existing, err := c.service.GetById(map[string]interface{}{
-			"id": group.GetId(),
-		}); err == nil && group.CreatedAt == nil {
-			group.CreatedAt = existing[0].CreatedAt
-		}
-		// logger.Debugf("group? %+v\n", group)
+		groups = append(groups, group)
 	}
 
 	// return []*groupUser.Group{}
@@ -134,8 +150,8 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 func (c *Controller) Update(ctx *fiber.Ctx) error {
 	logger.Debugf("group ctrl update\n")
 
-	group := &groupUser.Group{}
-	groups := []*groupUser.Group{}
+	groupDto := &groupUser.GroupDto{}
+	groupsDto := []*groupUser.GroupDto{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
@@ -146,7 +162,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		)
 	}
 
-	groupErr, parseErr := reqCtx.Payload.ParseJsonToStruct(group, &groups)
+	groupErr, parseErr := reqCtx.Payload.ParseJsonToStruct(groupDto, &groupsDto)
 	if parseErr != nil {
 		return fctx.JsonResponse(
 			fiber.StatusUnprocessableEntity,
@@ -154,25 +170,51 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		)
 	}
 	if groupErr == nil {
-		groups = append(groups, group)
+		groupsDto = append(groupsDto, groupDto)
 	}
 
-	for _, group := range groups {
-		if validErr := helper.ValidateStruct(*group); validErr != nil {
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
-			)
-		}
-		if group.Id == nil && group.MongoId == nil {
+	groupIds := []string{}
+	for _, groupDto := range groupsDto {
+		if !groupDto.Id.Presented && !groupDto.MongoId.Presented {
 			return fctx.JsonResponse(
 				respCode,
 				map[string]interface{}{"message": "please ensure all records with id for PATCH"},
 			)
 		}
+
+		groupIds = append(groupIds, groupDto.GetId())
 	}
 
-	results, httpErr := c.service.Update(groups)
+	// create map by existing group from DB
+	groupIdMap := map[string]*groupUser.Group{}
+	getByIdsCondition := database.GetIdsMapCondition(nil, groupIds)
+	existings, _ := c.service.Get(getByIdsCondition)
+	for _, group := range existings {
+		groupIdMap[group.GetId()] = group
+	}
+
+	for _, groupDto := range groupsDto {
+		// check for non-existing ids
+		g, ok := groupIdMap[groupDto.GetId()]
+		if !ok {
+			notFoundMsg := fmt.Sprintf("cannot update non-existing id: %+v", groupDto.GetId())
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": notFoundMsg},
+			)
+		}
+
+		// validate group json
+		if validateErrs := groupDto.Validate("update"); validateErrs != nil {
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": validateErrs.Error()},
+			)
+		}
+		groupDto.MapToGroup(g)
+	}
+
+	results, httpErr := c.service.Update(existings)
 	if httpErr.Err != nil {
 		return fctx.JsonResponse(
 			httpErr.Code,
@@ -332,7 +374,7 @@ func (c *Controller) GroupFormPage(ctx *fiber.Ctx) error {
 	tpl := template.Must(template.New("").Funcs(pagesFunc).ParseFiles(tmplFiles...))
 
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
-	u := new(groupUser.Group)
+	g := new(groupUser.Group)
 	// logger.Debugf("group_id: %+v", paramsMap["group_id"])
 
 	if paramsMap["group_id"] == nil { // new group
@@ -340,26 +382,26 @@ func (c *Controller) GroupFormPage(ctx *fiber.Ctx) error {
 	} else { // update group
 		if cfg.DbConf.Driver == "mongodb" {
 			groupId := paramsMap["group_id"].(string)
-			u.MongoId = &groupId
+			g.MongoId = &groupId
 		} else {
 			groupId, err := strconv.ParseInt(paramsMap["group_id"].(string), 10, 64)
 			if err != nil {
 				return nil
 			}
 
-			u.Id = utils.ToPtr(helper.FlexInt(groupId))
+			g.Id = utils.ToPtr(helper.FlexInt(groupId))
 		}
 
 		// get group by ID
-		groups, _ := c.service.Get(map[string]interface{}{"id": u.GetId()})
+		groups, _ := c.service.Get(map[string]interface{}{"id": g.GetId()})
 		if len(groups) == 0 {
-			logger.Errorf("something went wrong... failed to find group with id: %+v", u.Id)
+			logger.Errorf("something went wrong... failed to find group with id: %+v", g.Id)
 			return nil
 		}
 
 		// get users for users management popover modal
 		users, _ := user.Srvc.Get(map[string]interface{}{"disabled": false})
-		userIdMap := Repo.UserRepo.GetIdMap(groups[0].Users)
+		userIdMap := Repo.UserRepo.GetIdMap(*groups[0].Users)
 		availableUsersToBeSelected := []*groupUser.User{}
 		for _, u := range users {
 			_, exists := userIdMap[u.GetId()]
@@ -370,12 +412,12 @@ func (c *Controller) GroupFormPage(ctx *fiber.Ctx) error {
 
 		// get resources for ACL matrix
 		existingAclMap := map[string][]string{}
-		for _, permission := range groups[0].Permissions {
+		for _, permission := range *groups[0].Permissions {
 			existingAclMap[*permission.ResourceName] = append(existingAclMap[*permission.ResourceName], *permission.PermissionType)
 		}
 		resourcesAcl := map[string]map[string]bool{}
-		resources, _ := resource.Srvc.Get(map[string]interface{}{"disabled": false, "order_by": "order.asc"})
-		permissionTypes, _ := permissionType.Srvc.Get(map[string]interface{}{"order_by": "order.asc"})
+		resources, _ := resource.Srvc.Get(map[string]interface{}{"disabled": false, "order_by": "seq.asc"})
+		permissionTypes, _ := permissionType.Srvc.Get(map[string]interface{}{"order_by": "seq.asc"})
 		for _, resource := range resources {
 			logger.Debugf("resource: %+v", resource.Name)
 			resourcesAcl[resource.Name] = map[string]bool{}
@@ -418,8 +460,8 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 
 	c.service.ctx = ctx
-	group := &groupUser.Group{}
-	groups := []*groupUser.Group{}
+	groupDto := &groupUser.GroupDto{}
+	groupsDto := []*groupUser.GroupDto{}
 
 	data := fiber.Map{}
 	tmplFiles := []string{"web/template/parts/popup.gohtml"}
@@ -433,20 +475,41 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
-	groupErr, parseErr := reqCtx.Payload.ParseJsonToStruct(group, &groups)
+	groupErr, parseErr := reqCtx.Payload.ParseJsonToStruct(groupDto, &groupsDto)
 	if parseErr != nil {
 		data["errMessage"] = parseErr.Error()
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 	if groupErr == nil {
-		groups = append(groups, group)
+		groupsDto = append(groupsDto, groupDto)
 	}
 
-	for _, group := range groups {
-		if validErr := helper.ValidateStruct(*group); validErr != nil {
-			data["errMessage"] = validErr.Error()
-			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+	groups := make(groupUser.Groups, 0, len(groupsDto))
+	for _, gDto := range groupsDto {
+		id := gDto.GetId()
+		group := new(groupUser.Group)
+		if len(id) > 0 { // handle json with "id" for update
+			existingGrp, err := c.service.GetById(map[string]interface{}{"id": id})
+			if err != nil {
+				data["errMessage"] = errors.New("failed to update, id: " + id + " not exists").Error()
+				return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+			}
+			group = existingGrp[0]
+
+			if validateErrs := gDto.Validate("update"); validateErrs != nil {
+				data["errMessage"] = validateErrs.Error()
+				return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+			}
+			gDto.MapToGroup(group)
+		} else { // handle create new group
+			if validateErrs := gDto.Validate("create"); validateErrs != nil {
+				data["errMessage"] = validateErrs.Error()
+				return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+			}
+			gDto.MapToGroup(group)
 		}
+
+		groups = append(groups, group)
 	}
 
 	_, httpErr := c.service.Create(groups)
@@ -469,8 +532,8 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 	fctx.Fctx.Response().SetStatusCode(respCode)
 	reqCtx := &helper.ReqContext{Payload: fctx}
 
-	group := &groupUser.Group{}
-	groups := []*groupUser.Group{}
+	groupDto := &groupUser.GroupDto{}
+	groupsDto := []*groupUser.GroupDto{}
 
 	data := fiber.Map{}
 	tmplFiles := []string{"web/template/parts/popup.gohtml"}
@@ -484,34 +547,58 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
-	groupErr, parseErr := reqCtx.Payload.ParseJsonToStruct(group, &groups)
+	groupErr, parseErr := reqCtx.Payload.ParseJsonToStruct(groupDto, &groupsDto)
 	if parseErr != nil {
 		data["errMessage"] = parseErr.Error()
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 	if groupErr == nil {
-		groups = append(groups, group)
+		groupsDto = append(groupsDto, groupDto)
 	}
 
-	for _, group := range groups {
-		if validErr := helper.ValidateStruct(*group); validErr != nil {
-			data["errMessage"] = validErr.Error()
-			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
-		}
-		if group.Id == nil && group.MongoId == nil {
+	groupIds := []string{}
+	for _, groupDto := range groupsDto {
+		if !groupDto.Id.Presented && !groupDto.MongoId.Presented {
 			data["errMessage"] = "please ensure all records with id for PATCH"
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
+
+		groupIds = append(groupIds, groupDto.GetId())
 	}
 
-	_, httpErr := c.service.Update(groups)
+	// create map by existing group from DB
+	groupIdMap := map[string]*groupUser.Group{}
+	getByIdsCondition := database.GetIdsMapCondition(nil, groupIds)
+	existings, _ := c.service.Get(getByIdsCondition)
+	for _, group := range existings {
+		groupIdMap[group.GetId()] = group
+	}
+
+	for _, groupDto := range groupsDto {
+		// check for non-existing ids
+		g, ok := groupIdMap[groupDto.GetId()]
+		if !ok {
+			notFoundMsg := fmt.Sprintf("cannot update non-existing id: %+v", groupDto.GetId())
+			data["errMessage"] = notFoundMsg
+			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+		}
+
+		// validate group json
+		if validateErrs := groupDto.Validate("update"); validateErrs != nil {
+			data["errMessage"] = validateErrs.Error()
+			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+		}
+		groupDto.MapToGroup(g)
+	}
+
+	_, httpErr := c.service.Update(existings)
 	if httpErr.Err != nil {
 		data["errMessage"] = httpErr.Err.Error()
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
 	fctx.Fctx.Response().SetStatusCode(fiber.StatusOK)
-	if len(groups) == 1 {
+	if len(groupsDto) == 1 {
 		targetPage := fmt.Sprintf("/groups?page=1&items=5")
 		fctx.Fctx.Set("HX-Redirect", targetPage)
 		return nil

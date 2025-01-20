@@ -88,9 +88,26 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 	return records, pagination
 }
 
+func (r *Repository) GetByRawSql(sqlStmt string, args ...interface{}) []*groupUser.User {
+	logger.Debugf("user repo get by raw sql")
+	rows, err := r.db.RawQuery(sqlStmt, args...)
+
+	if err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	var records groupUser.Users
+	if rows != nil {
+		records = records.RowsToStruct(rows)
+	}
+	// records.PrintValue()
+
+	return records
+}
+
 func (r *Repository) Create(users []*groupUser.User) ([]*groupUser.User, error) {
 	logger.Debugf("user repo create")
-	*database.IgnrCols = append(*database.IgnrCols,"search")
+	*database.IgnrCols = append(*database.IgnrCols, "search")
 	database.SetIgnoredCols(*database.IgnrCols...)
 	defer database.SetIgnoredCols()
 	rows, err := r.db.Save(groupUser.Users(users))
@@ -106,7 +123,7 @@ func (r *Repository) Create(users []*groupUser.User) ([]*groupUser.User, error) 
 
 func (r *Repository) Update(users []*groupUser.User) ([]*groupUser.User, error) {
 	logger.Debugf("user repo update")
-	*database.IgnrCols = append(*database.IgnrCols,"search")
+	*database.IgnrCols = append(*database.IgnrCols, "search")
 	database.SetIgnoredCols(*database.IgnrCols...)
 	defer database.SetIgnoredCols()
 	rows, err := r.db.Save(groupUser.Users(users))

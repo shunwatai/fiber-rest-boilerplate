@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // TmplCustomFuncs contains list of  custom functions for go template
@@ -53,6 +54,28 @@ func TmplCustomFuncs() template.FuncMap {
 		// IsMongo check whether cfg.DbConf.Driver is mongo
 		"IsMongo": func() bool {
 			return cfg.DbConf.Driver == "mongodb"
+		},
+		// GetActionByMethod for log list page to show the (readable)request aciont name for user
+		"GetActionByMethod": func(method string) string {
+			action, ok := MethodToPermType[method]
+			if !ok || len(action) == 0 {
+				return ""
+			}
+			return strings.ToUpper(action[0:1]) + action[1:]
+		},
+		// GetSucceedFailedByCode return succeed / failed by status code 2xx / 4xx
+		"GetSucceedFailedByCode": func(code int64) string {
+			if code >= 200 && code < 400 {
+				return "Succeed"
+			}
+			if code >= 400 && code <= 500 {
+				return "Failed"
+			}
+			return ""
+		},
+		// GetDuration converts duration to millisecond for display
+		"GetDuration": func(duration int64) time.Duration {
+			return time.Duration(duration) * time.Millisecond
 		},
 	}
 }
