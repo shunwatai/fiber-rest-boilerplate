@@ -7,22 +7,22 @@
     "documents": [
       {
         "_id": { "$oid": "66444d0433427ab082cde1fe" },
-        "order": 1,
+        "seq": 1,
         "name": "read"
       },
       {
         "_id": { "$oid": "66444d0433427ab082cde1ff" },
-        "order": 2,
+        "seq": 2,
         "name": "add"
       },
       {
         "_id": { "$oid": "66444d0433427ab082cde200" },
-        "order": 3,
+        "seq": 3,
         "name": "edit"
       },
       {
         "_id": { "$oid": "66444d0433427ab082cde201" },
-        "order": 4,
+        "seq": 4,
         "name": "delete"
       }
     ]

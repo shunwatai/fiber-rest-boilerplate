@@ -5,6 +5,7 @@ import (
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"math"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -147,10 +148,7 @@ func (m *MariaDb) constructSelectStmtFromQuerystring(
 		limit = strconv.Itoa(int(pagination.Items))
 	}
 
-	selectStmt = fmt.Sprintf(`%s 
-			ORDER BY "%s" %s
-			LIMIT %s OFFSET %s
-		`,
+	selectStmt = fmt.Sprintf("%s ORDER BY `%s` %s LIMIT %s OFFSET %s",
 		selectStmt,
 		pagination.OrderBy["key"], pagination.OrderBy["by"],
 		limit, offset,
@@ -218,22 +216,23 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 	cols := records.GetTags("db")
 
 	// logger.Debugf("cols: %+v", cols)
+	var reservedTimeCols = []string{"created_at", "updated_at"}
 	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
 		// use in SQL's VALUES()
-		if strings.Contains(col, "_at") {
+		if slices.Contains(reservedTimeCols, col) {
 			colWithColon = append(colWithColon, fmt.Sprintf("IFNULL(:%s, CURRENT_TIMESTAMP)", col))
 		} else {
 			colWithColon = append(colWithColon, fmt.Sprintf(":%s", col))
 		}
 
 		// use in SQL's ON DUPLICATE KEY UPDATE
-		if strings.Contains(col, "_at") {
+		if slices.Contains(reservedTimeCols, col) {
 			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(VALUES(%s), CURRENT_TIMESTAMP)", col, col))
 			continue
 		}
-		// colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=VALUES(%s)", col, col))
-		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(VALUES(%s), %s.%s)", col, col, m.TableName, col))
+		// colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(VALUES(%s), %s.%s)", col, col, m.TableName, col))
+		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=VALUES(%s)", col, col))
 	}
 
 	insertStmt := fmt.Sprintf(
@@ -251,8 +250,7 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 	insertedIds := []string{}
 	sqlResult, err := m.db.NamedQuery(insertStmt, records)
 	if err != nil {
-		logger.Errorf("insert error: %+v", err)
-		return nil, err
+		return nil, logger.Errorf("insert error: %+v", err)
 	}
 	// logger.Debugf("sqlResult: %+v", sqlResult)
 
@@ -266,7 +264,7 @@ func (m *MariaDb) Save(records Records) (Rows, error) {
 		insertedIds = append(insertedIds, id)
 	}
 	if len(insertedIds) == 0 { // mariadb no error throw when violated foreign key... so check the error here
-		return nil, fmt.Errorf("insert error...")
+		return nil, logger.Errorf("insert error...")
 	}
 
 	logger.Debugf("insertedIds: %+v", insertedIds)
@@ -303,18 +301,22 @@ func (m *MariaDb) Delete(ids []string) error {
 	return nil
 }
 
-func (m *MariaDb) RawQuery(sql string) *sqlx.Rows {
-	logger.Debugf("raw query from Postgres")
+func (m *MariaDb) RawQuery(sql string, args ...interface{}) (Rows, error) {
+	// logger.Debugf("raw query from Mariadb")
 	m.Connect()
 	defer m.db.Close()
 
-	rows, err := m.db.Queryx(sql)
+	// default bindvars are =$1, =$2, etc. for sqlite & postgres, chanage bindvars placeholder into =?
+	var re = regexp.MustCompile(`(=\$[1-9]+)`)
+	sql = re.ReplaceAllString(sql, `=?`)
+
+	rows, err := m.db.Queryx(sql, args...)
 	if err != nil {
-		logger.Errorf("Queryx err: %+v", err.Error())
+		return nil, logger.Errorf("Queryx err: %+v", err.Error())
 	}
 	if rows.Err() != nil {
-		logger.Errorf("rows.Err(): %+v", err.Error())
+		return nil, logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
-	return rows
+	return rows, nil
 }

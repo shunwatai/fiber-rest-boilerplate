@@ -59,7 +59,7 @@ func (s *Service) Create(resources []*Resource) ([]*Resource, *helper.HttpErr) {
 		if resource.UserId == nil {
 			resource.UserId = claims["userId"]
 		}
-		if validErr := helper.ValidateStruct(*resource); validErr != nil {
+		if validErr := helper.Validate.Struct(*resource); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
 	}

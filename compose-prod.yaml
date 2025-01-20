@@ -9,16 +9,45 @@
 # https://github.com/docker/awesome-compose
 services:
   fiber-api-prod:
+    # image: localhost:5000/fiber-api:prod
     build:
       context: .
       dockerfile: ./Dockerfile.prod
       target: final
+      args:
+        - UID
     volumes:
       - ./uploads:/app/uploads:rw
       - ./qrcodes:/app/qrcodes:rw
       - ./fiber-starter.db:/app/fiber-starter.db:rw
     ports:
       - 7000:7000
+    networks:
+      - api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # command: tail -f /dev/null
+
+  fiber-api-rbmq-worker-prod:
+    # image: localhost:5000/fiber-api-rbmq-worker:prod
+    build:
+      context: .
+      # dockerfile: ./Dockerfile.rbmq-worker.prod
+      # target: final
+      dockerfile: ./Dockerfile.prod
+      target: rbmq-worker
+    networks:
+      - api
+    # command: tail -f /dev/null
+
+  fiber-api-db-migrate-prod:
+    # image: localhost:5000/api:prod-db-migrate
+    build:
+      context: .
+      dockerfile: ./Dockerfile.prod
+      target: db-migration
+    volumes:
+      - ./fiber-starter.db:/app/fiber-starter.db:rw
     networks:
       - api
     # command: tail -f /dev/null

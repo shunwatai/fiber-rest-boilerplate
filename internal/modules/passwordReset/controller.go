@@ -93,7 +93,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// }
 
 	for _, passwordReset := range passwordResets {
-		if validErr := helper.ValidateStruct(*passwordReset); validErr != nil {
+		if validErr := helper.Validate.Struct(*passwordReset); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -160,7 +160,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	}
 
 	for _, passwordReset := range passwordResets {
-		if validErr := helper.ValidateStruct(*passwordReset); validErr != nil {
+		if validErr := helper.Validate.Struct(*passwordReset); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -401,18 +401,21 @@ func (c *Controller) ChangePassword(ctx *fiber.Ctx) error {
 	html := `{{ template "popup" . }}`
 	tpl, _ = tpl.New("message").Parse(html)
 
-	u := new(groupUser.User)
+	userDto := new(groupUser.UserDto)
 
-	if err := fctx.Fctx.BodyParser(u); err != nil {
+	if err := fctx.Fctx.BodyParser(userDto); err != nil {
 		logger.Errorf("BodyParser err: %+v", err)
 		data["errMessage"] = "something went wrong: failed to parse request json"
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
-	if len(*u.Password) < 3 {
+	if len(*userDto.Password.Value) < 3 {
 		data["errMessage"] = "password too short..."
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
+
+	u := new(groupUser.User)
+	userDto.MapToUser(u)
 
 	users, httpErr := user.Srvc.Update(groupUser.Users{u})
 	if httpErr.Err != nil {

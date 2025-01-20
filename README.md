@@ -63,7 +63,7 @@ It runs by fiber with pre-defined CRUD examples which follows the Controller-Ser
 - [ ] Generate new module script `cmd/gen/gen.go`
     - [ ] Try `bubbletea` for better tui interaction
     - [ ] Support generate web templates
-- [ ] Try Redis/Valkey for caching GET?
+- [x] Add Redis & Memcached for caching in GET API
 - [ ] Try Oauth (goth? or oauth2-proxy?)
 
 # Project structure
@@ -224,6 +224,15 @@ Check status
 docker-compose -f compose-prod.yaml ps
 ```
 
+Run DB migration
+
+Because of the production's container doesn't contain db migration files,
+use dev container to run the migrations:
+```
+make docker-dev
+docker-compose -f compose-dev.yaml run fiber-api-dev go run -tags 'libsqlite3 linux musl' main.go migrate-up postgres
+```
+
 Watch the log
 ```
 make docker-prod-log
@@ -262,7 +271,7 @@ The `cmd/gen/gen.go` is for generating new module without tedious copy & paste, 
 
 [Detail usage](cmd/gen/README.md)
 
-# API details
+# API & other module details
 ## Users
 [readme](internal/modules/user/README.md)
 
@@ -274,6 +283,9 @@ The `cmd/gen/gen.go` is for generating new module without tedious copy & paste, 
 
 ## Password reset
 [readme](internal/modules/passwordReset/README.md)
+
+## RabbitMQ
+[readme](internal/rabbitmq/README.md)
 
 # Run tests
 To disable cache when running tests, run with options: `-count=1`

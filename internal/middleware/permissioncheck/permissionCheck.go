@@ -37,7 +37,7 @@ func (pc *PermissionChecker) CheckAccess(resourceName string) fiber.Handler {
 		// get groupUsers by userId
 		groupUsers, _ := groupUser.Srvc.Get(map[string]interface{}{"user_id": userId})
 		if len(groupUsers) == 0 {
-			return fctx.ErrResponse(fiber.StatusUnauthorized, logger.Errorf("userId: %+v doesn't belong to any group", userId))
+			return fctx.ErrResponse(fiber.StatusForbidden, logger.Errorf("userId: %+v doesn't belong to any group", userId))
 		}
 
 		groupIds := []string{}
@@ -46,7 +46,9 @@ func (pc *PermissionChecker) CheckAccess(resourceName string) fiber.Handler {
 			if gu.IsAdmin() {
 				return c.Next()
 			}
-			groupIds = append(groupIds, gu.GetGroupId())
+			if !gu.Group.Disabled {
+				groupIds = append(groupIds, gu.GetGroupId())
+			}
 		}
 
 		// get groupResourceAcls by groupIds & resourceName
@@ -56,7 +58,7 @@ func (pc *PermissionChecker) CheckAccess(resourceName string) fiber.Handler {
 		})
 
 		if err := checkPermission(reqMethod, groupResourceAcls); err != nil {
-			return fctx.ErrResponse(fiber.StatusUnauthorized, fmt.Errorf("userId: %+v in groupId: %+v %+v to %+v", userId, groupIds, err.Error(), resourceName))
+			return fctx.ErrResponse(fiber.StatusForbidden, fmt.Errorf("userId: %+v in groupId: %+v %+v to %+v", userId, groupIds, err.Error(), resourceName))
 		}
 
 		return c.Next()
@@ -69,18 +71,10 @@ func checkPermission(reqMethod string, groupResourceAcls []*groupResourceAcl.Gro
 	// logger.Debugf("req method???? %+v\n", reqMethod)
 	hasPermissions := groupResourceAcl.GroupResourceAcls{}
 
-	methodToPermType := map[string]string{
-		"GET":    "read",
-		"POST":   "add",
-		"PATCH":  "edit",
-		"PUT":    "edit",
-		"DELETE": "delete",
-	}
-
 	for _, gra := range groupResourceAcls {
 		logger.Debugf("gra resName: %+v, gra permType: %+v\n", *gra.ResourceName, *gra.PermissionType)
 		// check if there is any *gra.PermissionType matches with request method
-		if permType, ok := methodToPermType[reqMethod]; ok && *gra.PermissionType == permType {
+		if permType, ok := helper.MethodToPermType[reqMethod]; ok && *gra.PermissionType == permType {
 			hasPermissions = append(hasPermissions, gra)
 		}
 	}

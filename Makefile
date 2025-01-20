@@ -18,10 +18,10 @@ docker-dev: docker-dev-build docker-dev-up
 docker-prod: docker-prod-build docker-prod-up
 
 docker-dev-build: 
-	docker-compose -f compose-dev.yaml build fiber-api-dev --build-arg UID=$$(id -u)
+	docker-compose -f compose-dev.yaml build --build-arg UID=$$(id -u) fiber-api-dev
 
 docker-prod-build: 
-	docker-compose -f compose-prod.yaml build fiber-api-prod
+	docker-compose -f compose-prod.yaml build --build-arg UID=$$(id -u) fiber-api-prod
 
 docker-dev-up: 
 	docker-compose -f compose-dev.yaml up -d
@@ -46,6 +46,9 @@ migrate-up:
 
 migrate-down: 
 	go run main.go migrate-down $(filter-out $@,$(MAKECMDGOALS))
+
+rbmq-worker: 
+	go run main.go run-rbmq-worker
 
 tw-watch:
 	npx tailwindcss -i ./web/static/css/input.css -o ./web/static/css/output.css --watch

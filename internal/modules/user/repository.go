@@ -1,6 +1,7 @@
 package user
 
 import (
+	"golang-api-starter/internal/cache"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
@@ -63,6 +64,8 @@ func cascadeFields(users groupUser.Users) {
 	}
 }
 
+var cachedKeys = map[string]struct{}{}
+
 func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *helper.Pagination) {
 	logger.Debugf("user repo get")
 	defaultExactMatch := map[string]bool{
@@ -77,9 +80,34 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 	}
 
 	queries["columns"] = groupUser.Users{{}}.GetTags()
-	rows, pagination := r.db.Select(queries)
+	var (
+		rows       database.Rows
+		pagination *helper.Pagination
+		records    groupUser.Users
+	)
 
-	var records groupUser.Users
+	if cfg.CacheConf.Enabled {
+		var (
+			cacheKey string = cache.GetCacheKey(tableName, queries)
+			cacheVal        = cacheValue{}
+		)
+		// get cache
+		isCached := cache.CacheService.Get(cacheKey, &cacheVal)
+		if isCached {
+			// logger.Debugf(">>>>TRUE using cached key: %+v", cacheKey)
+			cacheVal.Pagination.Cached = true
+			return cacheVal.Users, cacheVal.Pagination
+		}
+
+		// set cache
+		defer func() {
+			cache.CacheService.Set(cacheKey, &cacheValue{Users: records, Pagination: pagination})
+			cachedKeys[cacheKey] = struct{}{}
+		}()
+	}
+
+	rows, pagination = r.db.Select(queries)
+
 	if rows != nil {
 		records = records.RowsToStruct(rows)
 	}
@@ -88,9 +116,27 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 	return records, pagination
 }
 
+func (r *Repository) GetByRawSql(sqlStmt string, args ...interface{}) []*groupUser.User {
+	logger.Debugf("user repo get by raw sql")
+	rows, err := r.db.RawQuery(sqlStmt, args...)
+
+	if err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	var records groupUser.Users
+	if rows != nil {
+		records = records.RowsToStruct(rows)
+	}
+	// records.PrintValue()
+
+	return records
+}
+
 func (r *Repository) Create(users []*groupUser.User) ([]*groupUser.User, error) {
+	defer cache.EmptyCacheKeyMap(cachedKeys)
 	logger.Debugf("user repo create")
-	*database.IgnrCols = append(*database.IgnrCols,"search")
+	*database.IgnrCols = append(*database.IgnrCols, "search")
 	database.SetIgnoredCols(*database.IgnrCols...)
 	defer database.SetIgnoredCols()
 	rows, err := r.db.Save(groupUser.Users(users))
@@ -99,14 +145,15 @@ func (r *Repository) Create(users []*groupUser.User) ([]*groupUser.User, error) 
 	if rows != nil {
 		records = records.RowsToStruct(rows)
 	}
-	records.PrintValue()
+	// records.PrintValue()
 
 	return records, err
 }
 
 func (r *Repository) Update(users []*groupUser.User) ([]*groupUser.User, error) {
+	defer cache.EmptyCacheKeyMap(cachedKeys)
 	logger.Debugf("user repo update")
-	*database.IgnrCols = append(*database.IgnrCols,"search")
+	*database.IgnrCols = append(*database.IgnrCols, "search")
 	database.SetIgnoredCols(*database.IgnrCols...)
 	defer database.SetIgnoredCols()
 	rows, err := r.db.Save(groupUser.Users(users))
@@ -115,12 +162,13 @@ func (r *Repository) Update(users []*groupUser.User) ([]*groupUser.User, error) 
 	if rows != nil {
 		records = records.RowsToStruct(rows)
 	}
-	records.PrintValue()
+	// records.PrintValue()
 
 	return records, err
 }
 
 func (r *Repository) Delete(ids []string) error {
+	defer cache.EmptyCacheKeyMap(cachedKeys)
 	logger.Debugf("user repo delete")
 	err := r.db.Delete(ids)
 	if err != nil {

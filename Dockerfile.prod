@@ -6,10 +6,11 @@
 
 ################################################################################
 # Create a stage for building the application.
-ARG GO_VERSION=1.22
+ARG GO_VERSION=1.23
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
 WORKDIR /app
 COPY ./configs/ /app/configs/
+COPY ./web/ /app/web/
 
 RUN --mount=type=cache,target=/var/cache/apk \
     apk --update add alpine-sdk musl-dev sqlite-dev
@@ -37,6 +38,55 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
     CGO_ENABLED=1 GOARCH=$TARGETARCH go build -race -tags "libsqlite3 linux musl" -o /bin/fiber-api .
 
 ################################################################################
+# Create a intermediate stage for running the DB migration in k3s as the "initContainer"
+# FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS db-migration
+FROM alpine:latest AS db-migration
+WORKDIR /app
+
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk --no-cache --update add \
+    sqlite-dev && \
+    # go install -tags 'postgres mysql sqlite3 mongodb libsqlite3 linux musl' github.com/golang-migrate/migrate/v4/cmd/migrate@latest && \
+    apk cache clean
+
+COPY ./migrations/ /app/migrations/
+COPY --from=build /app/configs/ /app/configs/
+COPY --from=build /bin/fiber-api /app/bin/
+
+CMD ["tail", "-f", "/dev/null"]
+
+################################################################################
+# Create a intermediate stage for running the rabbitmq worker k3s
+FROM alpine:latest AS rbmq-worker
+WORKDIR /app
+
+ARG UID=10001
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk --no-cache --update add \
+    sqlite-dev && \
+    # Create a non-privileged user that the app will run under.
+    # See https://docs.docker.com/go/dockerfile-user-best-practices/
+    apk cache clean && \
+    adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    appuser && \
+    chown 10001:10001 -R /app
+
+# Copy the executable from the "build" stage.
+COPY --from=build /app/configs/ /app/configs/
+COPY --from=build /bin/fiber-api /app/bin/
+
+USER appuser
+
+# What the container should run when it is started.
+ENTRYPOINT [ "/app/bin/fiber-api", "run-rbmq-worker" ]
+
+################################################################################
 # Create a new stage for running the application that contains the minimal
 # runtime dependencies for the application. This often uses a different base
 # image from the build stage where the necessary files are copied from the build
@@ -53,18 +103,25 @@ WORKDIR /app
 # Install any runtime dependencies that are needed to run your application.
 # Leverage a cache mount to /var/cache/apk/ to speed up subsequent builds.
 RUN --mount=type=cache,target=/var/cache/apk \
-    apk --update add \
+    apk --no-cache --update add \
         ca-certificates \
         tzdata \
         sqlite-dev \
-        && \
-        update-ca-certificates \
-        && \
+        ffmpeg && \
+        # bash && \
+        update-ca-certificates && \
+        apk cache clean && \
         mkdir -p /app/bin
+
+# Copy the executable from the "build" stage.
+COPY --from=build /bin/fiber-api /app/bin/
+COPY --from=build /app/configs/ /app/configs/
+COPY --from=build /app/web/ /app/web/
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
-ARG UID=10001
+# ARG UID=10001
+ARG UID
 RUN adduser \
     --disabled-password \
     --gecos "" \
@@ -72,16 +129,87 @@ RUN adduser \
     --shell "/sbin/nologin" \
     --no-create-home \
     --uid "${UID}" \
-    appuser
-RUN chown 10001:10001 -R /app
+    appuser && \
+    # chown 10001:10001 -R /app
+    chown ${UID}:${UID} -R /app
 USER appuser
-
-# Copy the executable from the "build" stage.
-COPY --from=build /bin/fiber-api /app/bin/
-COPY --from=build /app/configs/ /app/configs/
 
 # Expose the port that the application listens on.
 EXPOSE 7000
 
 # What the container should run when it is started.
 ENTRYPOINT [ "/app/bin/fiber-api" ]
+
+
+
+
+
+
+######################## FOR DEV ENVIRONMENT ##################################
+################################################################################
+# Create dev image which same as final to run in k3s, just use the "k3s-dev.yaml" config
+FROM alpine:latest AS dev
+WORKDIR /app
+
+# Copy the executable from the "build" stage.
+COPY --from=build /bin/fiber-api /app/bin/
+COPY --from=build /app/configs/ /app/configs/
+COPY --from=build /app/web/ /app/web/
+
+ARG UID=10001
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk --no-cache --update add \
+        ca-certificates \
+        tzdata \
+        sqlite-dev \
+        ffmpeg && \
+        # bash && \
+        update-ca-certificates && \
+        apk cache clean && \
+        mkdir -p /app/bin && \
+        adduser \
+           --disabled-password \
+           --gecos "" \
+           --home "/nonexistent" \
+           --shell "/sbin/nologin" \
+           --no-create-home \
+           --uid "${UID}" \
+           appuser && \
+           chown 10001:10001 -R /app && \
+         cp /app/configs/k3s-dev.yaml /app/configs/k3s.yaml
+USER appuser
+
+EXPOSE 7000
+
+ENTRYPOINT [ "/app/bin/fiber-api" ]
+
+################################################################################
+# Create a intermediate stage for running the rabbitmq worker k3s
+FROM alpine:latest AS rbmq-worker-dev
+WORKDIR /app
+
+# Copy the executable from the "build" stage.
+COPY --from=build /app/configs/ /app/configs/
+COPY --from=build /bin/fiber-api /app/bin/
+
+ARG UID=10001
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk --no-cache --update add \
+    sqlite-dev && \
+    apk cache clean && \
+    adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    appuser && \
+    chown 10001:10001 -R /app && \ 
+    cp /app/configs/k3s-dev.yaml /app/configs/k3s.yaml
+
+
+USER appuser
+
+# What the container should run when it is started.
+ENTRYPOINT [ "/app/bin/fiber-api", "run-rbmq-worker" ]

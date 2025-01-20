@@ -8,6 +8,14 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
+func getDefaultSortKey() string {
+	defaultSortKey := "id"
+	if cfg.DbConf.Driver == "mongodb" {
+		defaultSortKey = "createdAt"
+	}
+	return defaultSortKey
+}
+
 func parseOrderBy(rawOrderBy string) map[string]string {
 	orderBy := make(map[string]string)
 	splitedOrderBy := strings.Split(rawOrderBy, ".")
@@ -15,7 +23,7 @@ func parseOrderBy(rawOrderBy string) map[string]string {
 
 	orderBy["by"] = "desc"
 	if len(rawOrderBy) == 0 {
-		orderBy["key"] = "id"
+		orderBy["key"] = getDefaultSortKey()
 	} else if len(splitedOrderBy) != 2 {
 		orderBy["key"] = strcase.ToSnake(splitedOrderBy[0])
 	} else {
@@ -34,6 +42,7 @@ type Pagination struct {
 	TotalPages int64             `json:"totalPages"` // ceil(count / items)
 	NextPage   string            `json:"nextPage"`   // next page url
 	PrevPage   string            `json:"prevPage"`   // prev page url
+	Cached     bool              `json:"cached"`     // indicate whether cached or not
 }
 
 func (p *Pagination) SetPageUrls() {
@@ -63,7 +72,7 @@ func (p *Pagination) setPrevPageUrl() {
 
 func getDefaultPagination() *Pagination {
 	orderBy := map[string]string{
-		"key": "id",
+		"key": getDefaultSortKey(),
 		"by":  "desc",
 	}
 

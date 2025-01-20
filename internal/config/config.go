@@ -43,6 +43,50 @@ type MongodbConf struct {
 	Database *string
 }
 
+type RabbitMqConf struct {
+	Host   *string
+	Port   *string
+	User   *string
+	Pass   *string
+	Queues struct {
+		LogQueue   *string
+		EmailQueue *string
+		TestQueue  *string
+	}
+}
+
+type RedisConf struct {
+	Host string
+	Port string
+	User *string
+	Pass *string
+}
+type MemcachedConf struct {
+	Host string
+	Port string
+	User *string
+	Pass *string
+}
+type CacheConf struct {
+	Enabled       bool
+	Driver        string `mapstructure:"engine"`
+	RedisConf     `mapstructure:"redis"`
+	MemcachedConf `mapstructure:"memcached"`
+}
+
+type ApsaraConf struct {
+	AccessKey    *string
+	AccessSecret *string
+	PushKey      *string
+	PullKey      *string
+}
+
+type TranscodingApi struct {
+	Host   *string
+	Port   *string
+	Secure bool
+}
+
 type DbConf struct {
 	Driver       string `mapstructure:"engine"`
 	SqliteConf   `mapstructure:"sqlite"`
@@ -62,9 +106,10 @@ type Logging struct {
 }
 
 type ServerConf struct {
-	Env  string
-	Host string
-	Port string
+	Env            string
+	Host           string
+	Port           string
+	TrustedProxies []string
 }
 
 type Jwt struct {
@@ -89,6 +134,7 @@ type OAuth struct {
 type Smtp struct {
 	Host string
 	Port int
+	Ssl  bool
 	User string
 	Pass string
 }
@@ -103,6 +149,8 @@ type Config struct {
 	*Logging      `mapstructure:"logging"`
 	*OAuth        `mapstructure:"oauth"`
 	*Notification `mapstructure:"notification"`
+	*RabbitMqConf `mapstructure:"rbmq"`
+	*CacheConf    `mapstructure:"cache"`
 	Vpr           *viper.Viper
 }
 
@@ -112,11 +160,17 @@ func (c *Config) LoadEnvVariables() {
 	// determine the /.dockerenv file for checking running inside docker or not for using the corresponding config
 	// ref: https://stackoverflow.com/a/12518877
 	if _, err := os.Stat("/.dockerenv"); err == nil { // running in docker
-		// log.Printf("Running inside docker\n")
+		log.Printf("Running inside docker\n")
 		c.Vpr.SetConfigName("docker")
+		c.setDockerDefault()
+	} else if len(os.Getenv("KUBERNETES_SERVICE_HOST")) > 0 { // running in k8s ref: https://stackoverflow.com/a/54130803
+		log.Printf("Running in k8s\n")
+		c.Vpr.SetConfigName("k3s")
+		c.setK3sDefault()
 	} else if errors.Is(err, os.ErrNotExist) { // running in localhost w/o docker
-		// log.Printf("Running in localhost\n")
+		log.Printf("Running in localhost\n")
 		c.Vpr.SetConfigName("localhost")
+		c.setLocalDefault()
 	} else {
 		// Schrodinger: file may or may not exist. See err for details.
 		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
@@ -133,12 +187,6 @@ func (c *Config) LoadEnvVariables() {
 	if err := c.Vpr.ReadInConfig(); err != nil {
 		log.Fatalf("fail to read config file, err: %+v\n", err)
 	}
-
-	/* Set default */
-	c.Vpr.SetDefault("server", map[string]string{
-		"env":  "local",
-		"port": "7000",
-	})
 
 	// server := c.Vpr.Get("server")
 	// log.Printf("server: %+v\n", server)
@@ -166,7 +214,7 @@ func (c *Config) WatchConfig() {
 func (c *Config) GetServerUrl() string {
 	url := fmt.Sprintf("http://%s", c.ServerConf.Host)
 
-	if len(c.ServerConf.Port) > 0 {
+	if len(c.ServerConf.Port) > 0 && c.Env == "local" {
 		url = fmt.Sprintf("%s:%s", url, c.ServerConf.Port)
 	}
 

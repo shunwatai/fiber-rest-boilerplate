@@ -60,7 +60,7 @@ func (s *Service) Create(logs []*Log) ([]*Log, *helper.HttpErr) {
 		if log.UserId == nil {
 			log.UserId = claims["userId"]
 		}
-		if validErr := helper.ValidateStruct(*log); validErr != nil {
+		if validErr := helper.Validate.Struct(*log); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
 	}
