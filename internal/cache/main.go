@@ -49,26 +49,25 @@ func NewCachingService() ICaching {
 	}
 	logger.Debugf("engine: %+v", cfg.CacheConf.Driver)
 
-	if cfg.CacheConf.Driver == "redis" {
+	switch cfg.CacheConf.Driver {
+	case "redis":
 		err := Rds.SetClient()
 		if err != nil {
 			logger.Fatalf("failed to initilise redis... err: %+v", err.Error())
 		}
-
 		return Rds
-	}
 
-	if cfg.CacheConf.Driver == "memcached" {
+	case "memcached":
 		err := Mc.SetClient()
 		if err != nil {
 			logger.Fatalf("failed to initilise memcached... err: %+v", err.Error())
 		}
-
 		return Mc
-	}
 
-	logger.Fatalf("failed to initilise caching service...")
-	return nil
+	default:
+		logger.Fatalf("failed to initilise caching service...")
+		return nil
+	}
 }
 
 func GetCacheKey(key string, queryString map[string]interface{}) string {
@@ -100,6 +99,7 @@ func GetCacheKey(key string, queryString map[string]interface{}) string {
 	return key
 }
 
+// EmptyCacheKeyMap naive invalidate all caches by module
 func EmptyCacheKeyMap(cachedKeys map[string]struct{}) {
 	for k, _ := range cachedKeys {
 		CacheService.DelByKey(k)
