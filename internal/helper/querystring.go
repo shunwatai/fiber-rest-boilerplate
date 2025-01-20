@@ -8,7 +8,7 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-func getDefaultSortKey ()string{
+func getDefaultSortKey() string {
 	defaultSortKey := "id"
 	if cfg.DbConf.Driver == "mongodb" {
 		defaultSortKey = "createdAt"
@@ -42,6 +42,7 @@ type Pagination struct {
 	TotalPages int64             `json:"totalPages"` // ceil(count / items)
 	NextPage   string            `json:"nextPage"`   // next page url
 	PrevPage   string            `json:"prevPage"`   // prev page url
+	Cached     bool              `json:"cached"`     // indicate whether cached or not
 }
 
 func (p *Pagination) SetPageUrls() {

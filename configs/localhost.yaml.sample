@@ -64,10 +64,15 @@ notification:
     user: "xxxx@gmail.com"
     pass: "xxxxyyyyyzzzxz"
 
-# Play with it later
-#redis:
-#  host: "localhost"
-#  port: "6379"
+cache:
+  enabled: false
+  engine: "redis"
+  memcached:
+    host: "localhost"
+    port: "11211"
+  redis:
+    host: "localhost"
+    port: "6379"
 
 rbmq:
   host: "localhost"
