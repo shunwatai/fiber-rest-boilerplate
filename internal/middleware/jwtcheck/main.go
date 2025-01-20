@@ -13,10 +13,8 @@ import (
 
 type JwtChecker struct{}
 
-/*
-* CheckJwt is a middleware for checking the jwt in both cookie & header
-* it will first check the cookie, if failed then check the header
- */
+// CheckJwt is a middleware for checking the jwt in both cookie & header
+// it will first check the cookie, if failed then check the header
 func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// logger.Debugf("middleware checking jwt in header.....")
@@ -63,6 +61,7 @@ func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 	}
 }
 
+// GetTokenFromHeader parses the accessToken from request's Authorization header
 func GetTokenFromHeader(ctx *fiber.Ctx) (jwt.MapClaims, error) {
 	accessToken := ctx.Get("Authorization")
 	if len(accessToken) == 0 {
@@ -77,6 +76,7 @@ func GetTokenFromHeader(ctx *fiber.Ctx) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
+// GetTokenFromCookie parses the accessToken from request's cookies
 func GetTokenFromCookie(ctx *fiber.Ctx) (jwt.MapClaims, error) {
 	jwt := ctx.Cookies("accessToken")
 	if len(jwt) == 0 {
@@ -84,7 +84,7 @@ func GetTokenFromCookie(ctx *fiber.Ctx) (jwt.MapClaims, error) {
 	}
 
 	accessToken := "Bearer " + jwt
-	logger.Debugf("%s\n", accessToken)
+	// logger.Debugf("%s\n", accessToken)
 
 	claims, err := auth.ParseJwt(accessToken)
 	if err != nil {
