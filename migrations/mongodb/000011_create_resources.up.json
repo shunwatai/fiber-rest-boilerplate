@@ -8,19 +8,19 @@
       {
         "_id": { "$oid": "66430e4eb08e9d4ff536da71" },
         "name": "users",
-        "order": 1,
+        "seq": 1,
         "disabled": false
       },
       {
         "_id": { "$oid": "66430e4eb08e9d4ff536da70" },
         "name": "groups",
-        "order": 2,
+        "seq": 2,
         "disabled": false
       },
       {
         "_id": { "$oid": "66430e4eb08e9d4ff536da6f" },
         "name": "todos",
-        "order": 3,
+        "seq": 3,
         "disabled": false
       }
     ]
