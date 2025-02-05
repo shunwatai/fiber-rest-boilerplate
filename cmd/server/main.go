@@ -136,6 +136,9 @@ func (f *Fiber) LoadAllRoutes() {
 		"/password-resets",
 		"/password-resets/forgot",
 		"/password-resets/send",
+		"/user-activations",
+		"/api/users/registration",
+		"/api/qrcodes/from-pdf",
 	}
 	router := f.App.Group("",
 		custMiddlewares.Log(),                           // add logging to all routes
