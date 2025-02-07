@@ -6,6 +6,8 @@ import (
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
+	"slices"
+
 )
 
 type Service struct {
@@ -93,6 +95,16 @@ func (s *Service) Delete(ids []string) ([]*GroupUser, error) {
 	return records, s.repo.Delete(ids)
 }
 
+// IsAdmin check if user's group name in hardcoded admin name
 func (gu *GroupUser) IsAdmin() bool {
 	return gu.Group.Name == "admin"
 }
+
+// HaveAdmin check for edms project that
+// if user's groups has contract-admin group
+func (gus GroupUsers) HaveAdmin() bool {
+	return slices.ContainsFunc(gus, func(gu *GroupUser) bool {
+		return gu.IsAdmin()
+	})
+}
+
