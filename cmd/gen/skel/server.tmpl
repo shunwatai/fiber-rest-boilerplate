@@ -49,10 +49,10 @@ func (f *Fiber) GetApp() {
 		DisablePreParseMultipartForm: true,      // ref:https://github.com/gofiber/fiber/issues/1838#issuecomment-1086214017
 		StreamRequestBody:            true,
 
-    // for get the real IP if behind a proxy
-		EnableTrustedProxyCheck:      true,
-		ProxyHeader:                  "X-Real-IP",
-		TrustedProxies:               cfg.ServerConf.TrustedProxies,
+		// for get the real IP if behind a proxy
+		EnableTrustedProxyCheck: true,
+		ProxyHeader:             "X-Real-IP",
+		TrustedProxies:          cfg.ServerConf.TrustedProxies,
 	})
 }
 
@@ -130,6 +130,7 @@ func (f *Fiber) LoadAllRoutes() {
 		"/password-resets/send",
 		"/user-activations",
 		"/api/users/registration",
+		"/api/qrcodes/from-pdf",
 	}
 	router := f.App.Group("",
 		custMiddlewares.Log(),                           // add logging to all routes

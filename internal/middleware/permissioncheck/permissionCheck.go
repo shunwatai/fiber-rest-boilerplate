@@ -19,7 +19,7 @@ type PermissionChecker struct{}
 
 // CheckAccess is the middleware for checking the access permission by the records of groupResourceAcls in DB.
 // The arg resourceName is mapped by the resourceId to the resource table in DB.
-func (pc *PermissionChecker) CheckAccess(resourceName string) fiber.Handler {
+func (pc *PermissionChecker) CheckAccess(resourceName ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		fctx := &helper.FiberCtx{Fctx: c}
 		reqMethod := c.Method()
@@ -32,7 +32,7 @@ func (pc *PermissionChecker) CheckAccess(resourceName string) fiber.Handler {
 		} else {
 			userId = strconv.Itoa(int(claims["userId"].(float64)))
 		}
-		logger.Debugf("userId???? %+v\n", userId)
+		// logger.Debugf("userId???? %+v\n", userId)
 
 		// get groupUsers by userId
 		groupUsers, _ := groupUser.Srvc.Get(map[string]interface{}{"user_id": userId})
@@ -41,6 +41,11 @@ func (pc *PermissionChecker) CheckAccess(resourceName string) fiber.Handler {
 		}
 
 		groupIds := []string{}
+		// if user in admin group, skip permission check
+		if groupUser.GroupUsers(groupUsers).HaveAdmin() {
+			return c.Next()
+		}
+
 		for _, gu := range groupUsers {
 			// if user in admin group, skip permission check
 			if gu.IsAdmin() {

@@ -10,8 +10,8 @@ import (
 
 type CustomMiddlewares struct{}
 
-func (cm *CustomMiddlewares) CheckAccess(resourceName string) fiber.Handler {
-	return (&permissioncheck.PermissionChecker{}).CheckAccess(resourceName)
+func (cm *CustomMiddlewares) CheckAccess(resourceName ...string) fiber.Handler {
+	return (&permissioncheck.PermissionChecker{}).CheckAccess(resourceName...)
 }
 
 func (cm *CustomMiddlewares) CheckJwt(ignorePaths ...string) fiber.Handler {
