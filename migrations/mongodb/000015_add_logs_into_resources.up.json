@@ -7,7 +7,7 @@
           "$oid": "66753a14af69c843059548bb"
         },
         "name": "logs",
-        "order": 99,
+        "seq": 99,
         "disabled": false
       }
     ]
