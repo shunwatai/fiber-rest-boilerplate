@@ -19,7 +19,7 @@ var Mc = &Memcached{}
 func (mc *Memcached) GetConnectionInfo() *ConnectionInfo {
 	cfg.LoadEnvVariables()
 	return &ConnectionInfo{
-		Driver: "memcached",
+		Driver: cfg.CacheConf.Driver,
 		Host:   cfg.CacheConf.MemcachedConf.Host,
 		Port:   cfg.CacheConf.MemcachedConf.Port,
 		User:   nil,
@@ -48,7 +48,7 @@ func (mc *Memcached) Get(key string, dst interface{}) bool {
 
 	mcItem, err := client.Get(key)
 	if err != nil {
-		logger.Errorf("failed to get cache, err: %+v", err.Error())
+		// logger.Errorf("failed to get cache, err: %+v", err.Error())
 		return false
 	}
 
