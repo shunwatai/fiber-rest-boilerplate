@@ -154,6 +154,7 @@ type Config struct {
 	Vpr           *viper.Viper
 }
 
+// LoadEnvVariables loads the config yaml file from ./configs/
 func (c *Config) LoadEnvVariables() {
 	c.Vpr.SetConfigType("yaml")
 
@@ -174,7 +175,7 @@ func (c *Config) LoadEnvVariables() {
 	} else {
 		// Schrodinger: file may or may not exist. See err for details.
 		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
-		log.Printf("env check for config err: %+v\n", err)
+		log.Fatalf("env check for config err: %+v\n", err)
 	}
 
 	basepath := utils.RootDir(2)
@@ -195,7 +196,7 @@ func (c *Config) LoadEnvVariables() {
 
 	// load server settings
 	if err := c.Vpr.Unmarshal(c); err != nil {
-		log.Printf("failed loading conf, err: %+v\n", err.Error())
+		log.Fatalf("failed loading conf, err: %+v\n", err.Error())
 	}
 	// log.Printf("conf: %+v\n", *c.ServerConf)
 	// log.Printf("conf: %+v\n", *c.DbConf)
@@ -211,6 +212,7 @@ func (c *Config) WatchConfig() {
 	c.Vpr.WatchConfig()
 }
 
+// GetServerUrl returns server url by config
 func (c *Config) GetServerUrl() string {
 	url := fmt.Sprintf("http://%s", c.ServerConf.Host)
 
