@@ -19,7 +19,7 @@ var Rds = &Redis{}
 func (r *Redis) GetConnectionInfo() *ConnectionInfo {
 	cfg.LoadEnvVariables()
 	return &ConnectionInfo{
-		Driver: "redis",
+		Driver: cfg.CacheConf.Driver,
 		Host:   cfg.CacheConf.RedisConf.Host,
 		Port:   cfg.CacheConf.RedisConf.Port,
 		User:   nil,
