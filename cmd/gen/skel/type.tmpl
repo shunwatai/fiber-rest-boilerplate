@@ -2,27 +2,105 @@ package {{.ModuleName}}
 
 import (
 	"encoding/json"
+	"errors"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
 	"slices"
 
-	//"golang-api-starter/internal/modules/user"
+	//"golang-api-starter/internal/modules/groupUser"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/iancoleman/strcase"
 )
 
+type {{.StructName}}Dto struct {
+	MongoId   helper.Optional[string]                `json:"_id,omitempty"`
+	Id        helper.Optional[helper.FlexInt]        `json:"id"`
+	Col1      helper.Optional[string]                `json:"col1"`
+	Col2      helper.Optional[bool]                  `json:"col2"`
+	CreatedAt helper.Optional[helper.CustomDatetime] `json:"createdAt"`
+	UpdatedAt helper.Optional[helper.CustomDatetime] `json:"updatedAt"`
+}
+type {{.Plural}}Dto []*{{.StructName}}Dto
+
+func ({{.ModuleName}}Dto *{{.StructName}}Dto) Validate(action string) error {
+	var ignoreRequiredCheckIfUpdate = func(presented bool) bool {
+		if action == "update" {
+			return true
+		}
+		return presented
+	}
+	validate := validator.New()
+	var validateErrs []error
+	var validations = map[string]map[bool]map[string]map[string]any{
+		"col1": {
+			ignoreRequiredCheckIfUpdate({{.ModuleName}}Dto.Col1.Presented): {
+				"omitempty,min=2": {"at least 2 character": {{.ModuleName}}Dto.Col1.Value},
+			},
+		},
+	}
+	for key, presentedRuleValue := range validations {
+		for presented, ruleErrmsgValue := range presentedRuleValue {
+			if !presented {
+				validateErrs = append(validateErrs, errors.New(key+" is required"))
+			} else {
+				for rule, errmsgValue := range ruleErrmsgValue {
+					for errMsg, value := range errmsgValue {
+						if err := validate.Var(value, rule); err != nil {
+							validateErrs = append(validateErrs, errors.New(key+" "+errMsg))
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return errors.Join(validateErrs...)
+}
+
+func ({{.ModuleName}}Dto *{{.StructName}}Dto) GetId() string {
+	if cfg.DbConf.Driver == "mongodb" && {{.ModuleName}}Dto.MongoId.Presented {
+		return *{{.ModuleName}}Dto.MongoId.Value
+	} else if {{.ModuleName}}Dto.Id.Presented {
+		return strconv.Itoa(int(*{{.ModuleName}}Dto.Id.Value))
+	} else {
+		return ""
+	}
+}
+
+func ({{.Initial}} *{{.StructName}}Dto) MapTo{{.StructName}}({{.ModuleName}} *{{.StructName}}) {
+	if {{.Initial}}.MongoId.Presented {
+		{{.ModuleName}}.MongoId = {{.Initial}}.MongoId.Value
+	}
+	if {{.Initial}}.Id.Presented {
+		{{.ModuleName}}.Id = {{.Initial}}.Id.Value
+	}
+	if {{.Initial}}.Col1.Presented {
+		{{.ModuleName}}.Col1 = *{{.Initial}}.Col1.Value
+	}
+	if {{.Initial}}.Col2.Presented {
+		{{.ModuleName}}.Col2 = *{{.Initial}}.Col2.Value
+	}
+	if {{.Initial}}.CreatedAt.Presented {
+		{{.ModuleName}}.CreatedAt = {{.Initial}}.CreatedAt.Value
+	}
+	if {{.Initial}}.UpdatedAt.Presented {
+		{{.ModuleName}}.UpdatedAt = {{.Initial}}.UpdatedAt.Value
+	}
+}
+
 type {{.StructName}} struct {
 	MongoId   *string                `json:"_id,omitempty" bson:"_id,omitempty" validate:"omitempty,id_custom_validation"` // https://stackoverflow.com/a/20739427
-	Id        *int64                 `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
+	Id        *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	//UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
-	//User      *user.User             `json:"user"`
+	//User      *groupUser.User             `json:"user"`
 	Col1      string                 `json:"col1" db:"col_1" bson:"col_1,omitempty" validate:"required"`
-	Col2      *bool                  `json:"col2" db:"col_2" bson:"col_2,omitempty" validate:"required,boolean"`
+	Col2      bool                   `json:"col2" db:"col_2" bson:"col_2,omitempty" validate:"required,boolean"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 }
@@ -81,12 +159,12 @@ func ({{.Initial}}s {{.StructName}}s) rowsToStruct(rows database.Rows) []*{{.Str
 	return records
 }
 
-func ({{.Initial}}s {{.StructName}}s) GetTags(key string) []string {
+func ({{.Initial}}s {{.StructName}}s) GetTags(key ...string) []string {
 	if len({{.Initial}}s) == 0 {
 		return []string{}
 	}
 
-	return {{.Initial}}s[0].getTags(key)
+	return {{.Initial}}s[0].getTags(key...)
 }
 
 func ({{.Initial}}s *{{.StructName}}s) printValue() {
@@ -134,4 +212,20 @@ func ({{.Initial}} {{.StructName}}) getTags(key ...string) []string {
 		}
 	}
 	return cols
+}
+
+type cacheValue struct {
+	{{.StructName}}s        []*{{.StructName}}
+	Pagination *helper.Pagination
+}
+
+// MarshalBinary serializes data into a byte slice for caching.
+func ({{.Initial}} *cacheValue) MarshalBinary() (data []byte, err error) {
+	bytes, err := json.Marshal({{.Initial}})
+	return bytes, err
+}
+
+// UnmarshalBinary deserializes the byte slice back into data for caching.
+func ({{.Initial}} *cacheValue) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, {{.Initial}})
 }

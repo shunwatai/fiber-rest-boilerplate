@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -326,24 +325,47 @@ func (m *Mongodb) Delete(ids []string) error {
 }
 
 // useless for mongo, it implemented by sqlite, postgres, mariadb
-func (m *Mongodb) RawQuery(sql string) *sqlx.Rows {
-	return &sqlx.Rows{}
+func (m *Mongodb) RawQuery(action string, args ...interface{}) (Rows, error) {
+	// return &sqlx.Rows{}, nil
+	return m.runCommands(action, args...)
 }
 
 // mongo version of RawQuery
-func (m *Mongodb) runCommands(cmds []bson.D) error {
-	for _, cmd := range cmds {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		m.Connect()
-		defer m.Db.Disconnect(ctx)
-		db := m.Db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+func (m *Mongodb) runCommands(action string, cmds ...interface{}) (Rows, error) {
+	var (
+		cur *mongo.Cursor
+		err error
+	)
 
-		err := db.Database().RunCommand(ctx, cmd).Err()
-		if err != nil {
-			logger.Errorf("mongo cmd failed: %+v", err)
-			return err
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	m.Connect()
+	defer m.Db.Disconnect(ctx)
+	db := m.Db.Database(fmt.Sprintf("%s", *m.Database)).Collection(fmt.Sprintf("%s", m.TableName))
+
+	if action != "query" { // for insert/update/delete?
+		for _, cmd := range cmds {
+			err := db.Database().RunCommand(ctx, cmd).Err()
+			if err != nil {
+				logger.Errorf("mongo cmd failed: %+v", err)
+				return nil, err
+			}
 		}
+	} else { // for select statement
+		// mongoArgs := bson.D{{"$or", bson.A{
+		// 	bson.D{{"name", "admin"}},
+		// 	bson.D{{"email", "admin"}},
+		// }}}
+		// cur, err := db.Find(ctx, mongoArgs)
+		if len(cmds) == 0 {
+			return nil, logger.Errorf("empty cmd...")
+		}
+		cur, err := db.Find(ctx, cmds[0])
+		if err != nil {
+			logger.Errorf("failed to Find, err: %+v", err)
+		}
+		return &MongoRows{cur, ctx}, nil
 	}
-	return nil
+
+	return &MongoRows{cur, ctx}, err
 }

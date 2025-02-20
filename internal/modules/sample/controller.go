@@ -6,6 +6,7 @@ import (
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/notification/email"
+	"golang-api-starter/internal/rabbitmq"
 	"html/template"
 	"time"
 
@@ -43,7 +44,7 @@ func (c *Controller) SendEmail(ctx *fiber.Ctx) error {
 			"resetPasswordUrl": "https://yahoo.com",
 		},
 		MsgContent: body["message"].(string),
-		Template:   template.Must(template.ParseGlob("web/template/reset-password/reset-email.gohtml")),
+		TmplFilePaths: []string{"web/template/reset-password/reset-email.gohtml"},
 	}
 
 	/* for send a simple text email */
@@ -74,4 +75,25 @@ func (c *Controller) HalloPage(ctx *fiber.Ctx) error {
 	}
 
 	return tpl.ExecuteTemplate(fctx.Fctx.Response().BodyWriter(), "base.gohtml", map[string]interface{}{"date": dateStr, "envs": envs})
+}
+
+func (c *Controller) SendToQueue(ctx *fiber.Ctx) error {
+	url := rabbitmq.GetUrl()
+	rabbitMQ, err := rabbitmq.NewRabbitMQ(url, *cfg.RabbitMqConf.Queues.TestQueue)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer rabbitMQ.Close()
+
+	// body := map[string]interface{}{}
+	// json.Unmarshal(ctx.BodyRaw(), &body)
+	// logger.Debugf("req body: %+v", body)
+
+	err = rabbitMQ.Publish(ctx.BodyRaw())
+	if err != nil {
+		return ctx.Status(500).JSON(fiber.Map{"message": err.Error()})
+	}
+
+	return ctx.Status(200).JSON(fiber.Map{"data": "Upload task sent to queue"})
 }

@@ -4,6 +4,7 @@ server:
   env: local # local, dev, prod
   host: "localhost"
   port: 7000
+  trustedProxies: ["172.19.0.0/16"]
 
 jwt:
   secret: "1234balhblahblah"
@@ -57,12 +58,28 @@ oauth:
 
 notification:
   smtp:
-    host:  "smtp.gmail.com"
+    host: "smtp.gmail.com"
     port: 587 
+    ssl: true 
     user: "xxxx@gmail.com"
     pass: "xxxxyyyyyzzzxz"
 
-# Play with it later
-#redis:
-#  host: "localhost"
-#  port: "6379"
+cache:
+  enabled: false
+  engine: "redis"
+  memcached:
+    host: "localhost"
+    port: "11211"
+  redis:
+    host: "localhost"
+    port: "6379"
+
+rbmq:
+  host: "localhost"
+  port: "5672"
+  user: "user"
+  pass: "password"
+  queues:
+    logQueue: "log_queue" 
+    emailQueue: "email_queue" 
+    testQueue: "test_queue" 

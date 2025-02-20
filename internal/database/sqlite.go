@@ -185,7 +185,7 @@ func (m *Sqlite) constructSelectStmtFromQuerystring(
 	}
 
 	selectStmt = fmt.Sprintf(`%s 
-			ORDER BY %s %s
+			ORDER BY "%s" %s
 			LIMIT %s OFFSET %s
 		`,
 		selectStmt,
@@ -234,22 +234,23 @@ func (m *Sqlite) Save(records Records) (Rows, error) {
 	cols := records.GetTags("db")
 
 	// logger.Debugf("cols: %+v", cols)
+	var reservedTimeCols = []string{"created_at", "updated_at"}
 	var colWithColon, colUpdateSet []string
 	for _, col := range cols {
 		// use in SQL's VALUES()
-		if strings.Contains(col, "_at") {
+		if slices.Contains(reservedTimeCols, col) {
 			colWithColon = append(colWithColon, fmt.Sprintf("IFNULL(:%s, CURRENT_TIMESTAMP)", col))
 		} else {
 			colWithColon = append(colWithColon, fmt.Sprintf(":%s", col))
 		}
 
 		// use in SQL's ON CONFLICT DO UPDATE SET
-		if strings.Contains(col, "_at") {
+		if slices.Contains(reservedTimeCols, col) {
 			colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(excluded.%s, CURRENT_TIMESTAMP)", col, col))
 			continue
 		}
-		// colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=excluded.%s", col, col))
-		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(excluded.%s, %s.%s)", col, col, m.TableName, col))
+		// colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=IFNULL(excluded.%s, %s.%s)", col, col, m.TableName, col))
+		colUpdateSet = append(colUpdateSet, fmt.Sprintf("%s=excluded.%s", col, col))
 	}
 
 	insertStmt := fmt.Sprintf(
@@ -322,7 +323,7 @@ func (m *Sqlite) Delete(ids []string) error {
 	return nil
 }
 
-func (m *Sqlite) RawQuery(sql string) *sqlx.Rows {
+func (m *Sqlite) RawQuery(sql string, args ...interface{}) (Rows, error) {
 	logger.Debugf("raw query from Sqlite")
 	m.Connect()
 	defer m.db.Close()
@@ -332,13 +333,13 @@ func (m *Sqlite) RawQuery(sql string) *sqlx.Rows {
 		m.db.Exec(sql)
 	}
 
-	rows, err := m.db.Queryx(sql)
+	rows, err := m.db.Queryx(sql, args...)
 	if err != nil {
-		logger.Errorf("Queryx err: %+v", err.Error())
+		return nil, logger.Errorf("Queryx err: %+v", err.Error())
 	}
 	if rows.Err() != nil {
-		logger.Errorf("rows.Err(): %+v", err.Error())
+		return nil, logger.Errorf("rows.Err(): %+v", err.Error())
 	}
 
-	return rows
+	return rows, nil
 }

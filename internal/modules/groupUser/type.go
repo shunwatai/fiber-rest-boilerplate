@@ -2,13 +2,12 @@ package groupUser
 
 import (
 	"encoding/json"
+	"fmt"
 	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
-	"golang-api-starter/internal/helper/logger/zap_log"
-	"golang-api-starter/internal/modules/user"
+	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"slices"
 
-	//"golang-api-starter/internal/modules/user"
 	"log"
 	"reflect"
 	"strconv"
@@ -22,7 +21,8 @@ type GroupUser struct {
 	Id        *helper.FlexInt        `json:"id" db:"id" bson:"id,omitempty" example:"2" validate:"omitempty,id_custom_validation"`
 	GroupId   interface{}            `json:"groupId" db:"group_id" bson:"group_id,omitempty" validate:"omitempty,id_custom_validation"`
 	UserId    interface{}            `json:"userId" db:"user_id" bson:"user_id,omitempty" validate:"omitempty,id_custom_validation"`
-	User      *user.User             `json:"user"`
+	User      *User                  `json:"user"`
+	Group     *Group                 `json:"group"`
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at" bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 }
@@ -45,7 +45,16 @@ func (gu *GroupUser) GetGroupId() string {
 		}
 		return groupId
 	} else {
-		return strconv.Itoa(int(gu.GroupId.(int64)))
+		switch gu.GroupId.(type) {
+		case int64:
+			return strconv.Itoa(int(gu.GroupId.(int64)))
+		case float64:
+			// for redis handle json Unmarshal
+			// ref: https://stackoverflow.com/a/55436758
+			return strconv.Itoa(int(gu.GroupId.(float64)))
+		default:
+			return fmt.Sprintf("%s", gu.GroupId)
+		}
 	}
 }
 
@@ -57,7 +66,16 @@ func (gu *GroupUser) GetUserId() string {
 		}
 		return userId
 	} else {
-		return strconv.Itoa(int(gu.UserId.(int64)))
+		switch gu.UserId.(type) {
+		case int64:
+			return strconv.Itoa(int(gu.UserId.(int64)))
+		case float64:
+			// for redis handle json Unmarshal
+			// ref: https://stackoverflow.com/a/55436758
+			return strconv.Itoa(int(gu.UserId.(float64)))
+		default:
+			return fmt.Sprintf("%s", gu.UserId)
+		}
 	}
 }
 
@@ -93,12 +111,12 @@ func (gus GroupUsers) rowsToStruct(rows database.Rows) []*GroupUser {
 	return records
 }
 
-func (gus GroupUsers) GetTags(key string) []string {
+func (gus GroupUsers) GetTags(key ...string) []string {
 	if len(gus) == 0 {
 		return []string{}
 	}
 
-	return gus[0].getTags(key)
+	return gus[0].getTags(key...)
 }
 
 func (gus *GroupUsers) printValue() {
@@ -146,4 +164,20 @@ func (gu GroupUser) getTags(key ...string) []string {
 		}
 	}
 	return cols
+}
+
+type cacheValue struct {
+	Gus        []*GroupUser
+	Pagination *helper.Pagination
+}
+
+// MarshalBinary serializes data into a byte slice for caching.
+func (gus *cacheValue) MarshalBinary() (data []byte, err error) {
+	bytes, err := json.Marshal(gus)
+	return bytes, err
+}
+
+// UnmarshalBinary deserializes the byte slice back into data for caching.
+func (gus *cacheValue) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, gus)
 }

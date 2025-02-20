@@ -1,10 +1,11 @@
 package log
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/config"
 	"golang-api-starter/internal/database"
-	"golang-api-starter/internal/middleware/jwtcheck"
+	"golang-api-starter/internal/interfaces"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 var (
@@ -16,13 +17,23 @@ var (
 	ctrl              = &Controller{}
 )
 
-func GetRoutes(router fiber.Router) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares) {
 	db := database.GetDatabase(tableName, viewName)
 	Repo = NewRepository(db)
 	Srvc = NewService(Repo)
 	ctrl = NewController(Srvc)
 
-	r := router.Group("/api/logs", jwtcheck.CheckJwt())
+	protectedViewRoute := router.Group("/logs", custMiddleware.CheckAccess("logs"))
+	protectedViewRoute.Route("", func(logPage fiber.Router) {
+		logPage.Get("/", ctrl.ListLogsPage)
+		logPage.Get("/list", ctrl.GetLogList)
+
+		logPage.Route("/form", func(logForm fiber.Router) {
+			logForm.Get("/", ctrl.LogDetailPage)
+		})
+	})
+
+	r := router.Group("/api/logs")
 	r.Get("/", GetAll)
 	// r.Post("/", Create)
 	// r.Patch("/", Update)

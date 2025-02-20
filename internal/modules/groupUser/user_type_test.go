@@ -1,4 +1,4 @@
-package user
+package groupUser
 
 import (
 	"golang-api-starter/internal/helper"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestGetId(t *testing.T) {
+func TestUserGetId(t *testing.T) {
 	user := &User{
 		MongoId: utils.ToPtr("xxxx-xxxx-xxxx-xxxx"),
 		Id:      utils.ToPtr(helper.FlexInt(2)),
@@ -43,7 +43,7 @@ func TestGetId(t *testing.T) {
 	}
 }
 
-func TestStructToMap(t *testing.T) {
+func TestUserStructToMap(t *testing.T) {
 	var id int64 = 2
 	now := time.Now()
 	customDatetime := &helper.CustomDatetime{&now, utils.ToPtr(time.RFC3339)}
@@ -66,7 +66,7 @@ func TestStructToMap(t *testing.T) {
 		want  []map[string]interface{}
 	}{
 		{name: "test StructToMap", input: users, want: []map[string]interface{}{
-			{"_id": "xxxx-xxxx-xxxx-xxxx", "id": float64(2), "created_at": timeJson, "updated_at": timeJson, "first_name": "first", "last_name": "last", "disabled": false, "name": "", "is_oauth": false},
+			{"_id": "xxxx-xxxx-xxxx-xxxx", "id": float64(2), "created_at": timeJson, "updated_at": timeJson, "first_name": "first", "last_name": "last", "disabled": false, "name": "", "provider": nil, "is_oauth": false, "groups": nil},
 		}},
 	}
 
@@ -82,7 +82,7 @@ func TestStructToMap(t *testing.T) {
 	}
 }
 
-func TestGetTags(t *testing.T) {
+func TestUserGetTags(t *testing.T) {
 	users := Users{
 		&User{},
 	}
@@ -94,7 +94,7 @@ func TestGetTags(t *testing.T) {
 	}{
 		{name: "test get db tags", input: "db", want: []string{"id", "name", "password", "email", "first_name", "last_name", "disabled", "is_oauth", "provider", "created_at", "updated_at", "search"}},
 		{name: "test get bson tags", input: "bson", want: []string{"_id", "id", "name", "password", "email", "first_name", "last_name", "disabled", "is_oauth", "provider", "created_at", "updated_at", "search"}},
-		{name: "test get json tags", input: "json", want: []string{"_id", "id", "name", "password", "email", "firstName", "lastName", "disabled", "isOauth", "provider", "createdAt", "updatedAt"}},
+		{name: "test get json tags", input: "json", want: []string{"_id", "id", "name", "password", "email", "firstName", "lastName", "disabled", "isOauth", "provider", "groups", "createdAt", "updatedAt"}},
 	}
 
 	for _, testCase := range tests {

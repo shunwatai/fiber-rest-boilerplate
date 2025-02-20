@@ -9,7 +9,7 @@ import (
 	"golang-api-starter/internal/helper/utils"
 	"golang-api-starter/internal/modules/user"
 	"golang-api-starter/internal/notification/email"
-	"html/template"
+	"golang-api-starter/internal/rabbitmq"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -123,12 +123,18 @@ func (s *Service) sendResetPasswordEmail(passwordResets []*PasswordReset) error 
 				"subject":          "reset password",
 				"resetPasswordUrl": resetLink,
 			},
-			Template: template.Must(template.ParseFiles(tmplFiles...)),
+			TmplFilePaths: tmplFiles,
 		}
 
-		if err := email.TemplateEmail(emailInfo); err != nil {
-			return err
+		// send email to rbmq for process later
+		if err := rabbitmq.QueueMsg(*cfg.RabbitMqConf.Queues.EmailQueue, &emailInfo); err != nil {
+			return logger.Errorf("failed to queue message, err: %+v", err.Error())
 		}
+
+		// send directly
+		// if err := email.TemplateEmail(emailInfo); err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil
@@ -137,7 +143,7 @@ func (s *Service) sendResetPasswordEmail(passwordResets []*PasswordReset) error 
 func (s *Service) Update(passwordResets []*PasswordReset) ([]*PasswordReset, *helper.HttpErr) {
 	logger.Debugf("passwordReset service update")
 	for _, passwordReset := range passwordResets {
-		if err := s.checkUpdateNonExistRecord(passwordReset); err !=nil{
+		if err := s.checkUpdateNonExistRecord(passwordReset); err != nil {
 			return nil, &helper.HttpErr{fiber.StatusInternalServerError, err}
 		}
 	}

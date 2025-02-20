@@ -1,8 +1,10 @@
 package sample
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"golang-api-starter/internal/config"
+	"golang-api-starter/internal/interfaces"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 var (
@@ -11,11 +13,12 @@ var (
 	ctrl = &Controller{}
 )
 
-func GetRoutes(router fiber.Router) {
+func GetRoutes(router fiber.Router, custMiddleware interfaces.ICustomMiddlewares) {
 	Srvc = NewService()
 	ctrl = NewController(Srvc)
 
 	router.Get("/ping", ctrl.Ping)
 	router.Get("/hallo", ctrl.HalloPage)
 	router.Post("/test-email", ctrl.SendEmail)
+	router.Post("/test-rbmq", ctrl.SendToQueue)
 }

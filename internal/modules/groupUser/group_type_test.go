@@ -1,4 +1,4 @@
-package group
+package groupUser
 
 import (
 	"golang-api-starter/internal/helper"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestGetId(t *testing.T) {
+func TestGroupGetId(t *testing.T) {
 	group := &Group{
 		MongoId: utils.ToPtr("xxxx-xxxx-xxxx-xxxx"),
 		Id:      utils.ToPtr(helper.FlexInt(2)),
@@ -43,7 +43,7 @@ func TestGetId(t *testing.T) {
 	}
 }
 
-func TestStructToMap(t *testing.T) {
+func TestGroupStructToMap(t *testing.T) {
 	var id int64 = 2
 	now := time.Now()
 	customDatetime := &helper.CustomDatetime{&now, utils.ToPtr(time.RFC3339)}
@@ -67,7 +67,7 @@ func TestStructToMap(t *testing.T) {
 		want  []map[string]interface{}
 	}{
 		{name: "test StructToMap", input: groups, want: []map[string]interface{}{
-			{"_id": "xxxx-xxxx-xxxx-xxxx", "id": float64(2), "created_at": timeJson, "updated_at": timeJson, "name": "user", "type": "user", "disabled": false, "users": nil},
+			{"_id": "xxxx-xxxx-xxxx-xxxx", "id": float64(2), "created_at": timeJson, "updated_at": timeJson, "name": "user", "type": "user", "disabled": false, "users": nil, "permissions": nil},
 		}},
 	}
 
@@ -83,7 +83,7 @@ func TestStructToMap(t *testing.T) {
 	}
 }
 
-func TestGetTags(t *testing.T) {
+func TestGroupGetTags(t *testing.T) {
 	groups := Groups{
 		&Group{},
 	}
@@ -95,7 +95,7 @@ func TestGetTags(t *testing.T) {
 	}{
 		{name: "test get db tags", input: "db", want: []string{"id", "name", "type", "disabled", "created_at", "updated_at"}},
 		{name: "test get bson tags", input: "bson", want: []string{"_id", "id", "name", "type", "disabled", "created_at", "updated_at"}},
-		{name: "test get json tags", input: "json", want: []string{"_id", "id", "name", "type", "users", "disabled", "createdAt", "updatedAt"}},
+		{name: "test get json tags", input: "json", want: []string{"_id", "id", "name", "type", "users", "permissions", "disabled", "createdAt", "updatedAt"}},
 	}
 
 	for _, testCase := range tests {

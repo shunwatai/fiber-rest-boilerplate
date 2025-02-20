@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"golang-api-starter/internal/auth"
+	"golang-api-starter/internal/database"
 	"golang-api-starter/internal/helper"
 	"golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/helper/utils"
+	"golang-api-starter/internal/modules/groupUser"
 	"html/template"
 	"strconv"
 	"sync"
@@ -19,7 +21,7 @@ type Controller struct {
 	service *Service
 }
 
-func sanitise(users Users) {
+func sanitise(users groupUser.Users) {
 	for _, u := range users {
 		u.Password = nil
 	}
@@ -84,6 +86,7 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
 	results, err := c.service.GetById(paramsMap)
+	sanitise(results)
 
 	if err != nil {
 		respCode = fiber.StatusNotFound
@@ -99,8 +102,8 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 func (c *Controller) Create(ctx *fiber.Ctx) error {
 	logger.Debugf("user ctrl create\n")
 	c.service.ctx = ctx
-	user := &User{}
-	users := []*User{}
+	userDto := &groupUser.UserDto{}
+	usersDto := []*groupUser.UserDto{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
@@ -111,7 +114,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		)
 	}
 
-	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(userDto, &usersDto)
 	if parseErr != nil {
 		return fctx.JsonResponse(
 			fiber.StatusUnprocessableEntity,
@@ -119,16 +122,41 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		)
 	}
 	if userErr == nil {
-		users = append(users, user)
+		usersDto = append(usersDto, userDto)
 	}
 
-	for _, user := range users {
-		if validErr := helper.ValidateStruct(*user); validErr != nil {
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
-			)
+	users := make(groupUser.Users, 0, len(usersDto))
+	for _, uDto := range usersDto {
+		id := uDto.GetId()
+		user := new(groupUser.User)
+		if len(id) > 0 { // handle json with "id" for update
+			existingUser, err := c.service.GetById(map[string]interface{}{"id": id})
+			if err != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": errors.New("failed to update, id: " + id + " not exists").Error()},
+				)
+			}
+			user = existingUser[0]
+
+			if validateErrs := uDto.Validate("update"); validateErrs != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": validateErrs.Error()},
+				)
+			}
+			uDto.MapToUser(user)
+		} else { // handle create new user
+			if validateErrs := uDto.Validate("create"); validateErrs != nil {
+				return fctx.JsonResponse(
+					fiber.StatusUnprocessableEntity,
+					map[string]interface{}{"message": validateErrs.Error()},
+				)
+			}
+			uDto.MapToUser(user)
 		}
+
+		users = append(users, user)
 	}
 
 	results, httpErr := c.service.Create(users)
@@ -156,8 +184,8 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 func (c *Controller) Update(ctx *fiber.Ctx) error {
 	logger.Debugf("user ctrl update\n")
 
-	user := &User{}
-	users := []*User{}
+	userDto := &groupUser.UserDto{}
+	usersDto := []*groupUser.UserDto{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
@@ -168,7 +196,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		)
 	}
 
-	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(userDto, &usersDto)
 	if parseErr != nil {
 		return fctx.JsonResponse(
 			fiber.StatusUnprocessableEntity,
@@ -176,25 +204,51 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 		)
 	}
 	if userErr == nil {
-		users = append(users, user)
+		usersDto = append(usersDto, userDto)
 	}
 
-	for _, user := range users {
-		if validErr := helper.ValidateStruct(*user); validErr != nil {
-			return fctx.JsonResponse(
-				fiber.StatusUnprocessableEntity,
-				map[string]interface{}{"message": validErr.Error()},
-			)
-		}
-		if user.Id == nil && user.MongoId == nil {
+	userIds := []string{}
+	for _, userDto := range usersDto {
+		if !userDto.Id.Presented && !userDto.MongoId.Presented {
 			return fctx.JsonResponse(
 				respCode,
 				map[string]interface{}{"message": "please ensure all records with id for PATCH"},
 			)
 		}
+
+		userIds = append(userIds, userDto.GetId())
 	}
 
-	results, httpErr := c.service.Update(users)
+	// create map by existing user from DB
+	userIdMap := map[string]*groupUser.User{}
+	getByIdsCondition := database.GetIdsMapCondition(nil, userIds)
+	existings, _ := c.service.Get(getByIdsCondition)
+	for _, user := range existings {
+		userIdMap[user.GetId()] = user
+	}
+
+	for _, userDto := range usersDto {
+		// check for non-existing ids
+		u, ok := userIdMap[userDto.GetId()]
+		if !ok {
+			notFoundMsg := fmt.Sprintf("cannot update non-existing id: %+v", userDto.GetId())
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": notFoundMsg},
+			)
+		}
+
+		// validate user json
+		if validateErrs := userDto.Validate("update"); validateErrs != nil {
+			return fctx.JsonResponse(
+				fiber.StatusUnprocessableEntity,
+				map[string]interface{}{"message": validateErrs.Error()},
+			)
+		}
+		userDto.MapToUser(u)
+	}
+
+	results, httpErr := c.service.Update(existings)
 	if httpErr.Err != nil {
 		return fctx.JsonResponse(
 			httpErr.Code,
@@ -238,7 +292,7 @@ func (c *Controller) Delete(ctx *fiber.Ctx) error {
 	logger.Debugf("deletedIds: %+v, mongoIds: %+v\n", delIds, mongoDelIds)
 
 	var (
-		results []*User
+		results []*groupUser.User
 		err     error
 	)
 
@@ -265,7 +319,8 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 	defer mu.Unlock()
 
 	logger.Debugf("user ctrl login")
-	user := &User{}
+	respCode = fiber.StatusInternalServerError
+	user := &groupUser.User{}
 
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	reqCtx := &helper.ReqContext{Payload: fctx}
@@ -279,7 +334,7 @@ func (c *Controller) Login(ctx *fiber.Ctx) error {
 
 	result, httpErr := c.service.Login(user)
 	if httpErr != nil {
-		return fctx.JsonResponse(respCode, map[string]interface{}{"message": httpErr.Err.Error()})
+		return fctx.JsonResponse(httpErr.Code, map[string]interface{}{"message": httpErr.Err.Error()})
 	}
 
 	if err := SetTokensInCookie(result, ctx); err != nil {
@@ -319,7 +374,7 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 		respCode = fiber.StatusExpectationFailed
 		return fctx.JsonResponse(
 			respCode,
-			map[string]interface{}{"message": "Invalid Token type... please try to login again"},
+			map[string]interface{}{"message": fmt.Sprintf("Invalid Token: %s... please try to login again", err.Error())},
 		)
 	}
 
@@ -330,11 +385,11 @@ func (c *Controller) Refresh(ctx *fiber.Ctx) error {
 
 	if cfg.DbConf.Driver == "mongodb" {
 		userId := claims["userId"].(string)
-		result, refreshErr = c.service.Refresh(&User{MongoId: &userId})
+		result, refreshErr = c.service.Refresh(&groupUser.User{MongoId: &userId})
 	} else {
 		userId := int64(claims["userId"].(float64))
 		// result, refreshErr = c.service.Refresh(&User{Id: &userId})
-		result, refreshErr = c.service.Refresh(&User{Id: utils.ToPtr(helper.FlexInt(userId))})
+		result, refreshErr = c.service.Refresh(&groupUser.User{Id: utils.ToPtr(helper.FlexInt(userId))})
 	}
 	if refreshErr != nil {
 		return fctx.JsonResponse(
@@ -384,7 +439,7 @@ func (c *Controller) SubmitLogin(ctx *fiber.Ctx) error {
 	html := `{{ template "popup" . }}`
 	tpl, _ = tpl.New("message").Parse(html)
 
-	u := new(User)
+	u := new(groupUser.User)
 	if err := fctx.Fctx.BodyParser(u); err != nil {
 		logger.Errorf("BodyParser err: %+v", err)
 		data["errMessage"] = "something went wrong: failed to parse request json"
@@ -395,7 +450,7 @@ func (c *Controller) SubmitLogin(ctx *fiber.Ctx) error {
 	if httpErr != nil {
 		logger.Errorf("user Login err: %+v", httpErr.Err.Error())
 		data["errMessage"] = fmt.Sprintf("login failed: %s", httpErr.Err.Error())
-		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+		return tpl.Execute(fctx.Fctx.Status(fiber.StatusUnauthorized).Response().BodyWriter(), data)
 	}
 
 	if err := SetTokensInCookie(result, ctx); err != nil {
@@ -417,7 +472,7 @@ func (c *Controller) ListUsersPage(ctx *fiber.Ctx) error {
 		"errMessage": nil,
 		"showNavbar": true,
 		"title":      "Users",
-		"users":      Users{},
+		"users":      groupUser.Users{},
 		"pagination": helper.Pagination{},
 		"username":   username,
 	}
@@ -448,7 +503,7 @@ func (c *Controller) GetUserList(ctx *fiber.Ctx) error {
 	data := fiber.Map{
 		"errMessage": nil,
 		"showNavbar": true,
-		"users":      Users{},
+		"users":      groupUser.Users{},
 		"pagination": helper.Pagination{},
 	}
 	tmplFiles := []string{"web/template/users/list.gohtml"}
@@ -478,7 +533,7 @@ func (c *Controller) UserFormPage(ctx *fiber.Ctx) error {
 	data := fiber.Map{
 		"errMessage": nil,
 		"showNavbar": true,
-		"user":       &User{},
+		"user":       &groupUser.User{},
 		"title":      "Create user",
 		"username":   username,
 	}
@@ -488,10 +543,11 @@ func (c *Controller) UserFormPage(ctx *fiber.Ctx) error {
 		"web/template/parts/navbar.gohtml",
 		"web/template/base.gohtml",
 	}
-	tpl := template.Must(template.ParseFiles(tmplFiles...))
+	pagesFunc := helper.TmplCustomFuncs()
+	tpl := template.Must(template.New("").Funcs(pagesFunc).ParseFiles(tmplFiles...))
 
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
-	u := new(User)
+	u := new(groupUser.User)
 	// logger.Debugf("user_id: %+v", paramsMap["user_id"])
 
 	if paramsMap["user_id"] != nil { // update user
@@ -530,8 +586,8 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 	fctx.Fctx.Response().SetStatusCode(respCode)
 	reqCtx := &helper.ReqContext{Payload: fctx}
 
-	user := &User{}
-	users := []*User{}
+	userDto := &groupUser.UserDto{}
+	usersDto := []*groupUser.UserDto{}
 
 	data := fiber.Map{}
 	tmplFiles := []string{"web/template/parts/popup.gohtml"}
@@ -545,34 +601,62 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
-	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(userDto, &usersDto)
 	if parseErr != nil {
 		data["errMessage"] = parseErr.Error()
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 	if userErr == nil {
-		users = append(users, user)
+		usersDto = append(usersDto, userDto)
 	}
 
-	for _, user := range users {
-		if validErr := helper.ValidateStruct(*user); validErr != nil {
-			data["errMessage"] = validErr.Error()
-			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
-		}
-		if user.Id == nil && user.MongoId == nil {
+	userIds := []string{}
+	for _, userDto := range usersDto {
+		if !userDto.Id.Presented && !userDto.MongoId.Presented {
 			data["errMessage"] = "please ensure all records with id for PATCH"
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
+		userIds = append(userIds, userDto.GetId())
 	}
 
-	_, httpErr := c.service.Update(users)
+	// create map by existing user from DB
+	userIdMap := map[string]*groupUser.User{}
+	getByIdsCondition := database.GetIdsMapCondition(nil, userIds)
+	existings, _ := c.service.Get(getByIdsCondition)
+	for _, user := range existings {
+		userIdMap[user.GetId()] = user
+	}
+
+	for _, userDto := range usersDto {
+		// check for non-existing ids
+		u, ok := userIdMap[userDto.GetId()]
+		if !ok {
+			notFoundMsg := fmt.Sprintf("cannot update non-existing id: %+v", userDto.GetId())
+			data["errMessage"] = notFoundMsg
+			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+		}
+
+		// validate user json
+		if validateErrs := userDto.Validate("update"); validateErrs != nil {
+			data["errMessage"] = validateErrs.Error()
+			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+		}
+		userDto.MapToUser(u)
+	}
+
+	// workaround if batch update Disabled on list page, ignore these fields for insert statement because of sliqte issue...
+	if len(usersDto) > 1 {
+		*database.IgnrCols = append(*database.IgnrCols, "first_name", "last_name", "provider")
+	}
+
+	_, httpErr := c.service.Update(existings)
 	if httpErr.Err != nil {
 		data["errMessage"] = httpErr.Err.Error()
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
 	fctx.Fctx.Response().SetStatusCode(fiber.StatusOK)
-	if len(users) == 1 {
+	if len(usersDto) == 1 {
 		targetPage := fmt.Sprintf("/users?page=1&items=5")
 		fctx.Fctx.Set("HX-Redirect", targetPage)
 		return nil
@@ -590,8 +674,8 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 	reqCtx := &helper.ReqContext{Payload: fctx}
 
 	c.service.ctx = ctx
-	user := &User{}
-	users := []*User{}
+	userDto := &groupUser.UserDto{}
+	usersDto := []*groupUser.UserDto{}
 
 	data := fiber.Map{}
 	tmplFiles := []string{"web/template/parts/popup.gohtml"}
@@ -605,22 +689,29 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 
-	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(user, &users)
+	userErr, parseErr := reqCtx.Payload.ParseJsonToStruct(userDto, &usersDto)
 	if parseErr != nil {
 		data["errMessage"] = parseErr.Error()
 		return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 	}
 	if userErr == nil {
+		usersDto = append(usersDto, userDto)
+	}
+
+	users := make(groupUser.Users, 0, len(usersDto))
+	for _, uDto := range usersDto {
+		user := new(groupUser.User)
+
+		// validate user json
+		if validateErrs := uDto.Validate("create"); validateErrs != nil {
+			data["errMessage"] = validateErrs.Error()
+			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
+		}
+		uDto.MapToUser(user)
 		users = append(users, user)
 	}
 
-	for _, user := range users {
-		if validErr := helper.ValidateStruct(*user); validErr != nil {
-			data["errMessage"] = validErr.Error()
-			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
-		}
-	}
-
+	*database.IgnrCols = append(*database.IgnrCols, "provider")
 	_, httpErr := c.service.Create(users)
 	if httpErr.Err != nil {
 		data["errMessage"] = httpErr.Err.Error()

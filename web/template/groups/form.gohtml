@@ -13,22 +13,43 @@
         {{if eq .group nil}}hx-post{{else}}hx-patch{{end}}="/groups"
         hx-ext="json-enc"
         hx-target-5*="#popupMessage"
+        hx-target-4*="#popupMessage"
         hx-indicator="#spinner"
         hx-disabled-elt="input, button"
-        :hx-vals="JSON.stringify({'users':existingUsers})"
+        :hx-vals="JSON.stringify({
+          'users':constructUsersForSubmit(),
+          'permissions':constructPermissionsForSubmit(),
+          'disabled':{{if .group}}{{.group.Disabled}}{{else}}false{{end}},
+        })"
       >
         {{if ne .group nil}}
-          <input name="{{if .group.MongoId}}_id{{else}}id{{end}}" type="hidden" value="{{if .group.MongoId }}{{.group.MongoId}}{{else}}{{.group.Id}}{{end}}" />
+          <input name="{{GetIdKeyName}}" type="hidden" value="{{GetId .group.MongoId .group.Id}}" />
         {{end}}
 
         <label for="name" class="{{if eq .group nil}}after:content-['*'] after:ml-0.5 after:text-red-500{{end}} block font-medium text-slate-700 mr-auto my-auto">Name</label>
         <input name="name" class="mt-1 px-3 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-sky-500 block rounded-md sm:text-sm focus:ring-1" {{if eq .group nil}}required{{end}} value="{{if ne .group nil}}{{.group.Name}}{{end}}" />
 
         <label for="type" class="{{if eq .group nil}}after:content-['*'] after:ml-0.5 after:text-red-500{{end}} block font-medium text-slate-700 mr-auto my-auto">Type</label>
+        <!--
         <input name="type" class="mt-1 px-3 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-sky-500 block rounded-md sm:text-sm focus:ring-1" {{if eq .group nil}}required{{end}} value="{{if and (ne .group nil) (ne .group.Type nil)}}{{.group.Type}}{{end}}" />
+        -->
+        <select
+          required
+          name="type"
+          class="mt-1.5 w-full rounded-lg border-gray-300 text-gray-700 sm:text-sm"
+        >
+          <option value="">Please select</option>
+          <option value="admin" {{if and (ne .group nil) (eq .group.Type "admin")}}selected='true'{{end}}>admin</option>
+          <option value="user"  {{if and (ne .group nil) (eq .group.Type "user")}}selected='true'{{end}}>user</option>
+        </select>
 
         {{ if .group }}
           {{ template "groupUsersManage" . }}
+        {{ end }}
+
+        <!-- admin no need this section as all permissions granted -->
+        {{ if and (.group) (ne .group.Type "admin") }}
+          {{ template "aclsManage" . }}
         {{ end }}
 
         <button type="submit" class="flex gap-2 border-2 rounded-md shadow-sm border-slate-300 w-fit p-2">
@@ -41,6 +62,7 @@
   <script>
     function groupFormState(){
       return {
+        /* for user management popover interaction */
         toggleAddUserPopup: function(){
           const addUsersPopupEle = document.getElementById("addUsersPopup")
           const classes = Array.from(addUsersPopupEle.classList)
@@ -51,9 +73,9 @@
           }
         },
         availableUsers: [
-          {{- range .users}}
+          {{- range .availableUsers}}
             { 
-              {{GetIdKeyName}}:{{- .Id -}},
+              id:{{ GetId .MongoId .Id }},
               name:{{- .Name -}},
               email:{{- .Email -}}, 
             },
@@ -63,7 +85,7 @@
           {{if and .group .group.Users}}
             {{- range .group.Users}}
               { 
-                {{GetIdKeyName}}:{{- .Id -}},
+                id:{{ GetId .MongoId .Id }},
                 name:{{- .Name -}},
                 email:{{- .Email -}}, 
               },
@@ -72,7 +94,7 @@
         ],
         removeUserFromGroup: function(e){
           //console.log("delete", e.target.id)
-          const idx = this.existingUsers.findIndex(user=>user.id===+e.target.id)
+          const idx = this.existingUsers.findIndex(user=>user.id===e.target.id)
           if (idx === -1){
             console.log("delete err", idx, e.target.id)
             return
@@ -83,12 +105,83 @@
         addUserToGroup: function(e){
           const availableUsersEles = document.querySelectorAll('input[type="checkbox"]:checked[name="availableUsers"]')
           availableUsersEles.forEach(ele=>{
-            const idx = this.availableUsers.findIndex(user=>user.id===+ele.id)
+            const idx = this.availableUsers.findIndex(user=>user.id===ele.id)
             const newUsers = this.availableUsers.splice(idx,1)
             this.existingUsers.push(newUsers[0])
           })
           this.toggleAddUserPopup()
         },
+        // construct users shape for submit PATCH req to API
+        constructUsersForSubmit: function(){
+          const users = []
+          // update users by existingUsers
+          {{ if .group }}
+            this.existingUsers.forEach(user=>{
+              const {id, ...others} = user
+              users.push({
+                ...others, 
+                {{ GetIdKeyName }}:user.id,
+              }) 
+            })
+          {{ end }}
+
+          //console.log({users})
+          return users
+        },
+
+        /* for permission matrix */
+        permissionsMatrixData: {
+          // for looping the checkboxes
+          permissions: {
+            {{ range $resourceName,$permissions := .permissionsTableData.resourcesAcl }}
+              {{$resourceName}}:{
+                {{ range $.permissionsTableData.headers }}
+                  {{.Name}}: {{index $permissions .Name}},
+                {{ end }}
+              },
+            {{ end }}
+          },
+
+          // for looping the first row header
+          headers: [
+            {{ range .permissionsTableData.headers }}
+              {{ .Name }},
+            {{ end }}
+          ],
+          // for looping the first col header
+          resources: [
+            {{ range .permissionsTableData.resources }}
+              {{ .Name }},
+            {{ end }}
+          ],
+        },
+        handlePermissionsUpdate: function(e){
+          const {name,value,checked} = e.target
+          //console.log({name,value,checked})
+          this.permissionsMatrixData.permissions[name][value] = checked
+          this.constructPermissionsForSubmit()
+        },
+        // construct permissions shape for submit PATCH req to API
+        constructPermissionsForSubmit: function(){
+          const permissions = []
+          {{ if .group }}
+          // update permissions by permissionsMatrixData
+          Object.keys(this.permissionsMatrixData.permissions).forEach(resourceName=>{
+            Object.keys(this.permissionsMatrixData.permissions[resourceName]).forEach(attr=>{
+              if (!this.permissionsMatrixData.permissions[resourceName][attr]) return
+              const data = {
+                groupId: {{GetId .group.MongoId .group.Id}},
+                resourceName,
+                permissionType:attr,
+              }
+              permissions.push(data)
+            })
+          })
+          {{ end }}
+
+          //console.log({permissions})
+          return permissions
+        }
       }
     }
     </script>

@@ -104,8 +104,7 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 	for _, fh := range form.File["file"] {
 		file, err := fh.Open()
 		if err != nil {
-			log.Println("failed to open file", err)
-			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, err}
+			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, logger.Errorf("failed to open file, err: %s", err.Error())}
 		}
 		defer file.Close()
 
@@ -114,8 +113,8 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 		uploadPath := fmt.Sprintf("%s/%s", baseUploadDir, filename)
 		out, err := os.OpenFile(uploadPath, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
-			log.Println("failed to create file", err)
-			return nil, &helper.HttpErr{fiber.StatusInternalServerError, err}
+			logger.Errorf("failed to create file, err: %s", err.Error())
+			return nil, &helper.HttpErr{fiber.StatusInternalServerError, logger.Errorf("failed to create file, err: %s", err.Error())}
 		}
 		defer out.Close()
 		// logger.Debugf("file?: %T\n", file)
@@ -156,7 +155,7 @@ func (s *Service) Create(form *multipart.Form) ([]*Document, *helper.HttpErr) {
 		if document.UserId == nil {
 			document.UserId = claims["userId"]
 		}
-		if validErr := helper.ValidateStruct(*document); validErr != nil {
+		if validErr := helper.Validate.Struct(*document); validErr != nil {
 			return nil, &helper.HttpErr{fiber.StatusUnprocessableEntity, validErr}
 		}
 

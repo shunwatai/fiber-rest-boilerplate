@@ -30,14 +30,11 @@ It runs by fiber with pre-defined CRUD examples which follows the Controller-Ser
 5. Try the web
     -  [users page](internal/modules/user/README.md#crud)
     -  [todos page](internal/modules/todo/README.md#crud)
+    -  [groups page](internal/modules/group/README.md#crud)
 
 # Todo
 - [ ] Need more test cases & validations
-- [ ] Add GET `/me`
 - [ ] Need tons of refactors...
-- [ ] Generate new module script `cmd/gen/gen.go`
-    - [ ] Try `bubbletea` for better tui interaction
-    - [ ] Support generate web templates
 - [ ] Web template example by htmx
     - [x] Login page
     - [x] Forget page
@@ -51,12 +48,22 @@ It runs by fiber with pre-defined CRUD examples which follows the Controller-Ser
             - [x] upload files
             - [x] delete files
         - [x] preview files
-    - [ ] Groups page
-        - [ ] list page
-        - [ ] form page
-            - [ ] manage users
+    - [x] Groups page
+        - [x] list page
+        - [x] form page
+            - [x] manage users
+            - [ ] add a section for managing the ACL for accessing the modules
 - [ ] Group permssions for ACL
-- [ ] Try Redis/Valkey for caching GET?
+    - [x] Add `group` module for managing users
+    - [x] Add `resource` module for defining the resources(modules) to be control
+    - [x] Add `permission_type` module for defining the types like `read`,`add`,`delete` etc.
+    - [ ] Add `group_resource_acl` module for storing the ACLs info
+    - [ ] Add middleware for checking the group's permission at route.go
+    - [ ] Add GET `/me`
+- [ ] Generate new module script `cmd/gen/gen.go`
+    - [ ] Try `bubbletea` for better tui interaction
+    - [ ] Support generate web templates
+- [x] Add Redis & Memcached for caching in GET API
 - [ ] Try Oauth (goth? or oauth2-proxy?)
 
 # Project structure
@@ -217,13 +224,22 @@ Check status
 docker-compose -f compose-prod.yaml ps
 ```
 
+Run DB migration
+
+Because of the production's container doesn't contain db migration files,
+use dev container to run the migrations:
+```
+make docker-dev
+docker-compose -f compose-dev.yaml run fiber-api-dev go run -tags 'libsqlite3 linux musl' main.go migrate-up postgres
+```
+
 Watch the log
 ```
 make docker-prod-log
 ```
 
 # DB Migration
-Install [go-migrate](https://github.com/golang-migrate/migrate) and the follow the [detail usage](migrations/README.md) for different DBs.
+Install [go-migrate](https://github.com/golang-migrate/migrate) and then follow the [detail usage](migrations/README.md) for different DBs.
 
 # Run the tailwindcss build process
 ```
@@ -255,15 +271,21 @@ The `cmd/gen/gen.go` is for generating new module without tedious copy & paste, 
 
 [Detail usage](cmd/gen/README.md)
 
-# API details
+# API & other module details
 ## Users
 [readme](internal/modules/user/README.md)
 
 ## Todos
 [readme](internal/modules/todo/README.md)
 
+## Groups
+[readme](internal/modules/group/README.md)
+
 ## Password reset
 [readme](internal/modules/passwordReset/README.md)
+
+## RabbitMQ
+[readme](internal/rabbitmq/README.md)
 
 # Run tests
 To disable cache when running tests, run with options: `-count=1`

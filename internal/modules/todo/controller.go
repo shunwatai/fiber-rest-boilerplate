@@ -89,7 +89,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 	// }
 
 	for _, todo := range todos {
-		if validErr := helper.ValidateStruct(*todo); validErr != nil {
+		if validErr := helper.Validate.Struct(*todo); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -155,7 +155,7 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 	}
 
 	for _, todo := range todos {
-		if validErr := helper.ValidateStruct(*todo); validErr != nil {
+		if validErr := helper.Validate.Struct(*todo); validErr != nil {
 			return fctx.JsonResponse(
 				fiber.StatusUnprocessableEntity,
 				map[string]interface{}{"message": validErr.Error()},
@@ -167,7 +167,6 @@ func (c *Controller) Update(ctx *fiber.Ctx) error {
 				map[string]interface{}{"message": "please ensure all records with id for PATCH"},
 			)
 		}
-
 	}
 
 	results, httpErr := c.service.Update(todos)
@@ -395,7 +394,7 @@ func (c *Controller) SubmitNew(ctx *fiber.Ctx) error {
 	todos = append(todos, todo)
 
 	for _, todo := range todos {
-		if validErr := helper.ValidateStruct(*todo); validErr != nil {
+		if validErr := helper.Validate.Struct(*todo); validErr != nil {
 			data["errMessage"] = validErr.Error()
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
@@ -472,7 +471,7 @@ func (c *Controller) ToggleDone(ctx *fiber.Ctx) error {
 
 	logger.Debugf("have c: %+v", todo.CreatedAt)
 	for _, todo := range todos {
-		if validErr := helper.ValidateStruct(*todo); validErr != nil {
+		if validErr := helper.Validate.Struct(*todo); validErr != nil {
 			data["errMessage"] = validErr.Error()
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
@@ -553,7 +552,7 @@ func (c *Controller) SubmitUpdate(ctx *fiber.Ctx) error {
 	todos = append(todos, todo)
 
 	for _, todo := range todos {
-		if validErr := helper.ValidateStruct(*todo); validErr != nil {
+		if validErr := helper.Validate.Struct(*todo); validErr != nil {
 			data["errMessage"] = validErr.Error()
 			return tpl.Execute(fctx.Fctx.Response().BodyWriter(), data)
 		}
