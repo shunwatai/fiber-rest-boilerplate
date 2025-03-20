@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 projectName: "Fiber rest starter"
 
 server:
@@ -6,6 +5,11 @@ server:
   host: "localhost"
   port: 7000
   trustedProxies: ["172.19.0.0/16", "10.42.0.0/8"]
+  allowOrigins: [ # put the client frontend url here
+    "http://localhost:3000", 
+    "http://localhost:5173",
+    # "https://www.production-domain.com",
+  ]
 
 jwt:
   secret: "1234balhblahblah"

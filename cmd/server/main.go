@@ -58,17 +58,21 @@ func (f *Fiber) GetApp() {
 		StreamRequestBody:            true,
 
 		// for get the real IP if behind a proxy
-		EnableTrustedProxyCheck:      true,
-		ProxyHeader:                  "X-Real-IP",
-		TrustedProxies:               cfg.ServerConf.TrustedProxies,
+		EnableTrustedProxyCheck: true,
+		ProxyHeader:             "X-Real-IP",
+		TrustedProxies:          cfg.ServerConf.TrustedProxies,
 	})
 }
 
 func (f *Fiber) LoadMiddlewares() {
+	allowOrigins := strings.Join(config.Cfg.AllowOrigins, ",")
+	if len(allowOrigins) == 0 {
+		lg.Fatalf("error: allowOrigin cannot be empty, please make sure it is set in config file")
+	}
 	f.App.Use(logger.New())
 	f.App.Use(recover.New())
 	f.App.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
+		AllowOrigins: allowOrigins,
 		AllowHeaders: "",
 		AllowMethods: strings.Join([]string{
 			fiber.MethodGet,
@@ -78,7 +82,9 @@ func (f *Fiber) LoadMiddlewares() {
 			fiber.MethodDelete,
 			fiber.MethodPatch,
 		}, ","),
-		AllowCredentials: false,
+		AllowCredentials: func() bool {
+			return allowOrigins != "*" // AllowCredentials should be false if allOrigin == *
+		}(),
 	}))
 	auth.NewOAuth()
 }

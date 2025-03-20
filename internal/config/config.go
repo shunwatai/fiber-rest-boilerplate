@@ -110,6 +110,7 @@ type ServerConf struct {
 	Host           string
 	Port           string
 	TrustedProxies []string
+	AllowOrigins   []string
 }
 
 type Jwt struct {
