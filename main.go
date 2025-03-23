@@ -23,6 +23,7 @@ func main() {
 	api.GetApp()
 	api.LoadMiddlewares()
 	api.LoadSwagger()
+	api.LoadWebsocket()
 	api.LoadAllRoutes()
 	api.LoadCachingService()
 

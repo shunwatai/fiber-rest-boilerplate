@@ -46,8 +46,11 @@ func SetTokensInCookie(result map[string]interface{}, c *fiber.Ctx) error {
 		Value:    refreshToken,
 		Expires:  time.Now().Add(time.Hour * 720), // 30 days
 		HTTPOnly: true,
-		Secure:   env == "prod",
+		Secure:   env == "prod", // if SameSite == None, then it will always be True
 		Path:     "/",
+		// set to None for cross domain,
+		// ref:https://stackoverflow.com/a/46412839
+		SameSite: fiber.CookieSameSiteLaxMode,
 	}
 	c.Cookie(cookie)
 
@@ -57,8 +60,11 @@ func SetTokensInCookie(result map[string]interface{}, c *fiber.Ctx) error {
 		Value:    accessToken,
 		Expires:  time.Now().Add(time.Hour * 720), // 30 days
 		HTTPOnly: true,
-		Secure:   env == "prod",
+		Secure:   env == "prod", // if SameSite == None, then it will always be True
 		Path:     "/",
+		// set to None for cross domain
+		// ref:https://stackoverflow.com/a/46412839
+		SameSite: fiber.CookieSameSiteLaxMode, // set to none for cross domain
 	}
 	c.Cookie(cookie)
 
