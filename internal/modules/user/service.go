@@ -254,7 +254,7 @@ func (s *Service) Refresh(user *groupUser.User) (map[string]interface{}, *helper
 }
 
 func (s *Service) IsDisabled(userId string) error {
-	logger.Debugf("user service getById\n")
+	logger.Debugf("user service check disable")
 
 	records, _ := s.repo.Get(map[string]interface{}{"id": userId})
 	if len(records) == 0 {

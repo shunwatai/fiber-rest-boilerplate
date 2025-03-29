@@ -89,7 +89,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 	if cfg.CacheConf.Enabled {
 		var (
 			cacheKey string = cache.GetCacheKey(tableName, queries)
-			cacheVal        = cacheValue{}
+			cacheVal        = CacheValue{}
 		)
 		// get cache
 		isCached := cache.CacheService.Get(cacheKey, &cacheVal)
@@ -101,7 +101,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 
 		// set cache
 		defer func() {
-			cache.CacheService.Set(cacheKey, &cacheValue{Users: records, Pagination: pagination})
+			cache.CacheService.Set(cacheKey, &CacheValue{Users: records, Pagination: pagination})
 			cachedKeys[cacheKey] = struct{}{}
 		}()
 	}
