@@ -1,11 +1,10 @@
 package ws
 
 import (
+	"github.com/gofiber/contrib/websocket"
+
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/modules/groupUser"
-	"sync"
-
-	"github.com/gofiber/contrib/websocket"
 )
 
 // Client is a middleman between the websocket connection and the hub.
@@ -49,32 +48,33 @@ func newOnlineUserHub() *OnlineUsersHub {
 	}
 }
 
+var keyPrefix = "online_user:"
+
 func (h *OnlineUsersHub) run() {
-	var onlineUserList sync.Map
+	// var onlineUserList sync.Map
+	var onlineUserList = NewOnlineUserList()
+
 	for {
 		select {
 		case client := <-h.register:
 			// h.clients[client] = true
 			logger.Debugf(">>>>>>>>> new user online, %+v", *client.user)
 			h.clients[client] = *client.user
-			onlineUserList.Store(client.user.GetId(), client.user)
+			onlineUserList.Set(keyPrefix+client.user.GetId(), client.user)
 			h.broadcast <- struct{}{}
 		case client := <-h.unregister:
 			logger.Debugf(">>>>>>>>> user left")
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
-				onlineUserList.Delete(client.user.GetId())
+				// onlineUserList.Delete(client.user.GetId())
+				onlineUserList.Del(keyPrefix + client.user.GetId())
 				h.broadcast <- struct{}{}
 			}
 		// case message := <-h.broadcast:
 		case <-h.broadcast:
 			logger.Debugf(">>>>>>>>> broadcast")
-			userList := groupUser.Users{}
-			onlineUserList.Range(func(key, value interface{}) bool {
-				userList = append(userList, value.(*groupUser.User))
-				return true // continue iteration
-			})
+			userList := onlineUserList.GetList()
 			logger.Debugf(">>>>>>>> no. of clients: %+v", len(h.clients))
 			for client := range h.clients {
 				client.conn.WriteJSON(userList)
