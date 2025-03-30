@@ -92,6 +92,7 @@ func GetCacheKey(key string, queryString map[string]interface{}) string {
 		case []string:
 			queries = append(queries, fmt.Sprintf("%s=%s", k, strings.Join(v.([]string), ",")))
 		default:
+			queries = append(queries, fmt.Sprintf("%s=%+v", k, v))
 		}
 	}
 
