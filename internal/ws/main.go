@@ -28,14 +28,16 @@ func ServeCurrLoginUserWs(router fiber.Router) error {
 		}()
 
 		done := make(chan struct{}) // Channel to signal when to stop broadcasting
-		currUser, err := user.Srvc.GetById(map[string]interface{}{"id": currLoginUserId})
-		if err != nil {
+		// currUser, err := user.Srvc.GetById(map[string]interface{}{"id": currLoginUserId})
+		currUser, _ := user.Repo.Get(map[string]interface{}{"id": currLoginUserId})
+
+		// if err != nil {
+		if len(currUser) == 0 {
 			logger.Errorf("failed to fetch curr login user by id: %+v", currLoginUserId)
 			c.Close()
 			done <- struct{}{}
 		} else {
 			currUser[0].Password = nil
-			// currLoginUsers.Store(currUser[0].GetId(), currUser[0])
 			client = &Client{hub: onlineUserHub, conn: c, send: make(chan struct{}), user: currUser[0]}
 			client.hub.register <- client
 
