@@ -23,9 +23,9 @@ func main() {
 	api.GetApp()
 	api.LoadMiddlewares()
 	api.LoadSwagger()
+	api.LoadCachingService()
 	api.LoadWebsocket()
 	api.LoadAllRoutes()
-	api.LoadCachingService()
 
 	// default run the api server
 	if len(os.Args) == 1 {
