@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"encoding/json"
 	"slices"
 	"sync"
 
@@ -50,8 +51,21 @@ func (oulm *onlineUserListMap) GetList() groupUser.Users {
 
 // onlineUserListRds for storing the userList in cache service like redis
 type onlineUserListRds struct {
-	keys []string
-	list cache.ICaching
+	keys         cachedKeys
+	list         cache.ICaching
+	pubsub       cache.IPubSub
+	listCacheKey string
+}
+
+type cachedKeys []string
+
+func (s cachedKeys) MarshalBinary() ([]byte, error) {
+	return json.Marshal(s)
+}
+
+// make sure the Student interface here accepts a pointer
+func (s *cachedKeys) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, s)
 }
 
 func (oulm *onlineUserListRds) Get(key string, dst *groupUser.User) bool {
@@ -61,6 +75,14 @@ func (oulm *onlineUserListRds) Get(key string, dst *groupUser.User) bool {
 }
 
 func (oulm *onlineUserListRds) Set(key string, value *groupUser.User) {
+	defer func() {
+		if err := oulm.list.Set(oulm.listCacheKey, &oulm.keys); err != nil {
+			logger.Errorf("failed to set keys: %+v to cache..., err: %+v", oulm.listCacheKey, err.Error())
+		}
+	}()
+	if ok := oulm.list.Get(oulm.listCacheKey, &oulm.keys); !ok {
+		logger.Errorf("failed to get key: %+v from cache...", oulm.listCacheKey)
+	}
 	oulm.keys = append(oulm.keys, key)
 	if err := oulm.list.Set(key, &user.CacheValue{Users: []*groupUser.User{value}}); err != nil {
 		logger.Errorf("failed to set key: %+v to cache...", key)
@@ -68,6 +90,14 @@ func (oulm *onlineUserListRds) Set(key string, value *groupUser.User) {
 }
 
 func (oulm *onlineUserListRds) Del(key string) {
+	defer func() {
+		if err := oulm.list.Set(oulm.listCacheKey, &oulm.keys); err != nil {
+			logger.Errorf("failed to set keys: %+v to cache..., err: %+v", oulm.listCacheKey, err.Error())
+		}
+	}()
+	if ok := oulm.list.Get(oulm.listCacheKey, &oulm.keys); !ok {
+		logger.Errorf("failed to get key: %+v from cache...", oulm.listCacheKey)
+	}
 	keyIdx := -1
 	for i, k := range oulm.keys {
 		if k == key {
@@ -83,7 +113,12 @@ func (oulm *onlineUserListRds) Del(key string) {
 }
 
 func (oulm *onlineUserListRds) GetList() groupUser.Users {
+	if ok := oulm.list.Get(oulm.listCacheKey, &oulm.keys); !ok {
+		logger.Errorf("failed to get key: %+v from cache...", oulm.listCacheKey)
+	}
 	users := []*groupUser.User{}
+
+	logger.Debugf("oulm.keys: %+v", oulm.keys)
 	for _, k := range oulm.keys {
 		u := groupUser.User{}
 		oulm.Get(k, &u)
@@ -96,8 +131,10 @@ func NewOnlineUserList() IOnlineUserList {
 	if cfg.CacheConf.Enabled {
 		logger.Debugf("use redis for userlist")
 		return &onlineUserListRds{
-			list: cache.CacheService,
-			keys: []string{},
+			list:         cache.CacheService,
+			pubsub:       cache.PubSubService,
+			keys:         []string{},
+			listCacheKey: "user-list-keys",
 		} // return redis
 	}
 

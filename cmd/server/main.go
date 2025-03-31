@@ -117,6 +117,7 @@ func (f *Fiber) LoadCachingService() {
 
 	// set the caching service according to config
 	cache.CacheService = cache.NewCachingService()
+	cache.PubSubService = cache.NewPubSubService()
 
 	// clear cache on each hot reload in non-prod environments
 	if cfg.ServerConf.Env != "prod" {
