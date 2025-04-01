@@ -1,7 +1,9 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/redis/go-redis/v9"
 	"slices"
 	"sync"
 
@@ -24,6 +26,7 @@ type IOnlineUserList interface {
 // onlineUserListMap for local without 3rd party cache service like redis
 type onlineUserListMap struct {
 	list sync.Map
+	hub  *OnlineUsersHub
 }
 
 func (oulm *onlineUserListMap) Get(key string, dst *groupUser.User) bool {
@@ -34,10 +37,12 @@ func (oulm *onlineUserListMap) Get(key string, dst *groupUser.User) bool {
 
 func (oulm *onlineUserListMap) Set(key string, value *groupUser.User) {
 	oulm.list.Store(key, value)
+	oulm.hub.broadcast <- struct{}{}
 }
 
 func (oulm *onlineUserListMap) Del(key string) {
 	oulm.list.Delete(key)
+	oulm.hub.broadcast <- struct{}{}
 }
 
 func (oulm *onlineUserListMap) GetList() groupUser.Users {
@@ -79,6 +84,9 @@ func (oulm *onlineUserListRds) Set(key string, value *groupUser.User) {
 		if err := oulm.list.Set(oulm.listCacheKey, &oulm.keys); err != nil {
 			logger.Errorf("failed to set keys: %+v to cache..., err: %+v", oulm.listCacheKey, err.Error())
 		}
+
+		// publish to redis pubsub
+		cache.PubSubService.Pub(pubsubChannel, "publish from set")
 	}()
 	if ok := oulm.list.Get(oulm.listCacheKey, &oulm.keys); !ok {
 		logger.Errorf("failed to get key: %+v from cache...", oulm.listCacheKey)
@@ -94,6 +102,9 @@ func (oulm *onlineUserListRds) Del(key string) {
 		if err := oulm.list.Set(oulm.listCacheKey, &oulm.keys); err != nil {
 			logger.Errorf("failed to set keys: %+v to cache..., err: %+v", oulm.listCacheKey, err.Error())
 		}
+
+		// publish to redis pubsub
+		cache.PubSubService.Pub(pubsubChannel, "publish from delete")
 	}()
 	if ok := oulm.list.Get(oulm.listCacheKey, &oulm.keys); !ok {
 		logger.Errorf("failed to get key: %+v from cache...", oulm.listCacheKey)
@@ -127,9 +138,28 @@ func (oulm *onlineUserListRds) GetList() groupUser.Users {
 	return users
 }
 
-func NewOnlineUserList() IOnlineUserList {
+var pubsubChannel string = "online_users"
+
+func NewOnlineUserList(hub *OnlineUsersHub) IOnlineUserList {
 	if cfg.CacheConf.Enabled {
 		logger.Debugf("use redis for userlist")
+		var pubsub = &redis.PubSub{}
+
+		// subscribe to redis pubsub
+		pubsub = cache.PubSubService.Sub(pubsubChannel)
+		go func() error {
+			for {
+				redisMsg, err := pubsub.ReceiveMessage(context.Background())
+				if err != nil {
+					logger.Errorf("pubsub ReceiveMessage err: %+v", err.Error())
+					return pubsub.Close()
+				}
+
+				logger.Debugf(">>>>>>>>> ch %s broadcast rmsg: %+v", redisMsg.Channel, redisMsg.String())
+				hub.broadcast <- struct{}{}
+			}
+		}()
+
 		return &onlineUserListRds{
 			list:         cache.CacheService,
 			pubsub:       cache.PubSubService,
@@ -142,5 +172,6 @@ func NewOnlineUserList() IOnlineUserList {
 	// without redis
 	return &onlineUserListMap{
 		list: sync.Map{},
+		hub:  hub,
 	}
 }
