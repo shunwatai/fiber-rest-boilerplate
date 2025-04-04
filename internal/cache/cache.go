@@ -6,8 +6,6 @@ import (
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"strings"
 	"sync"
-
-	"github.com/redis/go-redis/v9"
 )
 
 var mu sync.RWMutex
@@ -33,36 +31,6 @@ type ICaching interface {
 }
 
 var CacheService ICaching = nil
-
-type IPubSub interface {
-	// Get the caching client to its correspond struct
-	Pub(channelName, message string) error
-
-	// Get caching client info
-	Sub(channelName string) *redis.PubSub
-}
-
-var PubSubService IPubSub = nil
-
-func NewPubSubService() IPubSub {
-	if cfg.CacheConf == nil {
-		logger.Errorf("error: DbConf is nil, maybe fail to load the config....")
-	}
-	logger.Debugf("engine: %+v", cfg.CacheConf.Driver)
-
-	switch cfg.CacheConf.Driver {
-	case "redis":
-		err := Rds.SetClient()
-		if err != nil {
-			logger.Fatalf("failed to initilise redis... err: %+v", err.Error())
-		}
-		return Rds
-
-	default:
-		logger.Fatalf("failed to initilise pubsub service...")
-		return nil
-	}
-}
 
 type ConnectionInfo struct {
 	Driver   string

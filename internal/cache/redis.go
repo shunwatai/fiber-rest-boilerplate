@@ -15,17 +15,6 @@ type Redis struct {
 
 var Rds = &Redis{}
 
-func (r *Redis) Pub(channelName, message string) error {
-	r.Client.Publish(ctx, channelName, message)
-	logger.Debugf("published to %+v to boardcast", channelName)
-	return nil
-}
-
-func (r *Redis) Sub(channelName string) *redis.PubSub {
-	logger.Debugf("subscribed to redis, channel: %+v", channelName)
-	return r.Client.Subscribe(ctx, channelName)
-}
-
 // GetConnectionInfo get cache's var by config
 func (r *Redis) GetConnectionInfo() *ConnectionInfo {
 	cfg.LoadEnvVariables()
