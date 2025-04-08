@@ -10,6 +10,7 @@ server:
     "http://localhost:5173",
     # "https://www.production-domain.com",
   ]
+  domain: "" # for set in cookie, leave it empty for localhost dev
 
 jwt:
   secret: "1234balhblahblah"
