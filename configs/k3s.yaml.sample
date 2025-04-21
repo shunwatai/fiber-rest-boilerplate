@@ -7,10 +7,11 @@ server:
   trustedProxies: ["172.19.0.0/16", "10.42.0.0/8"]
   allowOrigins: [ # put the client frontend url here
     "http://localhost:3000", 
+    "https://localhost:3000", 
     "http://localhost:5173",
+    "https://localhost:5173",
     # "https://www.production-domain.com",
   ]
-  domain: "" # for set in cookie, leave it empty for localhost dev
 
 jwt:
   secret: "1234balhblahblah"
