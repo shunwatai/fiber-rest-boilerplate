@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/contrib/websocket"
 
 	logger "golang-api-starter/internal/helper/logger/zap_log"
+	"golang-api-starter/internal/helper/utils"
 	"golang-api-starter/internal/modules/groupUser"
 )
 
@@ -58,6 +59,7 @@ func (h *OnlineUsersHub) run() {
 		case client := <-h.register:
 			// h.clients[client] = true
 			logger.Debugf(">>>>>>>>> new user online, %+v", *client.user)
+			client.user.IpAddress = utils.ToPtr(client.conn.IP()) 
 			h.clients[client] = *client.user
 			onlineUserList.Set(keyPrefix+client.user.GetId(), client.user)
 

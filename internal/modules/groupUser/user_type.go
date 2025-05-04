@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/iancoleman/strcase"
 )
 
@@ -43,7 +42,6 @@ func (userDto *UserDto) Validate(action string) error {
 		}
 		return presented
 	}
-	validate := validator.New()
 	var validateErrs []error
 	var validations = map[string]map[bool]map[string]map[string]any{
 		"password": {
@@ -69,7 +67,7 @@ func (userDto *UserDto) Validate(action string) error {
 			} else {
 				for rule, errmsgValue := range ruleErrmsgValue {
 					for errMsg, value := range errmsgValue {
-						if err := validate.Var(value, rule); err != nil {
+						if err := helper.Validate.Var(value, rule); err != nil {
 							validateErrs = append(validateErrs, errors.New(key+" "+errMsg))
 						}
 					}
@@ -151,6 +149,7 @@ type User struct {
 	CreatedAt *helper.CustomDatetime `json:"createdAt" db:"created_at"  bson:"created_at,omitempty"`
 	UpdatedAt *helper.CustomDatetime `json:"updatedAt" db:"updated_at" bson:"updated_at,omitempty"`
 	Search    *string                `json:"-" db:"search,omitempty" bson:"search,omitempty" example:"google"`
+	IpAddress *string                `json:"ipAddress" db:"-" bson:"-" example:"127.0.0.1"`
 }
 type Users []*User
 
