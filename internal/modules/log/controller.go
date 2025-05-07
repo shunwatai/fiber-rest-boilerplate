@@ -252,7 +252,7 @@ func (c *Controller) ListLogsPage(ctx *fiber.Ctx) error {
 		"title":      "Logs",
 		"logs":       Logs{},
 		"pagination": helper.Pagination{},
-		"logname":    username,
+		"username":    username,
 	}
 	tmplFiles := []string{
 		"web/template/parts/popup.gohtml",
