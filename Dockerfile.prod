@@ -124,8 +124,7 @@ COPY --from=build /app/assets/ /app/assets/
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
-# ARG UID=10001
-ARG UID
+ARG UID=10001
 RUN adduser \
     --disabled-password \
     --gecos "" \
