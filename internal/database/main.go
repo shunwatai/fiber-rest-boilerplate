@@ -34,6 +34,9 @@ type IDatabase interface {
 	/* Select by raw sql */
 	RawQuery(string, ...interface{}) (Rows, error)
 
+	/* Execute by raw sql */
+	RawExec(string, ...interface{}) (int64, error)
+
 	/* Select by req querystring with pagination */
 	Select(map[string]interface{}) (Rows, *helper.Pagination)
 

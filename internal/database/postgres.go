@@ -311,3 +311,16 @@ func (m *Postgres) RawQuery(sql string, args ...interface{}) (Rows, error) {
 
 	return rows, nil
 }
+
+func (m *Postgres) RawExec(sql string, args ...interface{}) (int64, error) {
+	logger.Debugf("raw exec from Postgres")
+	m.Connect()
+	defer m.db.Close()
+
+	results, err := m.db.Exec(sql, args...)
+	if err != nil {
+		return 0, logger.Errorf("rows.Err(): %+v", err.Error())
+	}
+
+	return results.RowsAffected()
+}
