@@ -27,9 +27,9 @@ var cfg = config.Cfg
 func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// logger.Debugf("middleware checking jwt in header.....")
-		url := string(c.Request().URI().Path())
+		reqPath := string(c.Request().URI().Path())
 		// logger.Debugf("jwt check: %+v, %+v", url, slices.Contains(ignorePaths, url))
-		if slices.Contains(ignorePaths, url) {
+		if slices.Contains(ignorePaths, reqPath) {
 			return c.Next()
 		}
 
