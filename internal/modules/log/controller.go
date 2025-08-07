@@ -28,6 +28,28 @@ func (c *Controller) Get(ctx *fiber.Ctx) error {
 	logger.Debugf("log ctrl\n")
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	paramsMap := helper.GetQueryString(ctx.Request().URI().QueryString())
+
+	var itemsErr error
+	if _, ok := paramsMap["page"]; !ok {
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]any{"message": "&page= is required"},
+		)
+	}
+	if itemsStr, ok := paramsMap["items"]; !ok {
+		itemsErr = errors.New("?page=1&items=[1-100] is required for logs query")
+	} else if items, err := strconv.ParseInt(itemsStr.(string), 10, 64); err != nil {
+		itemsErr = errors.New("items isn't int")
+	} else if items > 100 {
+		itemsErr = errors.New("items cannot be larger than 100")
+	}
+	if itemsErr != nil {
+		return fctx.JsonResponse(
+			fiber.StatusUnprocessableEntity,
+			map[string]any{"message": itemsErr.Error()},
+		)
+	}
+
 	results, pagination := c.service.Get(paramsMap)
 
 	respCode = fiber.StatusOK
