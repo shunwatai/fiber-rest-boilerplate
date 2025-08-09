@@ -20,6 +20,18 @@ func NewRepository(db database.IDatabase) *Repository {
 	return &Repository{db: db}
 }
 
+func (r *Repository) SetRepository(repoMap map[string]any) error {
+	for moduleName, repo := range repoMap {
+		switch moduleName {
+		case "group":
+			r.GroupRepo = repo.(groupUser.IGroupRepository)
+		default:
+		}
+	}
+	// return logger.Errorf("moduleName not match...")
+	return nil
+}
+
 func (r *Repository) GetIdMap(users groupUser.Users) map[string]*groupUser.User {
 	userMap := map[string]*groupUser.User{}
 	sanitise(users)

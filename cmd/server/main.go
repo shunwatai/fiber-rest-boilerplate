@@ -157,7 +157,7 @@ func (f *Fiber) LoadAllRoutes() {
 		custMiddlewares.CheckJwt(skipJwtCheckRoutes...), // add jwt check to all routes
 	)
 	sample.GetRoutes(router, custMiddlewares) // sample routes for testing
-	user.GetRoutes(router, custMiddlewares, group.Repo)
+	user.GetRoutes(router, custMiddlewares)
 	group.GetRoutes(router, custMiddlewares, user.Repo)
 	groupUser.GetRoutes(router, custMiddlewares, group.Repo, user.Repo)
 	document.GetRoutes(router, custMiddlewares)
@@ -172,6 +172,8 @@ func (f *Fiber) LoadAllRoutes() {
 	todoDocument.GetRoutes(router, custMiddlewares)
 	web.GetRoutes(router, custMiddlewares)
 
+	LoadRelayRepository()
+
 	// a custom 404 handler instead of default "Cannot GET /page-not-found"
 	// ref: https://github.com/gofiber/fiber/issues/748#issuecomment-687503079
 	f.App.Use(func(ctx *fiber.Ctx) error {
@@ -180,6 +182,14 @@ func (f *Fiber) LoadAllRoutes() {
 			"message": "Resource Not Found",
 		})
 	})
+}
+
+func LoadRelayRepository() {
+	repoMap := map[string]any{
+		"user":  user.Repo,
+		"group": group.Repo,
+	}
+	user.Repo.SetRepository(repoMap)
 }
 
 func (f *Fiber) Start() {
