@@ -1,7 +1,6 @@
 package utils
 
 import (
-	// "golang-api-starter/internal/config"
 	"crypto/rand"
 	"fmt"
 	"net/url"
@@ -61,12 +60,12 @@ func HashPassword(pwd string) string {
 func GetDomain(urlStr string) string {
 	// Parse the URL
 	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
-		return ""
-	}
+	// if err != nil {
+	// 	return ""
+	// }
 
 	host := parsedURL.Hostname()
-	if len(host) == 0 {
+	if err != nil || len(host) == 0 {
 		return urlStr
 	}
 
