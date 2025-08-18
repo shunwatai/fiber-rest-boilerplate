@@ -1,9 +1,13 @@
 package email
 
 import (
+	"fmt"
 	"golang-api-starter/internal/config"
+	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"html/template"
+	"strconv"
+	"time"
 
 	m "net/mail"
 
@@ -60,6 +64,19 @@ func (e *EmailInfo) checkInfo() error {
 
 func (e *EmailInfo) getClient() (*mail.Client, error) {
 	logger.Debugf("smtp conf: %+v", cfg.Notification.Smtp)
+	// Test smtp port connection
+	probe := &helper.ProbeTarget{
+		Host:        cfg.Notification.Smtp.Host,
+		Ports:       []string{strconv.Itoa(cfg.Notification.Smtp.Port)},
+		NetProtocol: "tcp",
+		TimeoutSec:  3 * time.Second,
+	}
+	probe.DialFunc = probe
+	if err := probe.PortsProbe(); err != nil {
+		return nil, logger.Errorf("Failed on connecting to SMTP: %s", fmt.Sprintf("%+v:%+v", cfg.Notification.Smtp.Host, cfg.Notification.Smtp.Port))
+	}
+	logger.Debugf(">>>>>>>>>>>>>>>> SMTP port is open")
+
 	client, err := mail.NewClient(
 		cfg.Notification.Smtp.Host,
 		mail.WithPort(cfg.Notification.Smtp.Port),
@@ -79,7 +96,9 @@ func (e *EmailInfo) getClient() (*mail.Client, error) {
 func (e *EmailInfo) initMessageWithInfo() (*mail.Msg, error) {
 	m := mail.NewMsg()
 
-	e.From = cfg.Notification.Smtp.User
+	if len(e.From) == 0 {
+		e.From = cfg.Notification.Smtp.User
+	}
 	if err := m.From(e.From); err != nil {
 		return nil, logger.Errorf("failed to set From address: %s", err)
 	}
