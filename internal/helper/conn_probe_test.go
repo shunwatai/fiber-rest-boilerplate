@@ -53,7 +53,7 @@ func TestPortProbe(t *testing.T) {
 				TimeoutSec:  3 * time.Second,
 				DialFunc:    &PortFailed{},
 			},
-			want: errors.New(fmt.Sprintf("Connection error: %s", net.JoinHostPort(cfg.Notification.Smtp.Host, strconv.Itoa(cfg.Notification.Smtp.Port)))),
+			want: errors.New(fmt.Sprintf("Connection error: %s, err: Failed connect to port", net.JoinHostPort(cfg.Notification.Smtp.Host, strconv.Itoa(cfg.Notification.Smtp.Port)))),
 		},
 	}
 
