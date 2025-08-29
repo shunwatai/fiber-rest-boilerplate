@@ -40,8 +40,14 @@ var respCode = fiber.StatusInternalServerError
 func NewCookie(domain string) *fiber.Cookie {
 	env := cfg.ServerConf.Env
 	cookieDomain := func() string {
+		// Set domain as empty string for localhost dev env
 		if strings.Contains(domain, "localhost") || len(domain) == 0 {
 			return ""
+		}
+
+		// Set domain as pre-defined config's domain for non-localhost env if len(domain) == 0
+		if !strings.Contains(domain, "localhost") && len(domain) == 0 {
+			return cfg.ServerConf.Domain
 		}
 		return domain
 	}()
