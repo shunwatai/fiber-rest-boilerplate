@@ -51,7 +51,9 @@ func (f *Fiber) GetApp() {
 	cfg.LoadEnvVariables()
 	zlog.NewZlog()
 	f.App = fiber.New(fiber.Config{
-		// Prefork:       true,
+		Prefork: func() bool {
+			return cfg.ServerConf.Env == "prod"
+		}(),
 		CaseSensitive:                true,
 		StrictRouting:                false,
 		ServerHeader:                 "Fiber",
