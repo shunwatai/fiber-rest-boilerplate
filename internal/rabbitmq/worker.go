@@ -47,7 +47,7 @@ func HandleTestQueue(rbmqWorker interfaces.IRbmqWorker) {
 		logger.Infof("%s: Received file upload: %d bytes, content: %v\n", queueName, len(uploadRequest.File), uploadRequest)
 
 		// Simulate processing time
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		logger.Infof("%s:File upload processed successfully", queueName)
 	}
@@ -78,7 +78,7 @@ func HandleLogQueue(rbmqWorker interfaces.IRbmqWorker) {
 
 	for msg := range msgs {
 		rbmqWorker.HandleLogFromQueue(msg.Body)
-		time.Sleep(2 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 
 		logger.Infof("%s: log processed successfully", queueName)
 	}
@@ -109,7 +109,7 @@ func HandleEmailQueue(rbmqWorker interfaces.IRbmqWorker) {
 
 	for msg := range msgs {
 		rbmqWorker.HandleEmailFromQueue(msg.Body)
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		logger.Infof("%s: email sent successfully", queueName)
 	}
