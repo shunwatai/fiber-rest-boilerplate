@@ -1,6 +1,6 @@
 package interfaces
 
 type IRbmqWorker interface {
-	HandleLogFromQueue(msg []byte)
-	HandleEmailFromQueue(msg []byte)
+	HandleLogFromQueue(msg []byte) error
+	HandleEmailFromQueue(msg []byte) error
 }
