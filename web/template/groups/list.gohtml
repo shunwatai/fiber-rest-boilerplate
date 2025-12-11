@@ -55,7 +55,7 @@
             id="items"
             class="w-fit size-8 px-2 rounded-lg border border-gray-100 bg-white text-gray-700 sm:text-sm"
             hx-get="/groups/list"
-            hx-include="[name='search'],[name='page'],[name='orderBy']"
+            hx-include="[name='name'],[name='search'],[name='page'],[name='orderBy']"
             hx-target="#groupTable"
             hx-swap="outerHTML"
           >
@@ -69,7 +69,7 @@
         <li class="my-auto flex w-full justify-center">
           <button
             hx-get="/groups/list?{{.pagination.PrevPage}}"
-            hx-include="[name='search']"
+            hx-include="[name='name'],[name='search']"
             hx-target="#groupTable"
             hx-swap="outerHTML"
             class="inline-flex size-8 items-center justify-center rounded border border-gray-100 bg-white text-gray-900 rtl:rotate-180"
@@ -93,7 +93,7 @@
             name="page"
             class="w-12 size-8 px-2 rounded-lg border border-gray-100 bg-white text-gray-700 sm:text-sm"
             hx-get="/groups/list"
-            hx-include="[name='search'],[name='items'],[name='orderBy']"
+            hx-include="[name='name'],[name='search'],[name='items'],[name='orderBy']"
             hx-target="#groupTable"
             hx-swap="outerHTML"
           >
@@ -103,7 +103,7 @@
           </select>
           <button
             hx-get="/groups/list?{{.pagination.NextPage}}"
-            hx-include="[name='search']"
+            hx-include="[name='name'],[name='search']"
             hx-target="#groupTable"
             hx-swap="outerHTML"
             class="inline-flex size-8 items-center justify-center rounded border border-gray-100 bg-white text-gray-900 rtl:rotate-180"

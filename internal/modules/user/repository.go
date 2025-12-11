@@ -20,6 +20,18 @@ func NewRepository(db database.IDatabase) *Repository {
 	return &Repository{db: db}
 }
 
+func (r *Repository) SetRepository(repoMap map[string]any) error {
+	for moduleName, repo := range repoMap {
+		switch moduleName {
+		case "group":
+			r.GroupRepo = repo.(groupUser.IGroupRepository)
+		default:
+		}
+	}
+	// return logger.Errorf("moduleName not match...")
+	return nil
+}
+
 func (r *Repository) GetIdMap(users groupUser.Users) map[string]*groupUser.User {
 	userMap := map[string]*groupUser.User{}
 	sanitise(users)
@@ -89,7 +101,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 	if cfg.CacheConf.Enabled {
 		var (
 			cacheKey string = cache.GetCacheKey(tableName, queries)
-			cacheVal        = cacheValue{}
+			cacheVal        = CacheValue{}
 		)
 		// get cache
 		isCached := cache.CacheService.Get(cacheKey, &cacheVal)
@@ -101,7 +113,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 
 		// set cache
 		defer func() {
-			cache.CacheService.Set(cacheKey, &cacheValue{Users: records, Pagination: pagination})
+			cache.CacheService.Set(cacheKey, &CacheValue{Users: records, Pagination: pagination})
 			cachedKeys[cacheKey] = struct{}{}
 		}()
 	}

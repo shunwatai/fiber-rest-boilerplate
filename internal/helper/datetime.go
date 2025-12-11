@@ -41,10 +41,10 @@ func ParseInputDatetime(datetime string) (*time.Time, error) {
 
 func (t *CustomDatetime) UnmarshalJSON(input []byte) error {
 	strInput := strings.Trim(string(input), `"`)
-	fmt.Printf("strInput: %+v\n", strInput)
+	// logger.Debugf("strInput: %+v\n", strInput)
 
 	parsedTime, err := ParseInputDatetime(strInput)
-	fmt.Printf("parsedTime: %+v\n", parsedTime)
+	// logger.Debugf("parsedTime: %+v\n", parsedTime)
 	if err == nil {
 		t.Time = parsedTime
 	}

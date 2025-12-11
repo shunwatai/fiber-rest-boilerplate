@@ -47,7 +47,7 @@ func HandleTestQueue(rbmqWorker interfaces.IRbmqWorker) {
 		logger.Infof("%s: Received file upload: %d bytes, content: %v\n", queueName, len(uploadRequest.File), uploadRequest)
 
 		// Simulate processing time
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		logger.Infof("%s:File upload processed successfully", queueName)
 	}
@@ -77,8 +77,11 @@ func HandleLogQueue(rbmqWorker interfaces.IRbmqWorker) {
 	logger.Infof("Log worker started. Waiting for logs...")
 
 	for msg := range msgs {
-		rbmqWorker.HandleLogFromQueue(msg.Body)
-		time.Sleep(2 * time.Second)
+		if err := rbmqWorker.HandleLogFromQueue(msg.Body); err != nil {
+			logger.Debugf(">> Requeue failed log")
+			rabbitMQ.channel.Reject(msg.DeliveryTag, true)
+		}
+		time.Sleep(500 * time.Millisecond)
 
 		logger.Infof("%s: log processed successfully", queueName)
 	}
@@ -108,8 +111,11 @@ func HandleEmailQueue(rbmqWorker interfaces.IRbmqWorker) {
 	logger.Infof("Email worker started. Waiting for emails...")
 
 	for msg := range msgs {
-		rbmqWorker.HandleEmailFromQueue(msg.Body)
-		time.Sleep(2 * time.Second)
+		if err := rbmqWorker.HandleEmailFromQueue(msg.Body); err != nil {
+			logger.Debugf(">> Requeue failed email")
+			rabbitMQ.channel.Reject(msg.DeliveryTag, true)
+		}
+		time.Sleep(1 * time.Second)
 
 		logger.Infof("%s: email sent successfully", queueName)
 	}

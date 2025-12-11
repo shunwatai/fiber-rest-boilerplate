@@ -88,7 +88,7 @@
             id="items"
             class="w-14 size-8 p-1 rounded-lg border border-gray-100 bg-white text-gray-700 sm:text-sm"
             hx-get="/logs/list"
-            hx-include="[name='search'],[name='page'],[name='orderBy']"
+            hx-include="[name='route'],[name='search'],[name='page'],[name='orderBy']"
             hx-target="#logTable"
             hx-swap="outerHTML"
           >
@@ -102,7 +102,7 @@
         <li class="my-auto flex w-full justify-center">
           <button
             hx-get="/logs/list?{{.pagination.PrevPage}}"
-            hx-include="[name='search']"
+            hx-include="[name='route'],[name='search']"
             hx-target="#logTable"
             hx-swap="outerHTML"
             class="inline-flex size-8 items-center justify-center rounded border border-gray-100 bg-white text-gray-900 rtl:rotate-180"
@@ -126,7 +126,7 @@
             name="page"
             class="w-14 size-8 p-1 rounded-lg border border-gray-100 bg-white text-gray-700 sm:text-sm"
             hx-get="/logs/list"
-            hx-include="[name='search'],[name='items'],[name='orderBy']"
+            hx-include="[name='route'],[name='search'],[name='items'],[name='orderBy']"
             hx-target="#logTable"
             hx-swap="outerHTML"
           >
@@ -136,7 +136,7 @@
           </select>
           <button
             hx-get="/logs/list?{{.pagination.NextPage}}"
-            hx-include="[name='search']"
+            hx-include="[name='route'],[name='search']"
             hx-target="#logTable"
             hx-swap="outerHTML"
             class="inline-flex size-8 items-center justify-center rounded border border-gray-100 bg-white text-gray-900 rtl:rotate-180"

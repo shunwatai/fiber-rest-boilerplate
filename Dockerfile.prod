@@ -11,9 +11,10 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS build
 WORKDIR /app
 COPY ./configs/ /app/configs/
 COPY ./web/ /app/web/
+COPY ./assets/ /app/assets/
 
 RUN --mount=type=cache,target=/var/cache/apk \
-    apk --update add alpine-sdk musl-dev sqlite-dev
+    apk --update add alpine-sdk musl-dev sqlite-dev dumb-init
 
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /go/pkg/mod/ to speed up subsequent builds.
@@ -79,6 +80,8 @@ RUN --mount=type=cache,target=/var/cache/apk \
 
 # Copy the executable from the "build" stage.
 COPY --from=build /app/configs/ /app/configs/
+COPY --from=build /app/web/ /app/web/
+COPY --from=build /app/assets/ /app/assets/
 COPY --from=build /bin/fiber-api /app/bin/
 
 USER appuser
@@ -117,11 +120,12 @@ RUN --mount=type=cache,target=/var/cache/apk \
 COPY --from=build /bin/fiber-api /app/bin/
 COPY --from=build /app/configs/ /app/configs/
 COPY --from=build /app/web/ /app/web/
+COPY --from=build /app/assets/ /app/assets/
+COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
-# ARG UID=10001
-ARG UID
+ARG UID=10001
 RUN adduser \
     --disabled-password \
     --gecos "" \
@@ -137,8 +141,11 @@ USER appuser
 # Expose the port that the application listens on.
 EXPOSE 7000
 
+# dumb-init for handle when prefork flag is True running in docker / k8s env
+# ref: https://github.com/gofiber/fiber/issues/1036#issuecomment-2123421544
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 # What the container should run when it is started.
-ENTRYPOINT [ "/app/bin/fiber-api" ]
+CMD [ "/app/bin/fiber-api" ]
 
 
 

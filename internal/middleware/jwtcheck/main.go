@@ -27,23 +27,28 @@ var cfg = config.Cfg
 func (jc *JwtChecker) CheckJwt(ignorePaths ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// logger.Debugf("middleware checking jwt in header.....")
-		url := string(c.Request().URI().Path())
+		reqPath := string(c.Request().URI().Path())
 		// logger.Debugf("jwt check: %+v, %+v", url, slices.Contains(ignorePaths, url))
-		if slices.Contains(ignorePaths, url) {
+		if slices.Contains(ignorePaths, reqPath) {
 			return c.Next()
 		}
 
 		requestHeader := c.GetReqHeaders()
-		if requestHeader["Accept"] == nil || len(strings.TrimSpace(requestHeader["Accept"][0])) == 0 {
-			return logger.Errorf("ERROR: missing Accept in request header...")
-		}
-		isHtml := strings.Contains(requestHeader["Accept"][0], "text/html")
+		isWs := isWebsocketHeader(requestHeader)
 
 		var (
 			claims jwt.MapClaims
 			errStr []string
 			err    error
+			isHtml bool = false
 		)
+
+		if !isWs {
+			if requestHeader["Accept"] == nil || len(strings.TrimSpace(requestHeader["Accept"][0])) == 0 {
+				return logger.Errorf("ERROR: missing Accept in request header...")
+			}
+			isHtml = strings.Contains(requestHeader["Accept"][0], "text/html")
+		}
 
 		var checkUserDisabled = func() error {
 			var userId string
@@ -178,4 +183,9 @@ type jwtError struct {
 
 func (je *jwtError) Error() string {
 	return je.errorMessage
+}
+
+func isWebsocketHeader(headers map[string][]string) bool {
+	upgrade, ok := headers["Upgrade"]
+	return ok && len(upgrade) > 0 && upgrade[0] == "websocket"
 }

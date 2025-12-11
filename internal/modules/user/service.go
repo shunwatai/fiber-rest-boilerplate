@@ -37,7 +37,7 @@ func (s *Service) GetLoggedInUsername() string {
 
 /* this func for generate the jwt claims like the access & refresh tokens */
 func GenerateUserToken(user groupUser.User, tokenType string) *jwt.Token {
-	var expireTime = &jwt.NumericDate{time.Now().Add(time.Minute * 10)} // 10 mins for access token?
+	var expireTime = &jwt.NumericDate{time.Now().Add(time.Minute * 5)} // 5 mins for access token?
 
 	env := cfg.ServerConf.Env
 	if env == "local" { // if local development, set expire time to 1 year
@@ -254,7 +254,7 @@ func (s *Service) Refresh(user *groupUser.User) (map[string]interface{}, *helper
 }
 
 func (s *Service) IsDisabled(userId string) error {
-	logger.Debugf("user service getById\n")
+	logger.Debugf("user service check disable")
 
 	records, _ := s.repo.Get(map[string]interface{}{"id": userId})
 	if len(records) == 0 {

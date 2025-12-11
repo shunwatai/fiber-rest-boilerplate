@@ -15,6 +15,7 @@ import (
 )
 
 type FlexInt int64
+type FlexFloat float64
 
 type IReqPayload interface {
 	ParseJsonToStruct(interface{}, interface{}) (error, error)
@@ -43,6 +44,22 @@ func (fi *FlexInt) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	*fi = FlexInt(i)
+	return nil
+}
+
+func (fi *FlexFloat) UnmarshalJSON(b []byte) error {
+	if b[0] != '"' {
+		return json.Unmarshal(b, (*float64)(fi))
+	}
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	i, err := strconv.ParseFloat(s, 10)
+	if err != nil {
+		return err
+	}
+	*fi = FlexFloat(i)
 	return nil
 }
 

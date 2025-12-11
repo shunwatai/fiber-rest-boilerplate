@@ -21,7 +21,7 @@ docker-dev-build:
 	docker-compose -f compose-dev.yaml build --build-arg UID=$$(id -u) fiber-api-dev
 
 docker-prod-build: 
-	docker-compose -f compose-prod.yaml build --build-arg UID=$$(id -u) fiber-api-prod
+	docker-compose -f compose-prod.yaml build fiber-api-prod
 
 docker-dev-up: 
 	docker-compose -f compose-dev.yaml up -d

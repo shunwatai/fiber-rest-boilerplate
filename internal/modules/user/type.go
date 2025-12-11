@@ -17,19 +17,19 @@ type UserClaims struct {
 
 // other user related types are grouped in internal/modules/groupUser/user_type.go
 
-type cacheValue struct {
+type CacheValue struct {
 	Users        []*groupUser.User
 	Pagination *helper.Pagination
 }
 
 // MarshalBinary serializes data into a byte slice for caching.
-func (gus *cacheValue) MarshalBinary() (data []byte, err error) {
+func (gus *CacheValue) MarshalBinary() (data []byte, err error) {
 	bytes, err := json.Marshal(gus)
 	return bytes, err
 }
 
 // UnmarshalBinary deserializes the byte slice back into data for caching.
-func (gus *cacheValue) UnmarshalBinary(data []byte) error {
+func (gus *CacheValue) UnmarshalBinary(data []byte) error {
 	return json.Unmarshal(data, gus)
 }
 

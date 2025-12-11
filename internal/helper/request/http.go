@@ -1,11 +1,13 @@
 package request
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"golang-api-starter/internal/config"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"io"
+	"net/http"
 	"net/url"
 	"slices"
 	"strings"
@@ -40,6 +42,14 @@ func HttpReq(reqMethod, reqUrl string, body *string, header map[string]string, r
 	}
 
 	retryClient := retryablehttp.NewClient()
+	// Create a custom HTTP transport that skips SSL verification
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	retryClient.HTTPClient.Transport = transport
+
 	if retries != nil {
 		retryClient.RetryMax = *retries
 	} else {

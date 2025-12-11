@@ -10,7 +10,9 @@ import (
 	"golang-api-starter/internal/helper/utils"
 	"golang-api-starter/internal/modules/groupUser"
 	"html/template"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,33 +36,71 @@ func NewController(s *Service) *Controller {
 var mu sync.Mutex
 var respCode = fiber.StatusInternalServerError
 
+// NewCookie get new cookie with some default values
+func NewCookie(domain string) *fiber.Cookie {
+	env := cfg.ServerConf.Env
+	cookieDomain := func() string {
+		// Set domain as empty string for localhost dev env
+		if strings.Contains(domain, "localhost") || len(domain) == 0 {
+			return ""
+		}
+
+		// Set domain as pre-defined config's domain for non-localhost env if len(domain) == 0
+		if !strings.Contains(domain, "localhost") && len(domain) == 0 {
+			return cfg.ServerConf.Domain
+		}
+		return domain
+	}()
+	secured := func() bool {
+		if len(cookieDomain) == 0 {
+			return false
+		}
+
+		return env == "prod"
+	}()
+	// logger.Debugf("secured: %+v", secured)
+
+	return &fiber.Cookie{
+		Secure:   secured, // if SameSite == None, then it will always be True
+		Path:     "/",
+		HTTPOnly: true,
+		Domain:   cookieDomain,
+		// set to None for cross domain,
+		// ref:https://stackoverflow.com/a/46412839
+		// SameSite: fiber.CookieSameSiteLaxMode,
+		SameSite: func() string {
+			if secured || env == "prod" {
+				return fiber.CookieSameSiteNoneMode
+			}
+			return fiber.CookieSameSiteLaxMode
+		}(),
+	}
+}
+
 /* SetTokensInCookie is a helper for Login & Refresh funcs for setting the cookies in response */
 func SetTokensInCookie(result map[string]interface{}, c *fiber.Ctx) error {
 	if result["refreshToken"] == nil && result["accessToken"] == nil {
 		return logger.Errorf("missing required 'accessToken' & 'refreshToken'")
 	}
-	env := cfg.ServerConf.Env
-	refreshToken := result["refreshToken"].(string)
-	cookie := &fiber.Cookie{
-		Name:     "refreshToken",
-		Value:    refreshToken,
-		Expires:  time.Now().Add(time.Hour * 720), // 30 days
-		HTTPOnly: true,
-		Secure:   env == "prod",
-		Path:     "/",
-	}
-	c.Cookie(cookie)
 
-	accessToken := result["accessToken"].(string)
-	cookie = &fiber.Cookie{
-		Name:     "accessToken",
-		Value:    accessToken,
-		Expires:  time.Now().Add(time.Hour * 720), // 30 days
-		HTTPOnly: true,
-		Secure:   env == "prod",
-		Path:     "/",
+	tokensMap := map[string]string{
+		"refreshToken": result["refreshToken"].(string),
+		"accessToken":  result["accessToken"].(string),
 	}
-	c.Cookie(cookie)
+
+	origin := c.Get("Origin")
+	urlStr, err := url.Parse(origin)
+	if err != nil {
+		return logger.Errorf("failed url.Parse(%s), err: %s", origin, err.Error())
+	}
+	domain := utils.GetDomain(urlStr.String())
+	for key, value := range tokensMap {
+		cookie := NewCookie(domain)
+		cookie.Name = key
+		cookie.Value = value
+		cookie.Expires = time.Now().Add(time.Hour * 720) // 30 days
+		c.Cookie(cookie)
+	}
 
 	delete(result, "refreshToken")
 	return nil
@@ -348,13 +388,19 @@ func (c *Controller) Logout(ctx *fiber.Ctx) error {
 	logger.Debugf("user ctrl logout")
 	cookieKeys := []string{"accessToken", "refreshToken"}
 
+	origin := ctx.Get("Origin")
+	urlStr, err := url.Parse(origin)
+	if err != nil {
+		logger.Errorf("failed url.Parse(%s), err: %s", origin, err.Error())
+	}
+	domain := utils.GetDomain(urlStr.String())
 	// ref: https://github.com/gofiber/fiber/issues/1127#issuecomment-2015543089
 	for _, key := range cookieKeys {
-		ctx.Cookie(&fiber.Cookie{
-			Name:    key,
-			Expires: time.Now().Add(-time.Hour * 24),
-			Value:   "",
-		})
+		cookie := NewCookie(domain)
+		cookie.Name = key
+		cookie.Expires = time.Now().Add(-time.Hour * 24)
+		cookie.Value = ""
+		ctx.Cookie(cookie)
 	}
 
 	ctx.Set("HX-Redirect", "/login")

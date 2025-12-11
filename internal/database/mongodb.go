@@ -369,3 +369,9 @@ func (m *Mongodb) runCommands(action string, cmds ...interface{}) (Rows, error) 
 
 	return &MongoRows{cur, ctx}, err
 }
+
+func (m *Mongodb) RawExec(action string, args ...interface{}) (int64, error) {
+	logger.Debugf("raw exec from Mongodb")
+	_, err := m.runCommands(action, args...)
+	return 0, err
+}

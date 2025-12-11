@@ -1,12 +1,13 @@
 package utils
 
 import (
-	// "golang-api-starter/internal/config"
 	"crypto/rand"
 	"fmt"
+	"net/url"
 	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -53,4 +54,29 @@ func HashPassword(pwd string) string {
 	}
 
 	return string(hash)
+}
+
+// GetDomain extracts the primary domain from a URL
+func GetDomain(urlStr string) string {
+	// Parse the URL
+	parsedURL, err := url.Parse(urlStr)
+	// if err != nil {
+	// 	return ""
+	// }
+
+	host := parsedURL.Hostname()
+	if err != nil || len(host) == 0 {
+		return urlStr
+	}
+
+	// Split the host into parts
+	parts := strings.Split(host, ".")
+	n := len(parts)
+
+	// Return last two parts for main domain (e.g., example.com)
+	if n > 1 {
+		return strings.Join(parts[n-2:], ".")
+	}
+
+	return host // for cases like localhost
 }
