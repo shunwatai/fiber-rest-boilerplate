@@ -23,7 +23,7 @@ func HandleTestQueue(rbmqWorker interfaces.IRbmqWorker) {
 	msgs, err := rabbitMQ.channel.Consume(
 		rabbitMQ.queue.Name, // queue
 		"",                  // consumer
-		true,                // auto-ack
+		false,               // no auto-ack
 		false,               // exclusive
 		false,               // no-local
 		false,               // no-wait
@@ -64,7 +64,7 @@ func HandleLogQueue(rbmqWorker interfaces.IRbmqWorker) {
 	msgs, err := rabbitMQ.channel.Consume(
 		rabbitMQ.queue.Name, // queue
 		"",                  // consumer
-		true,                // auto-ack
+		false,               // no auto-ack
 		false,               // exclusive
 		false,               // no-local
 		false,               // no-wait
@@ -79,9 +79,15 @@ func HandleLogQueue(rbmqWorker interfaces.IRbmqWorker) {
 	for msg := range msgs {
 		if err := rbmqWorker.HandleLogFromQueue(msg.Body); err != nil {
 			logger.Debugf(">> Requeue failed log")
-			rabbitMQ.channel.Reject(msg.DeliveryTag, true)
+			if err = msg.Nack(true, true); err != nil {
+				logger.Errorf(">> Failed to requeue log, err: %+v", err.Error())
+			}
+			continue
 		}
-		time.Sleep(500 * time.Millisecond)
+		if err := msg.Ack(true); err != nil {
+			logger.Errorf(">> Failed to Ack log msg, err: %+v", err.Error())
+		}
+		// time.Sleep(500 * time.Millisecond)
 
 		logger.Infof("%s: log processed successfully", queueName)
 	}
@@ -98,7 +104,7 @@ func HandleEmailQueue(rbmqWorker interfaces.IRbmqWorker) {
 	msgs, err := rabbitMQ.channel.Consume(
 		rabbitMQ.queue.Name, // queue
 		"",                  // consumer
-		true,                // auto-ack
+		false,               // no auto-ack
 		false,               // exclusive
 		false,               // no-local
 		false,               // no-wait
@@ -112,10 +118,16 @@ func HandleEmailQueue(rbmqWorker interfaces.IRbmqWorker) {
 
 	for msg := range msgs {
 		if err := rbmqWorker.HandleEmailFromQueue(msg.Body); err != nil {
-			logger.Debugf(">> Requeue failed email")
-			rabbitMQ.channel.Reject(msg.DeliveryTag, true)
+			logger.Errorf(">> Requeue failed email, err: %+v", err.Error())
+			if err = msg.Nack(true, true); err != nil {
+				logger.Errorf(">> Failed to requeue email, err: %+v", err.Error())
+			}
+			continue
 		}
-		time.Sleep(1 * time.Second)
+		if err := msg.Ack(true); err != nil {
+			logger.Errorf(">> Failed to Ack email msg, err: %+v", err.Error())
+		}
+		// time.Sleep(1 * time.Second)
 
 		logger.Infof("%s: email sent successfully", queueName)
 	}
