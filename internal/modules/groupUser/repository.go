@@ -93,15 +93,6 @@ func cascadeFields(groupUsers GroupUsers) {
 	}
 }
 
-var cachedKeys = map[string]struct{}{}
-
-func cleanCache() {
-	for k, _ := range cachedKeys {
-		cache.CacheService.DelByKey(k)
-		delete(cachedKeys, k)
-	}
-}
-
 func (r *Repository) Get(queries map[string]interface{}) ([]*GroupUser, *helper.Pagination) {
 	logger.Debugf("groupUser repo get")
 	defaultExactMatch := map[string]bool{
@@ -137,8 +128,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*GroupUser, *helper.
 
 		// set cache
 		defer func() {
-			cache.CacheService.Set(cacheKey, &cacheValue{Gus: records, Pagination: pagination})
-			cachedKeys[cacheKey] = struct{}{}
+			cache.CacheService.Set(tableName, cacheKey, &cacheValue{Gus: records, Pagination: pagination})
 		}()
 	}
 
@@ -155,7 +145,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*GroupUser, *helper.
 }
 
 func (r *Repository) Create(groupUsers []*GroupUser) ([]*GroupUser, error) {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	for _, groupUser := range groupUsers {
 		logger.Debugf("groupUser repo add: %+v", groupUser)
 	}
@@ -173,7 +163,7 @@ func (r *Repository) Create(groupUsers []*GroupUser) ([]*GroupUser, error) {
 }
 
 func (r *Repository) Update(groupUsers []*GroupUser) ([]*GroupUser, error) {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	logger.Debugf("groupUser repo update")
 	rows, err := r.db.Save(GroupUsers(groupUsers))
 
@@ -187,7 +177,7 @@ func (r *Repository) Update(groupUsers []*GroupUser) ([]*GroupUser, error) {
 }
 
 func (r *Repository) Delete(ids []string) error {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	logger.Debugf("groupUser repo delete")
 	err := r.db.Delete(ids)
 	if err != nil {
