@@ -137,14 +137,19 @@ func (s *Service) Delete(ids []string) ([]*groupUser.Group, error) {
 
 func updateGroupUsers(group *groupUser.Group) {
 	// remove all existing groupUsers records
-	existingGroupUsers, _ := groupUser.Srvc.Get(map[string]interface{}{"group_id": group.GetId()})
-	existingGroupUsersIds := []string{}
-	for _, gu := range existingGroupUsers {
-		existingGroupUsersIds = append(existingGroupUsersIds, gu.GetId())
+	if err := groupUser.Repo.DeleteExistingByGroupId(group.GetId()); err != nil {
+		logger.Errorf(">>> DeleteExistingByGroupId err: %+s", err.Error())
+		return
 	}
-	if len(existingGroupUsersIds) > 0 {
-		groupUser.Srvc.Delete(existingGroupUsersIds)
-	}
+	// existingGroupUsers, _ := groupUser.Srvc.Get(map[string]interface{}{"group_id": group.GetId()})
+	// existingGroupUsersIds := []string{}
+	// for _, gu := range existingGroupUsers {
+	// 	existingGroupUsersIds = append(existingGroupUsersIds, gu.GetId())
+	// }
+	// if len(existingGroupUsersIds) > 0 {
+	// 	groupUser.Srvc.Delete(existingGroupUsersIds)
+	// }
+
 	// update groupUsers table
 	if group.Users != nil && len(*group.Users) > 0 {
 		groupUsers := []*groupUser.GroupUser{}
@@ -152,7 +157,7 @@ func updateGroupUsers(group *groupUser.Group) {
 			groupUsers = append(groupUsers, &groupUser.GroupUser{GroupId: group.GetId(), UserId: u.GetId()})
 		}
 
-		groupUser.Srvc.Create(groupUsers)
+		groupUser.Repo.Create(groupUsers)
 	}
 }
 

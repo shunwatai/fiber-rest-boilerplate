@@ -191,3 +191,16 @@ func (r *Repository) Delete(ids []string) error {
 
 	return nil
 }
+
+// DeleteExistingByGroupId remove related records by groupId in DB
+// for insert updated group_user records
+func (r *Repository) DeleteExistingByGroupId(groupId string) error {
+	defer cache.EmptyCacheByPrefix(tableName)
+	logger.Debugf("groupUser repo delete existing by groupId")
+	_, err := r.db.RawExec("DELETE FROM group_users WHERE group_id=$1;", groupId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
