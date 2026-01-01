@@ -1,12 +1,14 @@
 package utils
 
 import (
+	"cmp"
 	"crypto/rand"
 	"fmt"
 	"net/url"
 	"path"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -79,4 +81,11 @@ func GetDomain(urlStr string) string {
 	}
 
 	return host // for cases like localhost
+}
+
+// RemoveDuplicatedInList removes duplicated items in given list(slice)
+// Ref: https://stackoverflow.com/a/76471309
+func RemoveDuplicatedInList[T cmp.Ordered](list []T) []T {
+	slices.Sort(list)
+	return slices.Compact(list)
 }
