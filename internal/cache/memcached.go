@@ -60,7 +60,7 @@ func (mc *Memcached) Get(key string, dst interface{}) bool {
 	return true
 }
 
-func (mc *Memcached) Set(key string, value interface{}) error {
+func (mc *Memcached) Set(prefix,key string, value interface{}) error {
 	client := mc.Client
 
 	b, err := json.Marshal(&value)
@@ -76,12 +76,33 @@ func (mc *Memcached) Set(key string, value interface{}) error {
 		return logger.Errorf("failed to set cache, err: %+v", err.Error())
 	}
 
+	if _, ok := cachedKeys[prefix]; !ok {
+		cachedKeys[prefix] = []string{}
+	}
+	cachedKeys[prefix] = append(cachedKeys[prefix], key)
+
 	return nil
 }
 
 func (mc *Memcached) DelByKey(key string) error {
 	client := mc.Client
 	return client.Delete(key)
+}
+
+func (mc *Memcached) DelByPrefix(prefix string) error {
+	client := mc.Client
+	if keys, ok := cachedKeys[prefix]; !ok {
+		return logger.Errorf("Failed to get keys from cachedKeys[mc.KeyPrefix] by prefix: %s....", prefix)
+	} else {
+		for _, k := range keys {
+			if err := client.Delete(k); err != nil {
+				return logger.Errorf("Memcache failed to Delete key: %s....", k)
+			}
+		}
+	}
+
+	delete(cachedKeys, prefix) 
+	return nil
 }
 
 // FlushDb for clear all keys for debug

@@ -9,6 +9,7 @@ import (
 )
 
 var mu sync.RWMutex
+var cachedKeys = map[string][]string{}
 
 type ICaching interface {
 	// Get the caching client to its correspond struct
@@ -18,16 +19,19 @@ type ICaching interface {
 	GetConnectionInfo() *ConnectionInfo
 
 	// Get cache by key
-	Get(key string, dst interface{}) bool
+	Get(key string, dst any) bool
 
 	// Set cache by key
-	Set(key string, value interface{}) error
+	Set(prefix, key string, value any) error
 
 	// Delete cache by key
 	DelByKey(key string) error
 
 	// Delete all keys from cache
 	FlushDb() error
+
+	// DelByPrefix
+	DelByPrefix(prefix string) error
 }
 
 var CacheService ICaching = nil
@@ -85,7 +89,7 @@ func GetCacheKey(key string, queryString map[string]interface{}) string {
 		if k == "exactMatch" || k == "columns" {
 			continue
 		}
-		// logger.Debugf("key??>> %+v", k)
+		// logger.Debugf("key??>> %+v, val>> %+v", k, v)
 		switch v.(type) {
 		case string:
 			queries = append(queries, fmt.Sprintf("%s=%s", k, v))
@@ -96,14 +100,19 @@ func GetCacheKey(key string, queryString map[string]interface{}) string {
 		}
 	}
 
-	key = fmt.Sprintf("%s-%s", key, strings.Join(queries, "-"))
+	key = fmt.Sprintf("%s:%s", key, strings.Join(queries, "-"))
 	return key
 }
 
 // EmptyCacheKeyMap naive invalidate all caches by module
 func EmptyCacheKeyMap(cachedKeys map[string]struct{}) {
-	for k, _ := range cachedKeys {
+	for k := range cachedKeys {
+		logger.Debugf(">>> DELETING KEY: %+v", k)
 		CacheService.DelByKey(k)
 		delete(cachedKeys, k)
 	}
+}
+
+func EmptyCacheByPrefix(prefix string) {
+	CacheService.DelByPrefix(prefix)
 }

@@ -79,9 +79,11 @@ func (oulm *onlineUserListRds) Get(key string, dst *groupUser.User) bool {
 	return ok
 }
 
+var cachePrefix string = "onlineUserPubSub"
+
 func (oulm *onlineUserListRds) Set(key string, value *groupUser.User) {
 	defer func() {
-		if err := oulm.list.Set(oulm.listCacheKey, &oulm.keys); err != nil {
+		if err := oulm.list.Set(cachePrefix, oulm.listCacheKey, &oulm.keys); err != nil {
 			logger.Errorf("failed to set keys: %+v to cache..., err: %+v", oulm.listCacheKey, err.Error())
 		}
 
@@ -92,14 +94,14 @@ func (oulm *onlineUserListRds) Set(key string, value *groupUser.User) {
 		logger.Errorf("failed to get key: %+v from cache...", oulm.listCacheKey)
 	}
 	oulm.keys = append(oulm.keys, key)
-	if err := oulm.list.Set(key, &user.CacheValue{Users: []*groupUser.User{value}}); err != nil {
+	if err := oulm.list.Set(cachePrefix, key, &user.CacheValue{Users: []*groupUser.User{value}}); err != nil {
 		logger.Errorf("failed to set key: %+v to cache...", key)
 	}
 }
 
 func (oulm *onlineUserListRds) Del(key string) {
 	defer func() {
-		if err := oulm.list.Set(oulm.listCacheKey, &oulm.keys); err != nil {
+		if err := oulm.list.Set(cachePrefix, oulm.listCacheKey, &oulm.keys); err != nil {
 			logger.Errorf("failed to set keys: %+v to cache..., err: %+v", oulm.listCacheKey, err.Error())
 		}
 

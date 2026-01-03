@@ -25,8 +25,6 @@ func cascadeFields({{.ModuleName}}s {{.StructName}}s) {
 	// cascade user
 }
 
-var cachedKeys = map[string]struct{}{}
-
 func (r *Repository) Get(queries map[string]interface{}) ([]*{{.StructName}}, *helper.Pagination) {
 	logger.Debugf("{{.ModuleName}} repo get")
 	defaultExactMatch := map[string]bool{
@@ -63,7 +61,6 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*{{.StructName}}, *h
 		// set cache
 		defer func() {
 			cache.CacheService.Set(cacheKey, &cacheValue{ {{.StructName}}s: records, Pagination: pagination})
-			cachedKeys[cacheKey] = struct{}{}
 		}()
 	}
 
@@ -80,7 +77,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*{{.StructName}}, *h
 }
 
 func (r *Repository) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, error) {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	for _, {{.ModuleName}} := range {{.ModuleName}}s {
 		logger.Debugf("{{.ModuleName}} repo add: %+v", {{.ModuleName}})
 	}
@@ -98,7 +95,7 @@ func (r *Repository) Create({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructNa
 }
 
 func (r *Repository) Update({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructName}}, error) {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	logger.Debugf("{{.ModuleName}} repo update")
 	database.SetIgnoredCols("search")
 	defer database.SetIgnoredCols()
@@ -114,7 +111,7 @@ func (r *Repository) Update({{.ModuleName}}s []*{{.StructName}}) ([]*{{.StructNa
 }
 
 func (r *Repository) Delete(ids []string) error {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	logger.Debugf("{{.ModuleName}} repo delete")
 	err := r.db.Delete(ids)
 	if err != nil {

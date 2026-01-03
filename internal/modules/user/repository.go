@@ -76,8 +76,6 @@ func cascadeFields(users groupUser.Users) {
 	}
 }
 
-var cachedKeys = map[string]struct{}{}
-
 func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *helper.Pagination) {
 	logger.Debugf("user repo get")
 	defaultExactMatch := map[string]bool{
@@ -103,6 +101,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 			cacheKey string = cache.GetCacheKey(tableName, queries)
 			cacheVal        = CacheValue{}
 		)
+
 		// get cache
 		isCached := cache.CacheService.Get(cacheKey, &cacheVal)
 		if isCached {
@@ -113,8 +112,7 @@ func (r *Repository) Get(queries map[string]interface{}) ([]*groupUser.User, *he
 
 		// set cache
 		defer func() {
-			cache.CacheService.Set(cacheKey, &CacheValue{Users: records, Pagination: pagination})
-			cachedKeys[cacheKey] = struct{}{}
+			cache.CacheService.Set(tableName, cacheKey, &CacheValue{Users: records, Pagination: pagination})
 		}()
 	}
 
@@ -146,7 +144,7 @@ func (r *Repository) GetByRawSql(sqlStmt string, args ...interface{}) []*groupUs
 }
 
 func (r *Repository) Create(users []*groupUser.User) ([]*groupUser.User, error) {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	logger.Debugf("user repo create")
 	*database.IgnrCols = append(*database.IgnrCols, "search")
 	database.SetIgnoredCols(*database.IgnrCols...)
@@ -163,7 +161,7 @@ func (r *Repository) Create(users []*groupUser.User) ([]*groupUser.User, error) 
 }
 
 func (r *Repository) Update(users []*groupUser.User) ([]*groupUser.User, error) {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	logger.Debugf("user repo update")
 	*database.IgnrCols = append(*database.IgnrCols, "search")
 	database.SetIgnoredCols(*database.IgnrCols...)
@@ -180,7 +178,7 @@ func (r *Repository) Update(users []*groupUser.User) ([]*groupUser.User, error) 
 }
 
 func (r *Repository) Delete(ids []string) error {
-	defer cache.EmptyCacheKeyMap(cachedKeys)
+	defer cache.EmptyCacheByPrefix(tableName)
 	logger.Debugf("user repo delete")
 	err := r.db.Delete(ids)
 	if err != nil {
