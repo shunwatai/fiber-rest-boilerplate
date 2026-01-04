@@ -125,7 +125,7 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 	fctx := &helper.FiberCtx{Fctx: ctx}
 	id := fctx.Fctx.Params("id")
 	paramsMap := map[string]interface{}{"id": id}
-	results, err := c.service.GetById(paramsMap)
+	results, pagination, err := c.service.GetById(paramsMap)
 	sanitise(results)
 
 	if err != nil {
@@ -136,7 +136,8 @@ func (c *Controller) GetById(ctx *fiber.Ctx) error {
 		)
 	}
 	respCode = fiber.StatusOK
-	return fctx.JsonResponse(respCode, map[string]interface{}{"data": results[0]})
+
+	return fctx.JsonResponse(respCode, map[string]interface{}{"data": results[0], "pagination": pagination})
 }
 
 func (c *Controller) Create(ctx *fiber.Ctx) error {
@@ -170,7 +171,7 @@ func (c *Controller) Create(ctx *fiber.Ctx) error {
 		id := uDto.GetId()
 		user := new(groupUser.User)
 		if len(id) > 0 { // handle json with "id" for update
-			existingUser, err := c.service.GetById(map[string]interface{}{"id": id})
+			existingUser, _, err := c.service.GetById(map[string]interface{}{"id": id})
 			if err != nil {
 				return fctx.JsonResponse(
 					fiber.StatusUnprocessableEntity,

@@ -6,6 +6,7 @@ import (
 	"golang-api-starter/internal/helper"
 	logger "golang-api-starter/internal/helper/logger/zap_log"
 	"golang-api-starter/internal/helper/utils"
+	"slices"
 
 	"golang.org/x/exp/maps"
 )
@@ -58,13 +59,17 @@ func cascadeFields(groupUsers GroupUsers) {
 	)
 	// get all userIds & groupIds
 	for _, groupUser := range groupUsers {
-		userIds = append(userIds, groupUser.GetUserId())
-		groupIds = append(groupIds, groupUser.GetGroupId())
+		if !slices.Contains(userIds, groupUser.GetUserId()) {
+			userIds = append(userIds, groupUser.GetUserId())
+		}
+		if !slices.Contains(groupIds, groupUser.GetGroupId()) {
+			groupIds = append(groupIds, groupUser.GetGroupId())
+		}
 	}
 
 	if len(userIds) > 0 {
 		// get user by userIds
-		condition := database.GetIdsMapCondition(utils.ToPtr("user_id"), userIds)
+		condition := database.GetIdsMapCondition(utils.ToPtr("id"), userIds)
 		users, _ := Repo.UserRepo.Get(condition)
 		// get the map[userId]User
 		userMap := Repo.UserRepo.GetIdMap(users)
@@ -79,7 +84,7 @@ func cascadeFields(groupUsers GroupUsers) {
 
 	if len(groupIds) > 0 {
 		// get group by groupIds
-		condition := database.GetIdsMapCondition(utils.ToPtr("group_id"), groupIds)
+		condition := database.GetIdsMapCondition(utils.ToPtr("id"), groupIds)
 		groups, _ := Repo.GroupRepo.Get(condition)
 		// get the map[groupId]group
 		groupMap := Repo.GroupRepo.GetIdMap(groups)
@@ -180,6 +185,19 @@ func (r *Repository) Delete(ids []string) error {
 	defer cache.EmptyCacheByPrefix(tableName)
 	logger.Debugf("groupUser repo delete")
 	err := r.db.Delete(ids)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteExistingByGroupId remove related records by groupId in DB
+// for insert updated group_user records
+func (r *Repository) DeleteExistingByGroupId(groupId string) error {
+	defer cache.EmptyCacheByPrefix(tableName)
+	logger.Debugf("groupUser repo delete existing by groupId")
+	_, err := r.db.RawExec("DELETE FROM group_users WHERE group_id=$1;", groupId)
 	if err != nil {
 		return err
 	}

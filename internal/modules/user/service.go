@@ -94,15 +94,16 @@ func (s *Service) Get(queries map[string]interface{}) ([]*groupUser.User, *helpe
 	return users, pagination
 }
 
-func (s *Service) GetById(queries map[string]interface{}) ([]*groupUser.User, error) {
+func (s *Service) GetById(queries map[string]interface{}) ([]*groupUser.User, *helper.Pagination, error) {
 	logger.Debugf("user service getById\n")
 
-	records, _ := s.repo.Get(queries)
+	records, pagination := s.repo.Get(queries)
 	cascadeFields(records)
 	if len(records) == 0 {
-		return nil, fmt.Errorf("%s with id: %s not found", tableName, queries["id"])
+		return nil, nil, fmt.Errorf("%s with id: %s not found", tableName, queries["id"])
 	}
-	return records, nil
+
+	return records, pagination, nil
 }
 
 func (s *Service) Create(users []*groupUser.User) ([]*groupUser.User, *helper.HttpErr) {

@@ -32,18 +32,19 @@ func main() {
 		api.Start()
 	}
 
-	if os.Args[1] == "migrate-up" || os.Args[1] == "migrate-down" { // run db migration
+	switch os.Args[1] {
+	case "migrate-up", "migrate-down": // run db migration
 		fmt.Printf("db migrate\n")
 		if len(os.Args) != 3 {
 			logger.Errorf("please provide the target db name for 2nd arg.")
 			logger.Fatalf("e.g. go run main.go migrate-[up/down] [postgres/mariadb/sqlite/mongodb]")
 		}
 		dbmigrate.DbMigrate(os.Args[1], os.Args[2])
-	} else if os.Args[1] == "generate" { // run new module generation
+	case "generate": // run new module generation
 		gen.GenerateNewModule()
-	} else if os.Args[1] == "run-rbmq-worker" { // run rabbitmq worker
+	case "run-rbmq-worker": // run rabbitmq worker
 		server.StartQueueWorker()
-	} else {
+	default:
 		fmt.Printf("do nothing...\n")
 	}
 }

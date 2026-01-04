@@ -122,9 +122,9 @@ func (f *Fiber) LoadCachingService() {
 	cache.PubSubService = cache.NewPubSubService()
 
 	// clear cache on each hot reload in non-prod environments
-	if cfg.ServerConf.Env != "prod" {
-		cache.CacheService.FlushDb()
-	}
+	// if cfg.ServerConf.Env != "prod" {
+	cache.CacheService.FlushDb()
+	// }
 }
 
 var skipJwtCheckRoutes = []string{
